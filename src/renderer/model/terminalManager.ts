@@ -4,6 +4,13 @@ import { WebglAddon } from '@xterm/addon-webgl'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import '@xterm/xterm/css/xterm.css'
 
+type TitleCallback = (paneId: string, title: string) => void
+let onTitleChange: TitleCallback | null = null
+
+export function setTitleChangeCallback(cb: TitleCallback): void {
+  onTitleChange = cb
+}
+
 interface ManagedTerminal {
   term: Terminal
   fit: FitAddon
@@ -58,6 +65,10 @@ export function createTerminal(paneId: string): Terminal {
 
   term.onResize(({ cols, rows }) => {
     window.arcnext.pty.resize(paneId, cols, rows)
+  })
+
+  term.onTitleChange((title) => {
+    onTitleChange?.(paneId, title)
   })
 
   terminals.set(paneId, { term, fit, removeDataListener, removeExitListener })

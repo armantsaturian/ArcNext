@@ -8,15 +8,163 @@ html, body, #root, #app {
   height: 100%;
   overflow: hidden;
   background: #1a1a2e;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #e0e0e0;
 }
 
 #app {
   display: flex;
-  flex-direction: column;
-  padding-top: 38px;
-  -webkit-app-region: drag;
+  flex-direction: row;
 }
 
+/* ── Sidebar ── */
+.sidebar {
+  width: 220px;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  background: #16162a;
+  border-right: 1px solid #2a2a4a;
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+.sidebar-header {
+  height: 52px;
+  flex-shrink: 0;
+  /* space for traffic lights */
+}
+
+.sidebar-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px 8px;
+  -webkit-app-region: no-drag;
+}
+
+.sidebar-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-list::-webkit-scrollbar-thumb {
+  background: #3a3a5e;
+  border-radius: 2px;
+}
+
+.sidebar-footer {
+  padding: 8px;
+  border-top: 1px solid #2a2a4a;
+  -webkit-app-region: no-drag;
+}
+
+.sidebar-add {
+  width: 100%;
+  padding: 6px 12px;
+  background: none;
+  border: 1px dashed #3a3a5e;
+  border-radius: 8px;
+  color: #888;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.sidebar-add:hover {
+  border-color: #74c0fc;
+  color: #74c0fc;
+}
+
+/* ── Workspace rows ── */
+.ws-row {
+  position: relative;
+  padding: 8px 10px;
+  margin-bottom: 2px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.ws-row:hover {
+  background: #1e1e3a;
+}
+
+.ws-row.active {
+  background: #22223e;
+}
+
+.ws-row .ws-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  background: none;
+  border: none;
+  color: #555;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.15s;
+}
+
+.ws-row:hover .ws-close {
+  opacity: 1;
+}
+
+.ws-row .ws-close:hover {
+  background: #ff6b6b33;
+  color: #ff6b6b;
+}
+
+/* Single-pane workspace */
+.ws-single {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ws-icon {
+  font-size: 10px;
+  color: #74c0fc;
+}
+
+.ws-title {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Multi-pane workspace — concatenated pills */
+.ws-multi {
+  display: flex;
+  gap: 3px;
+  overflow: hidden;
+}
+
+.ws-pill {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  background: #2a2a4a;
+  border-radius: 6px;
+  font-size: 11px;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.ws-pill.pill-active {
+  background: #3a3a6a;
+}
+
+/* ── Workspace content area ── */
 #workspace {
   flex: 1;
   display: flex;
@@ -24,7 +172,7 @@ html, body, #root, #app {
   -webkit-app-region: no-drag;
 }
 
-/* Split layout */
+/* ── Split layout ── */
 .split-container {
   display: flex;
   flex: 1;
@@ -46,7 +194,6 @@ html, body, #root, #app {
   min-height: 0;
 }
 
-/* Resize divider */
 .split-divider {
   flex-shrink: 0;
   background: #2a2a4a;
@@ -67,7 +214,7 @@ html, body, #root, #app {
   cursor: row-resize;
 }
 
-/* Terminal pane */
+/* ── Terminal pane ── */
 .terminal-pane {
   flex: 1;
   overflow: hidden;

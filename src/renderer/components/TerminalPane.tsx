@@ -8,9 +8,9 @@ interface Props {
 
 export default function TerminalPane({ paneId }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const activePaneId = usePaneStore((s) => s.activePaneId)
-  const setActive = usePaneStore((s) => s.setActive)
-  const isActive = activePaneId === paneId
+  const ws = usePaneStore((s) => s.workspaces.find((w) => w.id === s.activeWorkspaceId))
+  const setActive = usePaneStore((s) => s.setActivePaneInWorkspace)
+  const isActive = ws?.activePaneId === paneId
 
   // Attach terminal DOM to this container on mount
   useEffect(() => {
