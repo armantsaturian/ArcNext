@@ -1,0 +1,30 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root, #app {
+  height: 100%;
+  overflow: hidden;
+  background: #1a1a2e;
+}
+
+/* Drag region for titlebar */
+#app {
+  display: flex;
+  flex-direction: column;
+  padding-top: 38px; /* space for traffic lights */
+  -webkit-app-region: drag;
+}
+
+#terminal-container {
+  flex: 1;
+  -webkit-app-region: no-drag;
+}
+
+/* xterm overrides */
+.xterm {
+  height: 100%;
+  padding: 8px;
+}
