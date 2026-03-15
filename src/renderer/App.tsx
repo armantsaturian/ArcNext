@@ -44,6 +44,7 @@ export default function App() {
     const handler = (e: KeyboardEvent) => {
       const meta = e.metaKey
       const alt = e.altKey
+      const key = e.key.length === 1 ? e.key.toLowerCase() : e.key
 
       // Opt+Cmd+Arrow — navigate panes / cross workspace at boundary
       if (meta && alt && e.key in ARROW_TO_DIR) {
@@ -98,31 +99,31 @@ export default function App() {
       }
 
       // Cmd+B — toggle sidebar
-      if (meta && !e.shiftKey && !alt && e.key === 'b') {
+      if (meta && !e.shiftKey && !alt && key === 'b') {
         e.preventDefault()
         toggleSidebar()
         return
       }
       // Cmd+D — split right
-      if (meta && !e.shiftKey && !alt && e.key === 'd') {
+      if (meta && !e.shiftKey && !alt && key === 'd') {
         e.preventDefault()
         splitActive('horizontal')
         return
       }
       // Cmd+Shift+D — split down
-      if (meta && e.shiftKey && !alt && e.key === 'D') {
+      if (meta && e.shiftKey && !alt && key === 'd') {
         e.preventDefault()
         splitActive('vertical')
         return
       }
       // Cmd+W — close pane
-      if (meta && !e.shiftKey && !alt && e.key === 'w') {
+      if (meta && !e.shiftKey && !alt && key === 'w') {
         e.preventDefault()
         if (ws) closePane(ws.activePaneId)
         return
       }
       // Cmd+T — new workspace
-      if (meta && !alt && e.key === 't') {
+      if (meta && !alt && key === 't') {
         e.preventDefault()
         addWorkspace()
         return
