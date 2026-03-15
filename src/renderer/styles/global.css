@@ -265,6 +265,11 @@ html, body, #root, #app {
   white-space: nowrap;
 }
 
+.ws-row:has(.ws-multi) {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
 /* Multi-pane workspace — concatenated pills */
 .ws-multi {
   display: flex;
@@ -276,10 +281,10 @@ html, body, #root, #app {
   position: relative;
   flex: 1;
   min-width: 0;
-  padding: 4px 8px;
+  padding: 5px 8px;
   background: #2a2a2a;
   border-radius: 6px;
-  font-size: 11px;
+  font-size: 12px;
   text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
