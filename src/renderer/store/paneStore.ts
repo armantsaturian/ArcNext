@@ -39,6 +39,7 @@ interface PaneStore {
   removeWorkspace: (id: string) => void
   switchWorkspace: (id: string) => void
   mergeWorkspaces: (targetId: string, sourceId: string, direction: Direction) => void
+  separateWorkspace: (workspaceId: string) => void
 
   // Pane actions (on active workspace)
   splitActive: (direction: Direction) => void
@@ -133,6 +134,41 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
         .map((w) => (w.id === targetId ? updatedTarget : w))
         .filter((w) => w.id !== sourceId),
       activeWorkspaceId: targetId
+    })
+  },
+
+  separateWorkspace: (workspaceId) => {
+    const { workspaces } = get()
+    const ws = workspaces.find((w) => w.id === workspaceId)
+    if (!ws || ws.tree.type !== 'split') return
+
+    const firstTree = ws.tree.first
+    const secondTree = ws.tree.second
+
+    const firstPaneIds = allPaneIds(firstTree)
+    const updatedSource: Workspace = {
+      ...ws,
+      tree: firstTree,
+      activePaneId: firstPaneIds[0]
+    }
+
+    const newWsId = genWorkspaceId()
+    const secondPaneIds = allPaneIds(secondTree)
+    const newWorkspace: Workspace = {
+      id: newWsId,
+      name: `Workspace ${newWsId.split('-')[1]}`,
+      tree: secondTree,
+      activePaneId: secondPaneIds[0]
+    }
+
+    const wsIndex = workspaces.findIndex((w) => w.id === workspaceId)
+    const newWorkspaces = [...workspaces]
+    newWorkspaces[wsIndex] = updatedSource
+    newWorkspaces.splice(wsIndex + 1, 0, newWorkspace)
+
+    set({
+      workspaces: newWorkspaces,
+      activeWorkspaceId: workspaceId
     })
   },
 

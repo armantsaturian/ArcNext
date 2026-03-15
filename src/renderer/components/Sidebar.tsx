@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { usePaneStore, Workspace, PaneInfo } from '../store/paneStore'
 import { allPaneIds } from '../model/splitTree'
 
@@ -10,9 +10,25 @@ export default function Sidebar() {
   const addWorkspace = usePaneStore((s) => s.addWorkspace)
   const removeWorkspace = usePaneStore((s) => s.removeWorkspace)
   const mergeWorkspaces = usePaneStore((s) => s.mergeWorkspaces)
+  const separateWorkspace = usePaneStore((s) => s.separateWorkspace)
 
   const [dragSourceId, setDragSourceId] = useState<string | null>(null)
   const [dragOverId, setDragOverId] = useState<string | null>(null)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; workspaceId: string } | null>(null)
+
+  useEffect(() => {
+    if (!contextMenu) return
+    const dismiss = (e: MouseEvent | KeyboardEvent) => {
+      if (e instanceof KeyboardEvent && e.key !== 'Escape') return
+      setContextMenu(null)
+    }
+    document.addEventListener('click', dismiss)
+    document.addEventListener('keydown', dismiss)
+    return () => {
+      document.removeEventListener('click', dismiss)
+      document.removeEventListener('keydown', dismiss)
+    }
+  }, [contextMenu])
 
   return (
     <div className="sidebar">
@@ -51,9 +67,31 @@ export default function Sidebar() {
               setDragSourceId(null)
               setDragOverId(null)
             }}
+            onContextMenu={(e) => {
+              if (ws.tree.type !== 'split') return
+              e.preventDefault()
+              setContextMenu({ x: e.clientX, y: e.clientY, workspaceId: ws.id })
+            }}
           />
         ))}
       </div>
+      {contextMenu && (
+        <div
+          className="ctx-menu"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            className="ctx-menu-item"
+            onClick={() => {
+              separateWorkspace(contextMenu.workspaceId)
+              setContextMenu(null)
+            }}
+          >
+            Separate
+          </button>
+        </div>
+      )}
       <div className="sidebar-footer">
         <button className="sidebar-add" onClick={addWorkspace}>
           + New Workspace
@@ -76,11 +114,13 @@ interface WorkspaceRowProps {
   onDragLeave: (e: React.DragEvent) => void
   onDrop: (e: React.DragEvent) => void
   onDragEnd: () => void
+  onContextMenu: (e: React.MouseEvent) => void
 }
 
 function WorkspaceRow({
   workspace, panes, isActive, isDragging, isDropTarget,
-  onSelect, onClose, onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd
+  onSelect, onClose, onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd,
+  onContextMenu
 }: WorkspaceRowProps) {
   const paneIds = allPaneIds(workspace.tree)
   const paneInfos = paneIds.map((id) => panes.get(id)).filter(Boolean) as PaneInfo[]
@@ -106,6 +146,7 @@ function WorkspaceRow({
       onDragLeave={onDragLeave}
       onDrop={onDrop}
       onDragEnd={onDragEnd}
+      onContextMenu={onContextMenu}
     >
       {isSinglePane ? (
         <div className="ws-single">
