@@ -266,14 +266,13 @@ html, body, #root, #app {
 }
 
 .ws-row:has(.ws-multi) {
-  padding-top: 4px;
-  padding-bottom: 4px;
+  padding: 4px;
 }
 
 /* Multi-pane workspace — concatenated pills */
 .ws-multi {
   display: flex;
-  gap: 3px;
+  gap: 4px;
   overflow: hidden;
 }
 
@@ -283,7 +282,7 @@ html, body, #root, #app {
   min-width: 0;
   padding: 5px 8px;
   background: #2a2a2a;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 12px;
   text-align: center;
   overflow: hidden;
@@ -402,6 +401,9 @@ html, body, #root, #app {
   display: flex;
   overflow: hidden;
   -webkit-app-region: no-drag;
+  margin: 6px 6px 6px 0;
+  border: 1px solid #2a2a2a;
+  border-radius: 10px;
 }
 
 /* ── Workspace layers (all rendered, only active visible) ── */
