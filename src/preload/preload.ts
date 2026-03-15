@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
+import { contextBridge, ipcRenderer, IpcRendererEvent, webUtils } from 'electron'
 
 type Callback = (...args: unknown[]) => void
 
@@ -30,4 +30,7 @@ const api = {
   }
 }
 
-contextBridge.exposeInMainWorld('arcnext', api)
+contextBridge.exposeInMainWorld('arcnext', {
+  ...api,
+  getPathForFile: (file: File) => webUtils.getPathForFile(file)
+})

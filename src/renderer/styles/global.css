@@ -264,6 +264,11 @@ html, body, #root, #app {
   outline-offset: -1px;
 }
 
+.terminal-pane.drag-over {
+  outline: 2px solid #74c0fc;
+  outline-offset: -2px;
+}
+
 .xterm {
   height: 100%;
   padding: 4px;

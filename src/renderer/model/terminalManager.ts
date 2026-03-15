@@ -163,7 +163,7 @@ export function destroyTerminal(paneId: string): void {
   // Clean up host div from parking to prevent DOM leaks
   const host = managed.term.element?.parentElement
   if (host) host.remove()
-  // Dispose WebGL addon before terminal
+  // Dispose addons before terminal
   if (managed.webgl) managed.webgl.dispose()
   window.arcnext.pty.kill(paneId)
   managed.term.dispose()

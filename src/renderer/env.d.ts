@@ -8,6 +8,7 @@ interface ArcNextAPI {
     onExit(callback: (paneId: string, code: number) => void): () => void
     onTitle(callback: (paneId: string, title: string) => void): () => void
   }
+  getPathForFile(file: File): string
 }
 
 declare global {
