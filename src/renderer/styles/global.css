@@ -417,7 +417,7 @@ body,
     display: flex;
     overflow: hidden;
     -webkit-app-region: no-drag;
-    margin: 6px 6px 6px 0;
+    margin: 6px 10px 10px 0;
     border-radius: 10px;
 }
 
