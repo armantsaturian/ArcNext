@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { usePaneStore } from '../store/paneStore'
-import { attachTerminal, fitTerminal, focusTerminal } from '../model/terminalManager'
+import { attachTerminal, detachTerminal, fitTerminal, focusTerminal } from '../model/terminalManager'
 
 interface Props {
   paneId: string
@@ -12,10 +12,11 @@ export default function TerminalPane({ paneId }: Props) {
   const setActive = usePaneStore((s) => s.setActivePaneInWorkspace)
   const isActive = ws?.activePaneId === paneId
 
-  // Attach terminal DOM to this container on mount
+  // Attach terminal DOM to this container on mount, park on unmount
   useEffect(() => {
     if (!containerRef.current) return
     attachTerminal(paneId, containerRef.current)
+    return () => detachTerminal(paneId)
   }, [paneId])
 
   // Focus when active

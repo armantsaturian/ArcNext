@@ -14,11 +14,17 @@ export function setTitleChangeCallback(cb: TitleCallback): void {
 interface ManagedTerminal {
   term: Terminal
   fit: FitAddon
+  webgl: WebglAddon | null
   removeDataListener: () => void
   removeExitListener: () => void
 }
 
 const terminals = new Map<string, ManagedTerminal>()
+
+const parkingDiv = document.createElement('div')
+parkingDiv.id = 'terminal-parking'
+parkingDiv.style.cssText = 'visibility:hidden;position:absolute;width:0;height:0;overflow:hidden'
+document.body.appendChild(parkingDiv)
 
 export function createTerminal(paneId: string): Terminal {
   if (terminals.has(paneId)) return terminals.get(paneId)!.term
@@ -27,11 +33,11 @@ export function createTerminal(paneId: string): Terminal {
     fontSize: 14,
     fontFamily: "'SF Mono', 'Fira Code', 'JetBrains Mono', monospace",
     theme: {
-      background: '#1a1a2e',
+      background: '#161616',
       foreground: '#e0e0e0',
       cursor: '#e0e0e0',
-      selectionBackground: '#3a3a5e',
-      black: '#1a1a2e',
+      selectionBackground: '#3a3a3a',
+      black: '#161616',
       red: '#ff6b6b',
       green: '#51cf66',
       yellow: '#ffd43b',
@@ -47,6 +53,22 @@ export function createTerminal(paneId: string): Terminal {
   const fit = new FitAddon()
   term.loadAddon(fit)
   term.loadAddon(new WebLinksAddon())
+
+  // Open terminal into a parked host div immediately so DOM element always exists
+  const host = document.createElement('div')
+  host.style.cssText = 'width:100%;height:100%'
+  parkingDiv.appendChild(host)
+  term.open(host)
+
+  // Load WebGL once — it survives re-parenting because we never detach from the document
+  let webgl: WebglAddon | null = null
+  try {
+    const addon = new WebglAddon()
+    term.loadAddon(addon)
+    webgl = addon
+  } catch {
+    // WebGL not available, canvas fallback
+  }
 
   // PTY connection
   window.arcnext.pty.create(paneId)
@@ -71,7 +93,7 @@ export function createTerminal(paneId: string): Terminal {
     onTitleChange?.(paneId, title)
   })
 
-  terminals.set(paneId, { term, fit, removeDataListener, removeExitListener })
+  terminals.set(paneId, { term, fit, webgl, removeDataListener, removeExitListener })
   return term
 }
 
@@ -80,26 +102,27 @@ export function attachTerminal(paneId: string, container: HTMLElement): void {
   const managed = terminals.get(paneId)
   if (!managed) return
 
-  const { term, fit } = managed
+  const host = managed.term.element?.parentElement
+  if (!host) return
 
-  // Clear any stale terminal DOM from this container before attaching
+  // Clear any stale DOM from this container before attaching
   while (container.firstChild) {
     container.removeChild(container.firstChild)
   }
 
-  // Only call open() once — if already opened, just re-parent the DOM element
-  if (term.element) {
-    container.appendChild(term.element)
-  } else {
-    term.open(container)
-    try {
-      term.loadAddon(new WebglAddon())
-    } catch {
-      // WebGL not available, canvas fallback
-    }
-  }
+  // Move host div from parking (or previous container) into new container
+  container.appendChild(host)
+  managed.fit.fit()
+}
 
-  fit.fit()
+/** Detach terminal back to parking div. Call this when the component unmounts. */
+export function detachTerminal(paneId: string): void {
+  const managed = terminals.get(paneId)
+  if (!managed) return
+  const host = managed.term.element?.parentElement
+  if (host && host.parentElement !== parkingDiv) {
+    parkingDiv.appendChild(host)
+  }
 }
 
 /** Refit the terminal to its container size */
@@ -123,6 +146,11 @@ export function destroyTerminal(paneId: string): void {
   if (!managed) return
   managed.removeDataListener()
   managed.removeExitListener()
+  // Clean up host div from parking to prevent DOM leaks
+  const host = managed.term.element?.parentElement
+  if (host) host.remove()
+  // Dispose WebGL addon before terminal
+  if (managed.webgl) managed.webgl.dispose()
   window.arcnext.pty.kill(paneId)
   managed.term.dispose()
   terminals.delete(paneId)
