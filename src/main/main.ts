@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { setupPTY, killAllPTY } from './pty'
 
@@ -22,6 +22,10 @@ function createWindow(): void {
   })
 
   setupPTY(mainWindow)
+
+  ipcMain.on('sidebar:traffic-lights', (_e, visible: boolean) => {
+    mainWindow?.setWindowButtonVisibility(visible)
+  })
 
   if (process.env.ELECTRON_RENDERER_URL) {
     mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL)

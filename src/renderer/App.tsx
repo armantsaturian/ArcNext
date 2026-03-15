@@ -21,6 +21,7 @@ export default function App() {
   const setPaneTitle = usePaneStore((s) => s.setPaneTitle)
   const switchWorkspace = usePaneStore((s) => s.switchWorkspace)
   const navigateDir = usePaneStore((s) => s.navigateDir)
+  const toggleSidebar = usePaneStore((s) => s.toggleSidebar)
   const workspaces = usePaneStore((s) => s.workspaces)
 
   // Prevent Electron's default file-drop navigation so per-component drop handlers work
@@ -96,6 +97,12 @@ export default function App() {
         return
       }
 
+      // Cmd+B — toggle sidebar
+      if (meta && !e.shiftKey && !alt && e.key === 'b') {
+        e.preventDefault()
+        toggleSidebar()
+        return
+      }
       // Cmd+D — split right
       if (meta && !e.shiftKey && !alt && e.key === 'd') {
         e.preventDefault()
@@ -131,7 +138,7 @@ export default function App() {
 
     window.addEventListener('keydown', handler, true)
     return () => window.removeEventListener('keydown', handler, true)
-  }, [splitActive, closePane, addWorkspace, switchWorkspace, navigateDir, ws, workspaces])
+  }, [splitActive, closePane, addWorkspace, switchWorkspace, navigateDir, toggleSidebar, ws, workspaces])
 
   return (
     <div id="app">

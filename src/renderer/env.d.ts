@@ -1,4 +1,7 @@
 interface ArcNextAPI {
+  sidebar: {
+    setTrafficLightsVisible(visible: boolean): void
+  }
   pty: {
     create(paneId: string, cwd?: string): void
     write(paneId: string, data: string): void

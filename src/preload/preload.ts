@@ -3,6 +3,10 @@ import { contextBridge, ipcRenderer, IpcRendererEvent, webUtils } from 'electron
 type Callback = (...args: unknown[]) => void
 
 const api = {
+  sidebar: {
+    setTrafficLightsVisible: (visible: boolean) =>
+      ipcRenderer.send('sidebar:traffic-lights', visible)
+  },
   pty: {
     create: (paneId: string, cwd?: string) =>
       ipcRenderer.send('pty:create', paneId, cwd),

@@ -27,6 +27,7 @@ export interface Workspace {
   name: string
   tree: SplitNode
   activePaneId: string
+  color?: string
 }
 
 interface PaneStore {
@@ -34,12 +35,19 @@ interface PaneStore {
   activeWorkspaceId: string
   panes: Map<string, PaneInfo>
 
+  // Sidebar UI
+  sidebarWidth: number
+  sidebarCollapsed: boolean
+  toggleSidebar: () => void
+  setSidebarWidth: (width: number) => void
+
   // Workspace actions
   addWorkspace: () => void
   removeWorkspace: (id: string) => void
   switchWorkspace: (id: string) => void
   mergeWorkspaces: (targetId: string, sourceId: string, direction: Direction) => void
   separateWorkspace: (workspaceId: string) => void
+  setWorkspaceColor: (id: string, color: string | undefined) => void
 
   // Pane actions (on active workspace)
   splitActive: (direction: Direction) => void
@@ -78,6 +86,11 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
   workspaces: [initial.workspace],
   activeWorkspaceId: initial.workspace.id,
   panes: new Map([[initial.pane.id, initial.pane]]),
+
+  sidebarWidth: 220,
+  sidebarCollapsed: false,
+  toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
+  setSidebarWidth: (width) => set({ sidebarWidth: Math.max(150, Math.min(400, width)) }),
 
   addWorkspace: () => {
     const { workspaces, panes } = get()
@@ -134,6 +147,13 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
         .map((w) => (w.id === targetId ? updatedTarget : w))
         .filter((w) => w.id !== sourceId),
       activeWorkspaceId: targetId
+    })
+  },
+
+  setWorkspaceColor: (id, color) => {
+    const { workspaces } = get()
+    set({
+      workspaces: workspaces.map((w) => w.id === id ? { ...w, color } : w)
     })
   },
 
