@@ -1,468 +1,476 @@
 * {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
-html, body, #root, #app {
-  height: 100%;
-  overflow: hidden;
-  background: #161616;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  color: #e0e0e0;
+html,
+body,
+#root,
+#app {
+    height: 100%;
+    overflow: hidden;
+    background: #161616;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: #e0e0e0;
 }
 
 #app {
-  display: flex;
-  flex-direction: row;
+    display: flex;
+    flex-direction: row;
 }
 
 /* ── Sidebar ── */
 .sidebar {
-  --sb-pad: 8px;
-  --sb-gap: 6px;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  background: #121212;
-  border-right: 1px solid #2a2a2a;
-  -webkit-app-region: drag;
-  user-select: none;
-  flex-shrink: 0;
-  overflow: hidden;
-  transition: width 0.2s ease;
+    --sb-pad: 8px;
+    --sb-gap: 6px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: #121212;
+    border-right: 1px solid #2a2a2a;
+    -webkit-app-region: drag;
+    user-select: none;
+    flex-shrink: 0;
+    overflow: hidden;
+    transition: width 0.2s ease;
 }
 
 .sidebar-header {
-  height: 52px;
-  flex-shrink: 0;
-  position: relative;
-  /* space for traffic lights */
+    height: 52px;
+    flex-shrink: 0;
+    position: relative;
+    /* space for traffic lights */
 }
 
 .sidebar-toggle {
-  position: absolute;
-  right: 8px;
-  top: 14px;
-  width: 24px;
-  height: 24px;
-  background: none;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  color: #888;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  -webkit-app-region: no-drag;
-  transition: all 0.15s;
+    position: absolute;
+    right: 8px;
+    top: 14px;
+    width: 24px;
+    height: 24px;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: #888;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-app-region: no-drag;
+    transition: all 0.15s;
 }
 
 .sidebar-toggle:hover {
-  background: #1e1e1e;
-  color: #e0e0e0;
-  border-color: #3a3a3a;
+    background: #1e1e1e;
+    color: #e0e0e0;
+    border-color: #3a3a3a;
 }
 
 /* ── Sidebar collapsed state ── */
 .sidebar.sidebar-collapsed .sidebar-list {
-  padding: var(--sb-pad);
-  gap: var(--sb-gap);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+    padding: var(--sb-pad);
+    gap: var(--sb-gap);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .sidebar.sidebar-collapsed .ws-row {
-  padding: var(--sb-gap);
-  display: flex;
-  justify-content: center;
-  border-left: none !important;
-  padding-left: var(--sb-gap) !important;
-  margin-bottom: 0;
+    padding: var(--sb-gap);
+    display: flex;
+    justify-content: center;
+    border-left: none !important;
+    padding-left: var(--sb-gap) !important;
+    margin-bottom: 0;
 }
 
 .sidebar.sidebar-collapsed .ws-close {
-  display: none;
+    display: none;
 }
 
 .sidebar.sidebar-collapsed .sidebar-header {
-  height: 36px;
+    height: 36px;
 }
 
 .sidebar.sidebar-collapsed .sidebar-toggle {
-  right: auto;
-  left: 50%;
-  transform: translateX(-50%);
-  top: var(--sb-pad);
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    top: var(--sb-pad);
 }
 
 .ws-collapsed-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  font-weight: 600;
-  color: #121212;
-  transition: transform 0.12s;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: #121212;
+    background: var(--ws-color, #74c0fc);
+    transition: transform 0.12s;
 }
 
 .ws-row:hover .ws-collapsed-icon {
-  transform: scale(1.08);
+    transform: scale(1.08);
 }
 
 .ws-row.active .ws-collapsed-icon {
-  outline: 2px solid rgba(255, 255, 255, 0.3);
-  outline-offset: 2px;
+    outline: 2px solid rgba(255, 255, 255, 0.3);
+    outline-offset: 2px;
 }
 
 /* ── Sidebar resize handle ── */
 .sidebar-resize-handle {
-  position: absolute;
-  top: 0;
-  right: -2px;
-  width: 5px;
-  height: 100%;
-  cursor: col-resize;
-  z-index: 10;
-  -webkit-app-region: no-drag;
+    position: absolute;
+    top: 0;
+    right: -2px;
+    width: 5px;
+    height: 100%;
+    cursor: col-resize;
+    z-index: 10;
+    -webkit-app-region: no-drag;
 }
 
 .sidebar-resize-handle:hover,
 .sidebar-resize-handle:active {
-  background: #74c0fc44;
+    background: #74c0fc44;
 }
 
 .sidebar-list {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 4px 8px;
-  -webkit-app-region: no-drag;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 4px 8px;
+    -webkit-app-region: no-drag;
 }
 
 .sidebar-list::-webkit-scrollbar {
-  width: 4px;
+    width: 4px;
 }
 
 .sidebar-list::-webkit-scrollbar-thumb {
-  background: #3a3a3a;
-  border-radius: 2px;
+    background: #3a3a3a;
+    border-radius: 2px;
 }
 
 .sidebar-footer {
-  padding: 8px;
-  border-top: 1px solid #2a2a2a;
-  -webkit-app-region: no-drag;
+    padding: 8px;
+    border-top: 1px solid #2a2a2a;
+    -webkit-app-region: no-drag;
 }
 
 .sidebar-add {
-  width: 100%;
-  padding: 6px 12px;
-  background: none;
-  border: 1px dashed #3a3a3a;
-  border-radius: 8px;
-  color: #888;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.15s;
+    width: 100%;
+    padding: 6px 12px;
+    background: none;
+    border: 1px dashed #3a3a3a;
+    border-radius: 8px;
+    color: #888;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
 }
 
 .sidebar-add:hover {
-  border-color: #74c0fc;
-  color: #74c0fc;
+    border-color: #74c0fc;
+    color: #74c0fc;
 }
 
 .sidebar.sidebar-collapsed .sidebar-footer {
-  padding: var(--sb-pad);
+    padding: var(--sb-pad);
 }
 
 .sidebar.sidebar-collapsed .sidebar-add {
-  padding: var(--sb-gap);
-  font-size: 16px;
-  border-radius: 50%;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+    padding: var(--sb-gap);
+    font-size: 16px;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* ── Workspace rows ── */
 .ws-row {
-  position: relative;
-  padding: 8px 10px;
-  margin-bottom: 2px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.15s;
+    position: relative;
+    padding: 8px 10px;
+    margin-bottom: 2px;
+    border-radius: 8px;
+    border-left: 3px solid var(--ws-color, transparent);
+    cursor: pointer;
+    transition: background 0.15s;
 }
 
 .ws-row:hover {
-  background: #1e1e1e;
+    background: #1e1e1e;
 }
 
 .ws-row.active {
-  background: #242424;
+    background: #242424;
 }
 
 .ws-row.ws-dragging {
-  opacity: 0.4;
+    opacity: 0.4;
 }
 
 .ws-row.ws-drop-target {
-  outline: 2px solid #74c0fc;
-  outline-offset: -2px;
-  background: #74c0fc15;
+    outline: 2px solid #74c0fc;
+    outline-offset: -2px;
+    background: #74c0fc15;
 }
 
 .ws-row .ws-close {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 20px;
-  height: 20px;
-  background: none;
-  border: none;
-  color: #555;
-  font-size: 14px;
-  line-height: 20px;
-  text-align: center;
-  border-radius: 4px;
-  cursor: pointer;
-  opacity: 0;
-  transition: all 0.15s;
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 20px;
+    height: 20px;
+    background: none;
+    border: none;
+    color: #555;
+    font-size: 14px;
+    line-height: 20px;
+    text-align: center;
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.15s;
 }
 
 .ws-row:hover .ws-close {
-  opacity: 1;
+    opacity: 1;
 }
 
 .ws-row .ws-close:hover {
-  background: #ff6b6b33;
-  color: #ff6b6b;
+    background: #ff6b6b33;
+    color: #ff6b6b;
 }
 
 /* Single-pane workspace */
 .ws-single {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .ws-icon {
-  font-size: 10px;
-  color: #74c0fc;
+    font-size: 10px;
+    color: var(--ws-color, #74c0fc);
 }
 
 .ws-title {
-  font-size: 13px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .ws-row:has(.ws-multi) {
-  padding: 4px;
+    padding: 4px 4px 4px 2px;
+    /* less left padding */
+    padding-left: 2px;
 }
 
 /* Multi-pane workspace — concatenated pills */
 .ws-multi {
-  display: flex;
-  gap: 4px;
-  overflow: hidden;
+    display: flex;
+    gap: 4px;
+    overflow: hidden;
 }
 
 .ws-pill {
-  position: relative;
-  flex: 1;
-  min-width: 0;
-  padding: 5px 8px;
-  background: #2a2a2a;
-  border-radius: 8px;
-  font-size: 12px;
-  text-align: center;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  transition: background 0.15s;
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    padding: 5px 8px;
+    background: #2a2a2a;
+    border-radius: 8px;
+    font-size: 12px;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: background 0.15s;
 }
 
 .ws-row.active .ws-pill {
-  padding-right: 20px;
+    padding-right: 20px;
 }
 
 .ws-pill.pill-active {
-  background: #3a3a3a;
+    background: #3a3a3a;
 }
 
 .pill-close {
-  position: absolute;
-  right: 2px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 16px;
-  height: 16px;
-  background: none;
-  border: none;
-  color: #555;
-  font-size: 11px;
-  line-height: 16px;
-  text-align: center;
-  border-radius: 3px;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.15s;
+    position: absolute;
+    right: 2px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    background: none;
+    border: none;
+    color: #555;
+    font-size: 11px;
+    line-height: 16px;
+    text-align: center;
+    border-radius: 3px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s;
 }
 
 .ws-pill:hover .pill-close {
-  opacity: 1;
+    opacity: 1;
 }
 
 .pill-close:hover {
-  background: #ff6b6b33;
-  color: #ff6b6b;
+    background: #ff6b6b33;
+    color: #ff6b6b;
 }
 
 /* ── Context menu ── */
 .ctx-menu {
-  position: fixed;
-  z-index: 100;
-  background: #1e1e1e;
-  border: 1px solid #3a3a3a;
-  border-radius: 6px;
-  padding: 4px;
-  min-width: 120px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    position: fixed;
+    z-index: 100;
+    background: #1e1e1e;
+    border: 1px solid #3a3a3a;
+    border-radius: 6px;
+    padding: 4px;
+    min-width: 120px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 .ctx-menu-item {
-  display: block;
-  width: 100%;
-  padding: 6px 12px;
-  background: none;
-  border: none;
-  color: #e0e0e0;
-  font-size: 13px;
-  text-align: left;
-  border-radius: 4px;
-  cursor: pointer;
+    display: block;
+    width: 100%;
+    padding: 6px 12px;
+    background: none;
+    border: none;
+    color: #e0e0e0;
+    font-size: 13px;
+    text-align: left;
+    border-radius: 4px;
+    cursor: pointer;
 }
 
 .ctx-menu-item:hover {
-  background: #74c0fc22;
-  color: #74c0fc;
+    background: #74c0fc22;
+    color: #74c0fc;
 }
 
 /* ── Color picker ── */
 .color-picker {
-  position: fixed;
-  z-index: 100;
-  display: flex;
-  flex-wrap: wrap;
-  width: 120px;
-  padding: 8px;
-  gap: 6px;
-  background: #1e1e1e;
-  border: 1px solid #3a3a3a;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    position: fixed;
+    z-index: 100;
+    display: flex;
+    flex-wrap: wrap;
+    width: 120px;
+    padding: 8px;
+    gap: 6px;
+    background: #1e1e1e;
+    border: 1px solid #3a3a3a;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 .color-swatch {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 2px solid transparent;
-  cursor: pointer;
-  transition: transform 0.12s;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.12s;
 }
 
 .color-swatch:not([style]) {
-  background: transparent;
-  border-color: #555;
+    background: transparent;
+    border-color: #555;
 }
 
 .color-swatch:hover {
-  transform: scale(1.2);
+    transform: scale(1.2);
 }
 
 .color-swatch.swatch-active {
-  border-color: #fff;
+    border-color: #fff;
 }
 
 /* ── Workspace content area ── */
 #workspace {
-  position: relative;
-  flex: 1;
-  display: flex;
-  overflow: hidden;
-  -webkit-app-region: no-drag;
-  margin: 6px 6px 6px 0;
-  border: 1px solid #2a2a2a;
-  border-radius: 10px;
+    position: relative;
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    -webkit-app-region: no-drag;
+    margin: 6px 6px 6px 0;
+    border: 1px solid #2a2a2a;
+    border-radius: 10px;
 }
 
 /* ── Workspace layers (all rendered, only active visible) ── */
 .ws-layer {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  visibility: hidden;
-  pointer-events: none;
+    position: absolute;
+    inset: 0;
+    display: flex;
+    visibility: hidden;
+    pointer-events: none;
 }
+
 .ws-layer.active {
-  visibility: visible;
-  pointer-events: auto;
+    visibility: visible;
+    pointer-events: auto;
 }
 
 /* ── Split layout ── */
 .split-root {
-  position: relative;
-  flex: 1;
-  overflow: hidden;
+    position: relative;
+    flex: 1;
+    overflow: hidden;
 }
 
 .split-divider {
-  background: #2a2a2a;
-  transition: background 0.15s;
-  z-index: 1;
+    background: #2a2a2a;
+    transition: background 0.15s;
+    z-index: 1;
 }
 
 .split-divider:hover {
-  background: #74c0fc;
+    background: #74c0fc;
 }
 
 .split-divider.horizontal {
-  cursor: col-resize;
+    cursor: col-resize;
 }
 
 .split-divider.vertical {
-  cursor: row-resize;
+    cursor: row-resize;
 }
 
 /* ── Terminal pane ── */
 .terminal-pane {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
 }
 
 .terminal-pane.active {
-  outline: 1px solid #3a3a3a;
-  outline-offset: -1px;
+    outline: 1px solid #3a3a3a;
+    outline-offset: -1px;
 }
 
 .terminal-pane.drag-over {
-  outline: 2px solid #74c0fc;
-  outline-offset: -2px;
+    outline: 2px solid #74c0fc;
+    outline-offset: -2px;
 }
 
 .xterm {
-  height: 100%;
-  padding: 4px;
+    height: 100%;
+    padding: 4px;
 }

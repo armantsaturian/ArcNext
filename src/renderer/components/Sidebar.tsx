@@ -253,10 +253,7 @@ function WorkspaceRow({
   return (
     <div
       className={className}
-      style={collapsed ? undefined : {
-        borderLeft: `3px solid ${wsColor || 'transparent'}`,
-        paddingLeft: wsColor ? 7 : 10
-      }}
+      style={wsColor ? { '--ws-color': wsColor } as React.CSSProperties : undefined}
       onClick={onSelect}
       onDoubleClick={onDoubleClick}
       draggable
@@ -272,12 +269,12 @@ function WorkspaceRow({
       title={collapsed ? title : undefined}
     >
       {collapsed ? (
-        <div className="ws-collapsed-icon" style={{ background: wsColor || '#74c0fc' }}>
+        <div className="ws-collapsed-icon">
           {initial}
         </div>
       ) : isSinglePane ? (
         <div className="ws-single">
-          <span className="ws-icon" style={wsColor ? { color: wsColor } : undefined}>&#9632;</span>
+          <span className="ws-icon">&#9632;</span>
           <span className="ws-title">{formatTitle(paneInfos[0].title)}</span>
         </div>
       ) : (
