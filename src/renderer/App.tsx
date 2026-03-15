@@ -125,7 +125,7 @@ export default function App() {
     <div id="app">
       <Sidebar />
       <div id="workspace">
-        {ws && <SplitView node={ws.tree} />}
+        {ws && <SplitView key={ws.id} node={ws.tree} />}
       </div>
     </div>
   )

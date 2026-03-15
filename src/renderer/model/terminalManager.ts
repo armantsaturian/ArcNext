@@ -82,6 +82,11 @@ export function attachTerminal(paneId: string, container: HTMLElement): void {
 
   const { term, fit } = managed
 
+  // Clear any stale terminal DOM from this container before attaching
+  while (container.firstChild) {
+    container.removeChild(container.firstChild)
+  }
+
   // Only call open() once — if already opened, just re-parent the DOM element
   if (term.element) {
     container.appendChild(term.element)
