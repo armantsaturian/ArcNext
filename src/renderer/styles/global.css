@@ -419,6 +419,7 @@ body,
     -webkit-app-region: no-drag;
     margin: 6px 10px 10px 0;
     border-radius: 10px;
+    background: #161616;
 }
 
 /* ── Workspace layers (all rendered, only active visible) ── */

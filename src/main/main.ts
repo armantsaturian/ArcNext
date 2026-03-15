@@ -12,7 +12,7 @@ function createWindow(): void {
     minHeight: 400,
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 16, y: 16 },
-    backgroundColor: '#161616',
+    backgroundColor: '#121212',
     webPreferences: {
       preload: join(__dirname, '../preload/preload.js'),
       nodeIntegration: false,
