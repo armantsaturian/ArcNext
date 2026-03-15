@@ -1,9 +1,20 @@
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import react from '@vitejs/plugin-react'
+import { copyFileSync, mkdirSync } from 'fs'
+
+function copyShellIntegration() {
+  return {
+    name: 'copy-shell-integration',
+    writeBundle() {
+      mkdirSync('out/main/shell-integration', { recursive: true })
+      copyFileSync('src/main/shell-integration/zshrc', 'out/main/shell-integration/.zshrc')
+    }
+  }
+}
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin()],
+    plugins: [externalizeDepsPlugin(), copyShellIntegration()],
     build: {
       outDir: 'out/main',
       rollupOptions: {

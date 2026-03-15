@@ -7,6 +7,10 @@ const api = {
     setTrafficLightsVisible: (visible: boolean) =>
       ipcRenderer.send('sidebar:traffic-lights', visible)
   },
+  dirHistory: {
+    visit: (path: string) => ipcRenderer.invoke('dirHistory:visit', path),
+    query: () => ipcRenderer.invoke('dirHistory:query')
+  },
   pty: {
     create: (paneId: string, cwd?: string) =>
       ipcRenderer.send('pty:create', paneId, cwd),

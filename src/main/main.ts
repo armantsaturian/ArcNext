@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { setupPTY, killAllPTY } from './pty'
+import { setupDirHistory, flushDirHistorySync } from './dirHistory'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -22,6 +23,7 @@ function createWindow(): void {
   })
 
   setupPTY(mainWindow)
+  setupDirHistory()
 
   ipcMain.on('sidebar:traffic-lights', (_e, visible: boolean) => {
     mainWindow?.setWindowButtonVisibility(visible)
@@ -38,6 +40,7 @@ app.whenReady().then(createWindow)
 
 app.on('before-quit', () => {
   killAllPTY()
+  flushDirHistorySync()
 })
 
 app.on('window-all-closed', () => {

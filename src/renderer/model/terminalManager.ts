@@ -5,10 +5,16 @@ import { WebLinksAddon } from '@xterm/addon-web-links'
 import '@xterm/xterm/css/xterm.css'
 
 type TitleCallback = (paneId: string, title: string) => void
+type CwdCallback = (paneId: string, cwd: string) => void
 let onTitleChange: TitleCallback | null = null
+let onCwdChange: CwdCallback | null = null
 
 export function setTitleChangeCallback(cb: TitleCallback): void {
   onTitleChange = cb
+}
+
+export function setCwdChangeCallback(cb: CwdCallback): void {
+  onCwdChange = cb
 }
 
 interface ManagedTerminal {
@@ -92,6 +98,17 @@ export function createTerminal(paneId: string): Terminal {
 
   term.onTitleChange((title) => {
     onTitleChange?.(paneId, title)
+  })
+
+  term.parser.registerOscHandler(7, (data) => {
+    try {
+      const url = new URL(data)
+      const cwd = decodeURIComponent(url.pathname)
+      if (cwd) onCwdChange?.(paneId, cwd)
+    } catch {
+      // malformed OSC 7, ignore
+    }
+    return true
   })
 
   terminals.set(paneId, { term, fit, webgl, removeDataListener, removeExitListener })

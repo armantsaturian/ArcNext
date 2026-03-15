@@ -2,6 +2,15 @@ interface ArcNextAPI {
   sidebar: {
     setTrafficLightsVisible(visible: boolean): void
   }
+  dirHistory: {
+    visit(path: string): Promise<void>
+    query(): Promise<Array<{
+      path: string
+      visitCount: number
+      lastVisit: number
+      score: number
+    }>>
+  }
   pty: {
     create(paneId: string, cwd?: string): void
     write(paneId: string, data: string): void

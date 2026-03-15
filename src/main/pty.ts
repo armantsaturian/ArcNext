@@ -1,8 +1,11 @@
 import { BrowserWindow, ipcMain } from 'electron'
 import * as pty from 'node-pty'
 import { homedir } from 'os'
+import { join } from 'path'
 
 const ptys = new Map<string, pty.IPty>()
+
+const shellIntegrationDir = join(__dirname, 'shell-integration')
 
 export function setupPTY(window: BrowserWindow): void {
   ipcMain.on('pty:create', (_event, paneId: string, cwd?: string) => {
@@ -11,6 +14,12 @@ export function setupPTY(window: BrowserWindow): void {
     const env: Record<string, string> = {}
     for (const [k, v] of Object.entries(process.env)) {
       if (typeof v === 'string') env[k] = v
+    }
+    // Inject shell integration for zsh
+    if (shell.endsWith('/zsh') || shell === 'zsh') {
+      env['ARCNEXT_SHELL_INTEGRATION'] = '1'
+      env['ARCNEXT_ORIGINAL_ZDOTDIR'] = env['ZDOTDIR'] || env['HOME'] || homedir()
+      env['ZDOTDIR'] = shellIntegrationDir
     }
     const term = pty.spawn(shell, ['-l'], {
       name: 'xterm-256color',

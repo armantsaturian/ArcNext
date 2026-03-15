@@ -1,0 +1,19 @@
+# arcnext shell integration — emits OSC 7 on directory change
+if [[ -n "$ARCNEXT_SHELL_INTEGRATION" ]]; then
+  __arcnext_osc7() {
+    printf '\e]7;file://%s%s\a' "${HOST}" "${PWD}"
+  }
+  autoload -Uz add-zsh-hook
+  add-zsh-hook chpwd __arcnext_osc7
+  __arcnext_osc7
+fi
+
+# Restore original ZDOTDIR so nested shells work correctly
+ZDOTDIR="$ARCNEXT_ORIGINAL_ZDOTDIR"
+
+# Source the user's real zshrc
+if [[ -f "$ARCNEXT_ORIGINAL_ZDOTDIR/.zshrc" ]]; then
+  source "$ARCNEXT_ORIGINAL_ZDOTDIR/.zshrc"
+elif [[ -f "$HOME/.zshrc" ]]; then
+  source "$HOME/.zshrc"
+fi

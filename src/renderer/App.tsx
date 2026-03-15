@@ -1,8 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import SplitView from './components/SplitView'
 import Sidebar from './components/Sidebar'
+import DirPicker from './components/DirPicker'
 import { usePaneStore, useActiveWorkspace } from './store/paneStore'
-import { setTitleChangeCallback, writeToTerminalPTY } from './model/terminalManager'
+import { setTitleChangeCallback, setCwdChangeCallback, writeToTerminalPTY } from './model/terminalManager'
 import { NavDirection } from './model/splitTree'
 
 const ARROW_TO_DIR: Record<string, NavDirection> = {
@@ -19,10 +20,12 @@ export default function App() {
   const closePane = usePaneStore((s) => s.closePane)
   const addWorkspace = usePaneStore((s) => s.addWorkspace)
   const setPaneTitle = usePaneStore((s) => s.setPaneTitle)
+  const setPaneCwd = usePaneStore((s) => s.setPaneCwd)
   const switchWorkspace = usePaneStore((s) => s.switchWorkspace)
   const navigateDir = usePaneStore((s) => s.navigateDir)
   const toggleSidebar = usePaneStore((s) => s.toggleSidebar)
   const workspaces = usePaneStore((s) => s.workspaces)
+  const [dirPickerOpen, setDirPickerOpen] = useState(false)
 
   // Prevent Electron's default file-drop navigation so per-component drop handlers work
   useEffect(() => {
@@ -39,6 +42,14 @@ export default function App() {
   useEffect(() => {
     setTitleChangeCallback((paneId, title) => setPaneTitle(paneId, title))
   }, [setPaneTitle])
+
+  // Wire cwd changes into the store and dir history
+  useEffect(() => {
+    setCwdChangeCallback((paneId, cwd) => {
+      setPaneCwd(paneId, cwd)
+      window.arcnext.dirHistory.visit(cwd)
+    })
+  }, [setPaneCwd])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -98,6 +109,12 @@ export default function App() {
         return
       }
 
+      // Cmd+G — open directory picker
+      if (meta && !e.shiftKey && !alt && key === 'g') {
+        e.preventDefault()
+        setDirPickerOpen(true)
+        return
+      }
       // Cmd+B — toggle sidebar
       if (meta && !e.shiftKey && !alt && key === 'b') {
         e.preventDefault()
@@ -139,7 +156,7 @@ export default function App() {
 
     window.addEventListener('keydown', handler, true)
     return () => window.removeEventListener('keydown', handler, true)
-  }, [splitActive, closePane, addWorkspace, switchWorkspace, navigateDir, toggleSidebar, ws, workspaces])
+  }, [splitActive, closePane, addWorkspace, switchWorkspace, navigateDir, toggleSidebar, ws, workspaces, dirPickerOpen])
 
   return (
     <div id="app">
@@ -151,6 +168,7 @@ export default function App() {
           </div>
         ))}
       </div>
+      {dirPickerOpen && <DirPicker onClose={() => setDirPickerOpen(false)} />}
     </div>
   )
 }

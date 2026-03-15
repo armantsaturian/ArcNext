@@ -58,6 +58,7 @@ interface PaneStore {
   focusPrev: () => void
   navigateDir: (dir: NavDirection) => void
   setPaneTitle: (id: string, title: string) => void
+  setPaneCwd: (id: string, cwd: string) => void
   setTree: (tree: SplitNode) => void
 }
 
@@ -344,6 +345,15 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
     if (!pane) return
     const newPanes = new Map(panes)
     newPanes.set(id, { ...pane, title })
+    set({ panes: newPanes })
+  },
+
+  setPaneCwd: (id, cwd) => {
+    const { panes } = get()
+    const pane = panes.get(id)
+    if (!pane) return
+    const newPanes = new Map(panes)
+    newPanes.set(id, { ...pane, cwd })
     set({ panes: newPanes })
   },
 
