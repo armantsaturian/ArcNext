@@ -469,8 +469,6 @@ body,
 }
 
 .terminal-pane.active {
-    outline: 1px solid #3a3a3a;
-    outline-offset: -1px;
 }
 
 .terminal-pane.drag-over {
