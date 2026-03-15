@@ -483,3 +483,7 @@ body,
     padding: 4px;
     background: #161616;
 }
+
+.terminal-pane .xterm .xterm-viewport {
+    background-color: #161616;
+}
