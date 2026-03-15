@@ -280,7 +280,7 @@ body,
 /* Multi-pane workspace — concatenated pills */
 .ws-multi {
     display: flex;
-    gap: 0;
+    gap: 2px;
     overflow: hidden;
     flex: 1;
     align-self: stretch;
@@ -292,9 +292,8 @@ body,
     flex: 1;
     min-width: 0;
     padding: 0 8px;
-    background: transparent;
-    border-radius: 0;
-    border-right: 1px solid #3a3a3a;
+    background: #1e1e1e;
+    border-radius: 6px;
     font-size: 12px;
     text-align: left;
     line-height: 28px;
@@ -302,10 +301,6 @@ body,
     text-overflow: ellipsis;
     white-space: nowrap;
     transition: background 0.15s;
-}
-
-.ws-pill:last-child {
-    border-right: none;
 }
 
 .ws-row.active .ws-pill {
