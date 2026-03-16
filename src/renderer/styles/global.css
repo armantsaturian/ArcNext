@@ -207,6 +207,10 @@ body,
     transition: background 0.15s, color 0.15s;
 }
 
+.ws-row[style*="--ws-color"] {
+    --ws-text: #1a1a1a;
+}
+
 .ws-row:hover {
     background: color-mix(in srgb, var(--ws-color, #1e1e1e) 25%, #1e1e1e);
 }
