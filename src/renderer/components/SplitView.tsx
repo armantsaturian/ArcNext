@@ -3,7 +3,7 @@ import { SplitNode } from '../model/splitTree'
 import { usePaneStore } from '../store/paneStore'
 import TerminalPane from './TerminalPane'
 
-const DIVIDER_SIZE = 3
+const DIVIDER_SIZE = 4
 
 interface PaneBounds {
   paneId: string
@@ -59,6 +59,7 @@ export default function SplitView({ node }: Props) {
       {panes.map((p) => (
         <div
           key={p.paneId}
+          className="split-pane-wrapper"
           style={{
             position: 'absolute',
             left: p.left,

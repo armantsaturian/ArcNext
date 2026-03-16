@@ -419,7 +419,7 @@ body,
     -webkit-app-region: no-drag;
     margin: 6px 10px 10px 0;
     border-radius: 10px;
-    background: #161616;
+    background: #121212;
 }
 
 /* ── Workspace layers (all rendered, only active visible) ── */
@@ -444,13 +444,14 @@ body,
 }
 
 .split-divider {
-    background: #2a2a2a;
+    background: transparent;
     transition: background 0.15s;
     z-index: 1;
 }
 
 .split-divider:hover {
-    background: #74c0fc;
+    background: #74c0fc66;
+    border-radius: 3px;
 }
 
 .split-divider.horizontal {
@@ -468,9 +469,12 @@ body,
     overflow: hidden;
     position: relative;
     background: #161616;
+    border-radius: 8px;
+    border: 1px solid #2a2a2a;
 }
 
 .terminal-pane.active {
+    border-color: #3a3a3a;
 }
 
 .terminal-pane.drag-over {
@@ -480,7 +484,7 @@ body,
 
 .xterm {
     height: 100%;
-    padding: 4px;
+    padding: 6px;
     background: #161616;
 }
 
