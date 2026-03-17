@@ -1,4 +1,5 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain } from 'electron'
+import { autoUpdater } from 'electron-updater'
 import { join } from 'path'
 import { setupPTY, killAllPTY } from './pty'
 import { setupDirHistory, flushDirHistorySync } from './dirHistory'
@@ -36,7 +37,23 @@ function createWindow(): void {
   }
 }
 
-app.whenReady().then(createWindow)
+app.whenReady().then(() => {
+  createWindow()
+  autoUpdater.checkForUpdatesAndNotify()
+})
+
+autoUpdater.on('update-downloaded', (info) => {
+  dialog
+    .showMessageBox({
+      type: 'info',
+      title: 'Update Ready',
+      message: `v${info.version} has been downloaded. Restart to apply it.`,
+      buttons: ['Restart', 'Later']
+    })
+    .then(({ response }) => {
+      if (response === 0) autoUpdater.quitAndInstall()
+    })
+})
 
 app.on('before-quit', () => {
   killAllPTY()
