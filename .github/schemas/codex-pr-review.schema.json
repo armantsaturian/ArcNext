@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "merge_decision": {
+      "type": "string",
+      "enum": ["approve", "request_changes"]
+    },
+    "summary": {
+      "type": "string"
+    },
+    "checked": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "severity": {
+            "type": "string",
+            "enum": ["high", "medium", "low"]
+          },
+          "title": {
+            "type": "string"
+          },
+          "details": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          }
+        },
+        "required": ["severity", "title", "details"]
+      }
+    }
+  },
+  "required": ["merge_decision", "summary", "checked", "findings"]
+}

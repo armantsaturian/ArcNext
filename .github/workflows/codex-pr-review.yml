@@ -18,12 +18,13 @@ concurrency:
 
 jobs:
   review:
-    name: Review pull request with Codex
+    name: Generate Codex review
     if: ${{ !github.event.pull_request.draft && github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     outputs:
-      review: ${{ steps.codex.outputs.final-message }}
+      review_json: ${{ steps.codex.outputs.final-message }}
+      merge_decision: ${{ steps.extract.outputs.merge_decision }}
     steps:
       - name: Check required secret
         shell: bash
@@ -36,19 +37,22 @@ jobs:
             exit 1
           fi
 
-      - name: Check out pull request head
+      - name: Check out pull request merge ref
         uses: actions/checkout@v5
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: refs/pull/${{ github.event.pull_request.number }}/merge
           fetch-depth: 0
 
-      - name: Fetch base branch
+      - name: Pre-fetch base and head refs for the PR
         shell: bash
         env:
-          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
-          git fetch --no-tags origin "${BASE_REF}:${BASE_REF}"
+          git fetch --no-tags origin \
+            "$PR_BASE_REF" \
+            "+refs/pull/$PR_NUMBER/head"
 
       - name: Run Codex review
         id: codex
@@ -57,40 +61,60 @@ jobs:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           model: gpt-5.1-codex
           prompt: |
-            Review this pull request like a tough but fair maintainer.
+            This is PR #${{ github.event.pull_request.number }} for ${{ github.repository }}.
 
-            PR title: ${{ github.event.pull_request.title }}
-            PR number: #${{ github.event.pull_request.number }}
-            Base branch: ${{ github.event.pull_request.base.ref }}
-            Head branch: ${{ github.event.pull_request.head.ref }}
+            Review ONLY the changes introduced by the PR, so consider:
+               git log --oneline ${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}
 
-            Focus on correctness, regressions, user-visible bugs, security, maintainability, and missing tests.
-            Check the diff against `origin/${{ github.event.pull_request.base.ref }}`.
-            Use `AGENTS.md` as repo-specific review guidance.
+            Suggest any improvements, potential bugs, or issues.
+            Be concise and specific in your feedback.
 
-            Return concise markdown with this structure:
-            - one short summary paragraph
-            - `High`: must-fix issues
-            - `Medium`: should-fix issues
-            - `Low`: optional polish
+            Pull request title and body:
+            ----
+            ${{ github.event.pull_request.title }}
+            ${{ github.event.pull_request.body }}
 
-            If you do not find a real issue, say so plainly and mention what you checked.
+            Additional repo-specific guidance:
+            - Use `AGENTS.md` as the maintainer guide for this repository.
+            - Focus on correctness, regressions, security, user-visible bugs, and missing tests.
+            - Ignore style-only nits unless they mask a real bug.
+
+            Return JSON matching the provided schema.
+            Your `merge_decision` must be your own overall judgment of whether this PR is a good fit to merge right now.
+            Set `merge_decision` to `approve` only if you believe it is ready to merge as-is.
+            Set `merge_decision` to `request_changes` if it should not be merged yet.
+          output-schema-file: .github/schemas/codex-pr-review.schema.json
           codex-args: |
             --full-auto
 
-      - name: Fail if Codex returned nothing
+      - name: Validate Codex JSON output
         shell: bash
         env:
-          REVIEW: ${{ steps.codex.outputs.final-message }}
+          REVIEW_JSON: ${{ steps.codex.outputs.final-message }}
         run: |
           set -euo pipefail
-          if [ -z "${REVIEW}" ]; then
+          if [ -z "${REVIEW_JSON}" ]; then
             echo "Codex produced an empty review."
             exit 1
           fi
+          printf '%s' "$REVIEW_JSON" | jq . > codex-review.json
+
+      - name: Extract merge decision
+        id: extract
+        shell: bash
+        run: |
+          set -euo pipefail
+          decision=$(jq -r '.merge_decision' codex-review.json)
+          echo "merge_decision=$decision" >> "$GITHUB_OUTPUT"
+
+      - name: Upload review artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: codex-review-${{ github.event.pull_request.number }}
+          path: codex-review.json
 
   comment:
-    name: Post review comment
+    name: Post Codex review comment
     needs: review
     if: ${{ needs.review.result == 'success' }}
     runs-on: ubuntu-latest
@@ -101,16 +125,48 @@ jobs:
       - name: Create or update PR comment
         uses: actions/github-script@v8
         env:
-          REVIEW: ${{ needs.review.outputs.review }}
+          REVIEW_JSON: ${{ needs.review.outputs.review_json }}
           COMMENT_MARKER: <!-- codex-pr-review -->
         with:
           script: |
             const marker = process.env.COMMENT_MARKER;
-            const review = (process.env.REVIEW || '').trim();
-            const body = `${marker}\n## Codex review\n\n${review}`;
+            const review = JSON.parse(process.env.REVIEW_JSON || '{}');
+            const findings = Array.isArray(review.findings) ? review.findings : [];
+            const checked = Array.isArray(review.checked) ? review.checked : [];
+
+            const grouped = { high: [], medium: [], low: [] };
+            for (const finding of findings) {
+              const sev = (finding.severity || '').toLowerCase();
+              if (grouped[sev]) grouped[sev].push(finding);
+            }
+
+            const section = (label, items) => {
+              if (!items.length) return `**${label}**\n- None.`;
+              return `**${label}**\n` + items.map((item) => {
+                const loc = item.location ? ` (${item.location})` : '';
+                return `- ${item.title}${loc} — ${item.details}`;
+              }).join('\n');
+            };
+
+            const body = [
+              marker,
+              '## Codex review',
+              '',
+              `**Merge decision:** \`${review.merge_decision || 'unknown'}\``,
+              '',
+              review.summary || 'No summary provided.',
+              '',
+              section('High', grouped.high),
+              '',
+              section('Medium', grouped.medium),
+              '',
+              section('Low', grouped.low),
+              '',
+              checked.length ? `**Checked**\n- ${checked.join('\n- ')}` : '**Checked**\n- Not provided.'
+            ].join('\n');
+
             const { owner, repo } = context.repo;
             const issue_number = context.payload.pull_request.number;
-
             const comments = await github.paginate(github.rest.issues.listComments, {
               owner,
               repo,
@@ -123,17 +179,27 @@ jobs:
             );
 
             if (existing) {
-              await github.rest.issues.updateComment({
-                owner,
-                repo,
-                comment_id: existing.id,
-                body,
-              });
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
             } else {
-              await github.rest.issues.createComment({
-                owner,
-                repo,
-                issue_number,
-                body,
-              });
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
             }
+
+  verdict:
+    name: Codex merge recommendation
+    needs:
+      - review
+      - comment
+    if: ${{ needs.review.result == 'success' && needs.comment.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail when Codex says this PR is not ready
+        shell: bash
+        env:
+          MERGE_DECISION: ${{ needs.review.outputs.merge_decision }}
+        run: |
+          set -euo pipefail
+          echo "Codex merge_decision=${MERGE_DECISION}"
+          if [ "${MERGE_DECISION}" != "approve" ]; then
+            echo "Codex does not recommend merging this PR yet."
+            exit 1
+          fi
