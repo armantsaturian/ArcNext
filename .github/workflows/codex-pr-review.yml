@@ -1,0 +1,123 @@
+name: Codex PR Review
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: codex-pr-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: Review pull request with Codex
+    if: ${{ !github.event.pull_request.draft && github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      CODEX_MODEL: gpt-5.1-codex
+      BASE_REF: ${{ github.event.pull_request.base.ref }}
+      COMMENT_MARKER: <!-- codex-pr-review -->
+    steps:
+      - name: Check required secret
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${OPENAI_API_KEY}" ]; then
+            echo "Missing OPENAI_API_KEY GitHub secret."
+            exit 1
+          fi
+
+      - name: Check out pull request head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Fetch base branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "${BASE_REF}:${BASE_REF}"
+
+      - name: Run Codex review
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROMPT=$(cat <<'EOF'
+          Review this pull request like a tough but fair maintainer.
+          Focus on correctness, regressions, user-visible bugs, security, maintainability, and missing tests.
+          Prefer a concise markdown review with this structure:
+          - One short summary paragraph
+          - `High`: must-fix issues
+          - `Medium`: should-fix issues
+          - `Low`: nits or optional polish
+
+          If you do not find a real issue, say so plainly and mention what you checked.
+          EOF
+          )
+
+          NO_COLOR=1 npx -y @openai/codex review \
+            -c "model=\"${CODEX_MODEL}\"" \
+            --base "origin/${BASE_REF}" \
+            "$PROMPT" > codex-review.md
+
+          if [ ! -s codex-review.md ]; then
+            echo "Codex produced an empty review."
+            exit 1
+          fi
+
+      - name: Create or update PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = process.env.COMMENT_MARKER;
+            const review = fs.readFileSync('codex-review.md', 'utf8').trim();
+            const body = `${marker}\n## Codex review\n\n${review}`;
+            const { owner, repo } = context.repo;
+            const issue_number = context.payload.pull_request.number;
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number,
+              per_page: 100,
+            });
+
+            const existing = comments.find((comment) =>
+              comment.user?.login === 'github-actions[bot]' && comment.body?.includes(marker)
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body,
+              });
+            }
+        env:
+          COMMENT_MARKER: ${{ env.COMMENT_MARKER }}
+
+      - name: Upload review artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: codex-review-${{ github.event.pull_request.number }}
+          path: codex-review.md
