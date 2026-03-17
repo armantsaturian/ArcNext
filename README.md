@@ -76,7 +76,7 @@ npm run package        # build macOS DMG
 ## Automated Codex PR reviews
 
 - Pull requests from branches in this repository trigger `.github/workflows/codex-pr-review.yml`.
-- The workflow runs `@openai/codex review` against the PR diff using the repo's `OPENAI_API_KEY` secret.
+- The workflow runs `openai/codex-action` using the repo's `OPENAI_API_KEY` secret.
 - Reviews are posted back to the PR as a single updatable comment from `github-actions[bot]`.
 - Draft PRs and forked PRs are skipped by design, so API secrets are not exposed to forks.
 
