@@ -31,10 +31,10 @@
             "type": "string"
           },
           "location": {
-            "type": "string"
+            "type": ["string", "null"]
           }
         },
-        "required": ["severity", "title", "details"]
+        "required": ["severity", "title", "details", "location"]
       }
     }
   },
