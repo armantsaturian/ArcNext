@@ -4,6 +4,7 @@ import { join } from 'path'
 import { setupPTY, killAllPTY } from './pty'
 import { setupDirHistory, flushDirHistorySync } from './dirHistory'
 import { setupBrowserViewManager, destroyAllBrowserViews } from './browserViewManager'
+import { createExternalBrowserWindow, listExternalWindows, dockExternalWindow, closeAllExternalWindows } from './externalBrowserWindows'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -27,6 +28,14 @@ function createWindow(): void {
   setupPTY(mainWindow)
   setupDirHistory()
   setupBrowserViewManager(mainWindow)
+
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    createExternalBrowserWindow(url)
+    return { action: 'deny' }
+  })
+
+  ipcMain.handle('browser:listExternalWindows', () => listExternalWindows())
+  ipcMain.handle('browser:dockWindow', (_e, windowId: number) => dockExternalWindow(windowId))
 
   ipcMain.on('sidebar:traffic-lights', (_e, visible: boolean) => {
     mainWindow?.setWindowButtonVisibility(visible)
@@ -60,6 +69,7 @@ autoUpdater.on('update-downloaded', (info) => {
 app.on('before-quit', () => {
   killAllPTY()
   destroyAllBrowserViews()
+  closeAllExternalWindows()
   flushDirHistorySync()
 })
 
