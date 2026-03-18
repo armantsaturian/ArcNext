@@ -37,6 +37,8 @@ interface ArcNextAPI {
     onNavStateChanged(cb: (paneId: string, canGoBack: boolean, canGoForward: boolean) => void): () => void
     onLoadFailed(cb: (paneId: string, errorCode: number, errorDesc: string) => void): () => void
     onFocused(cb: (paneId: string) => void): () => void
+    listExternalWindows(): Promise<{ id: number; url: string; title: string }[]>
+    dockWindow(windowId: number): Promise<{ url: string; title: string } | null>
   }
   getPathForFile(file: File): string
 }

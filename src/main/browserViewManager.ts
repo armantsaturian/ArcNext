@@ -1,4 +1,5 @@
 import { BrowserWindow, WebContentsView, ipcMain, session } from 'electron'
+import { createExternalBrowserWindow } from './externalBrowserWindows'
 
 interface ManagedBrowserView {
   view: WebContentsView
@@ -62,9 +63,8 @@ export function setupBrowserViewManager(mainWindow: BrowserWindow): void {
       }
     })
 
-    // Handle popups: navigate in same view for now (until #8)
     wc.setWindowOpenHandler(({ url: popupUrl }) => {
-      wc.loadURL(popupUrl)
+      createExternalBrowserWindow(popupUrl)
       return { action: 'deny' }
     })
 

@@ -86,7 +86,11 @@ const api = {
       const handler = (_event: IpcRendererEvent, paneId: string) => cb(paneId)
       ipcRenderer.on('browser:focused', handler)
       return () => { ipcRenderer.removeListener('browser:focused', handler) }
-    }
+    },
+    listExternalWindows: () =>
+      ipcRenderer.invoke('browser:listExternalWindows'),
+    dockWindow: (windowId: number) =>
+      ipcRenderer.invoke('browser:dockWindow', windowId)
   }
 }
 

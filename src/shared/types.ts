@@ -52,4 +52,7 @@ export interface IPCChannels {
   'browser:navStateChanged': (paneId: string, canGoBack: boolean, canGoForward: boolean) => void
   'browser:loadFailed': (paneId: string, errorCode: number, errorDesc: string) => void
   'browser:focused': (paneId: string) => void
+  // External browser windows
+  'browser:listExternalWindows': () => Promise<{ id: number; url: string; title: string }[]>
+  'browser:dockWindow': (windowId: number) => Promise<{ url: string; title: string } | null>
 }
