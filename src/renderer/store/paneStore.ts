@@ -4,6 +4,7 @@ import {
   navigateDirection, NavDirection
 } from '../model/splitTree'
 import { createTerminal, destroyTerminal } from '../model/terminalManager'
+import type { PaneInfo, TerminalPaneInfo, BrowserPaneInfo } from '../../shared/types'
 
 let nextPaneId = 1
 let nextWorkspaceId = 1
@@ -16,11 +17,7 @@ function genWorkspaceId(): string {
   return `ws-${nextWorkspaceId++}`
 }
 
-export interface PaneInfo {
-  id: string
-  title: string
-  cwd: string
-}
+export type { PaneInfo, TerminalPaneInfo, BrowserPaneInfo }
 
 export interface Workspace {
   id: string
@@ -61,16 +58,35 @@ interface PaneStore {
   setPaneTitle: (id: string, title: string) => void
   setPaneCwd: (id: string, cwd: string) => void
   setTree: (tree: SplitNode) => void
+
+  // Browser pane actions
+  addBrowserWorkspace: (url: string) => void
+  splitActiveBrowser: (direction: Direction, url: string) => void
+  setBrowserPaneUrl: (id: string, url: string) => void
+  setBrowserPaneNavState: (id: string, canGoBack: boolean, canGoForward: boolean) => void
+  setBrowserPaneLoading: (id: string, isLoading: boolean) => void
 }
 
-function makePane(): PaneInfo {
+function makeTerminalPane(): TerminalPaneInfo {
   const id = genPaneId()
   createTerminal(id)
-  return { id, title: 'shell', cwd: '' }
+  return { type: 'terminal', id, title: 'shell', cwd: '' }
+}
+
+function makeBrowserPane(url: string): BrowserPaneInfo {
+  const id = genPaneId()
+  return { type: 'browser', id, title: url, url, canGoBack: false, canGoForward: false, isLoading: true }
+}
+
+function destroyPane(pane: PaneInfo): void {
+  if (pane.type === 'terminal') {
+    destroyTerminal(pane.id)
+  }
+  // Browser pane cleanup will be handled by main process in #7
 }
 
 function makeWorkspace(name?: string): { workspace: Workspace; pane: PaneInfo } {
-  const pane = makePane()
+  const pane = makeTerminalPane()
   const id = genWorkspaceId()
   return {
     workspace: {
@@ -114,11 +130,12 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
     const ws = workspaces.find((w) => w.id === id)
     if (!ws) return
 
-    // Destroy all panes in this workspace
+    // Destroy all panes in this workspace (type-aware cleanup)
     const paneIds = allPaneIds(ws.tree)
     const newPanes = new Map(panes)
     for (const pid of paneIds) {
-      destroyTerminal(pid)
+      const pane = panes.get(pid)
+      if (pane) destroyPane(pane)
       newPanes.delete(pid)
     }
 
@@ -216,7 +233,8 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
     const newTree = removeNode(ws.tree, paneId)
     if (!newTree) return
 
-    destroyTerminal(paneId)
+    const pane = panes.get(paneId)
+    if (pane) destroyPane(pane)
 
     const newPanes = new Map(panes)
     newPanes.delete(paneId)
@@ -242,7 +260,7 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
     const ws = workspaces.find((w) => w.id === activeWorkspaceId)
     if (!ws) return
 
-    const newPane = makePane()
+    const newPane = makeTerminalPane()
     const newPanes = new Map(panes)
     newPanes.set(newPane.id, newPane)
 
@@ -272,7 +290,8 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
     const newTree = removeNode(ws.tree, id)
     if (!newTree) return
 
-    destroyTerminal(id)
+    const pane = panes.get(id)
+    if (pane) destroyPane(pane)
 
     const newPanes = new Map(panes)
     newPanes.delete(id)
@@ -359,7 +378,7 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
   setPaneCwd: (id, cwd) => {
     const { panes } = get()
     const pane = panes.get(id)
-    if (!pane) return
+    if (!pane || pane.type !== 'terminal') return
     const newPanes = new Map(panes)
     newPanes.set(id, { ...pane, cwd })
     set({ panes: newPanes })
@@ -372,6 +391,73 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
         w.id === activeWorkspaceId ? { ...w, tree } : w
       )
     })
+  },
+
+  addBrowserWorkspace: (url) => {
+    const { workspaces, panes } = get()
+    const pane = makeBrowserPane(url)
+    const id = genWorkspaceId()
+    const workspace: Workspace = {
+      id,
+      name: `Workspace ${id.split('-')[1]}`,
+      tree: leaf(pane.id),
+      activePaneId: pane.id
+    }
+    const newPanes = new Map(panes)
+    newPanes.set(pane.id, pane)
+    set({
+      workspaces: [...workspaces, workspace],
+      activeWorkspaceId: workspace.id,
+      panes: newPanes
+    })
+  },
+
+  splitActiveBrowser: (direction, url) => {
+    const { workspaces, activeWorkspaceId, panes } = get()
+    const ws = workspaces.find((w) => w.id === activeWorkspaceId)
+    if (!ws) return
+
+    const newPane = makeBrowserPane(url)
+    const newPanes = new Map(panes)
+    newPanes.set(newPane.id, newPane)
+
+    const updatedWs: Workspace = {
+      ...ws,
+      tree: splitNode(ws.tree, ws.activePaneId, direction, newPane.id),
+      activePaneId: newPane.id
+    }
+
+    set({
+      workspaces: workspaces.map((w) => w.id === activeWorkspaceId ? updatedWs : w),
+      panes: newPanes
+    })
+  },
+
+  setBrowserPaneUrl: (id, url) => {
+    const { panes } = get()
+    const pane = panes.get(id)
+    if (!pane || pane.type !== 'browser') return
+    const newPanes = new Map(panes)
+    newPanes.set(id, { ...pane, url })
+    set({ panes: newPanes })
+  },
+
+  setBrowserPaneNavState: (id, canGoBack, canGoForward) => {
+    const { panes } = get()
+    const pane = panes.get(id)
+    if (!pane || pane.type !== 'browser') return
+    const newPanes = new Map(panes)
+    newPanes.set(id, { ...pane, canGoBack, canGoForward })
+    set({ panes: newPanes })
+  },
+
+  setBrowserPaneLoading: (id, isLoading) => {
+    const { panes } = get()
+    const pane = panes.get(id)
+    if (!pane || pane.type !== 'browser') return
+    const newPanes = new Map(panes)
+    newPanes.set(id, { ...pane, isLoading })
+    set({ panes: newPanes })
   }
 }))
 
