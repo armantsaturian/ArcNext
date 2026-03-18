@@ -1,8 +1,21 @@
-export interface PaneData {
+export interface TerminalPaneInfo {
+  type: 'terminal'
   id: string
   title: string
   cwd: string
 }
+
+export interface BrowserPaneInfo {
+  type: 'browser'
+  id: string
+  title: string
+  url: string
+  canGoBack: boolean
+  canGoForward: boolean
+  isLoading: boolean
+}
+
+export type PaneInfo = TerminalPaneInfo | BrowserPaneInfo
 
 export interface DirEntry {
   path: string

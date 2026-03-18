@@ -15,8 +15,18 @@ const ARROW_TO_DIR: Record<string, NavDirection> = {
   ArrowDown: 'down'
 }
 
+function useActivePaneType(): 'terminal' | 'browser' | null {
+  return usePaneStore((s) => {
+    const ws = s.workspaces.find((w) => w.id === s.activeWorkspaceId)
+    if (!ws) return null
+    const pane = s.panes.get(ws.activePaneId)
+    return pane?.type ?? null
+  })
+}
+
 export default function App() {
   const ws = useActiveWorkspace()
+  const activePaneType = useActivePaneType()
   const activeWorkspaceId = usePaneStore((s) => s.activeWorkspaceId)
   const splitActive = usePaneStore((s) => s.splitActive)
   const closePane = usePaneStore((s) => s.closePane)
@@ -68,48 +78,51 @@ export default function App() {
         return
       }
 
-      // Option+Left/Right — word jump
-      if (alt && !meta && e.key === 'ArrowLeft') {
-        e.preventDefault()
-        e.stopImmediatePropagation()
-        if (ws) writeToTerminalPTY(ws.activePaneId, '\x1bb') // ESC+b backward word
-        return
-      }
-      if (alt && !meta && e.key === 'ArrowRight') {
-        e.preventDefault()
-        e.stopImmediatePropagation()
-        if (ws) writeToTerminalPTY(ws.activePaneId, '\x1bf') // ESC+f forward word
-        return
-      }
+      // Terminal-only shortcuts — only fire when active pane is a terminal
+      if (activePaneType === 'terminal') {
+        // Option+Left/Right — word jump
+        if (alt && !meta && e.key === 'ArrowLeft') {
+          e.preventDefault()
+          e.stopImmediatePropagation()
+          if (ws) writeToTerminalPTY(ws.activePaneId, '\x1bb') // ESC+b backward word
+          return
+        }
+        if (alt && !meta && e.key === 'ArrowRight') {
+          e.preventDefault()
+          e.stopImmediatePropagation()
+          if (ws) writeToTerminalPTY(ws.activePaneId, '\x1bf') // ESC+f forward word
+          return
+        }
 
-      // Option+Backspace — delete previous word
-      if (alt && !meta && e.key === 'Backspace') {
-        e.preventDefault()
-        e.stopImmediatePropagation()
-        if (ws) writeToTerminalPTY(ws.activePaneId, '\x17') // Ctrl+W
-        return
-      }
+        // Option+Backspace — delete previous word
+        if (alt && !meta && e.key === 'Backspace') {
+          e.preventDefault()
+          e.stopImmediatePropagation()
+          if (ws) writeToTerminalPTY(ws.activePaneId, '\x17') // Ctrl+W
+          return
+        }
 
-      // Cmd+Backspace — delete to beginning of line
-      if (meta && !alt && e.key === 'Backspace') {
-        e.preventDefault()
-        e.stopImmediatePropagation()
-        if (ws) writeToTerminalPTY(ws.activePaneId, '\x15') // Ctrl+U
-        return
-      }
+        // Cmd+Backspace — delete to beginning of line
+        if (meta && !alt && e.key === 'Backspace') {
+          e.preventDefault()
+          e.stopImmediatePropagation()
+          if (ws) writeToTerminalPTY(ws.activePaneId, '\x15') // Ctrl+U
+          return
+        }
 
-      // Cmd+Left/Right — jump to line start/end
-      if (meta && !alt && e.key === 'ArrowLeft') {
-        e.preventDefault()
-        e.stopImmediatePropagation()
-        if (ws) writeToTerminalPTY(ws.activePaneId, '\x01') // Ctrl+A
-        return
-      }
-      if (meta && !alt && e.key === 'ArrowRight') {
-        e.preventDefault()
-        e.stopImmediatePropagation()
-        if (ws) writeToTerminalPTY(ws.activePaneId, '\x05') // Ctrl+E
-        return
+        // Cmd+Left/Right — jump to line start/end
+        if (meta && !alt && e.key === 'ArrowLeft') {
+          e.preventDefault()
+          e.stopImmediatePropagation()
+          if (ws) writeToTerminalPTY(ws.activePaneId, '\x01') // Ctrl+A
+          return
+        }
+        if (meta && !alt && e.key === 'ArrowRight') {
+          e.preventDefault()
+          e.stopImmediatePropagation()
+          if (ws) writeToTerminalPTY(ws.activePaneId, '\x05') // Ctrl+E
+          return
+        }
       }
 
       // Cmd+G — open directory picker
@@ -159,7 +172,7 @@ export default function App() {
 
     window.addEventListener('keydown', handler, true)
     return () => window.removeEventListener('keydown', handler, true)
-  }, [splitActive, closePane, addWorkspace, switchWorkspace, navigateDir, toggleSidebar, ws, workspaces, dirPickerOpen])
+  }, [splitActive, closePane, addWorkspace, switchWorkspace, navigateDir, toggleSidebar, ws, workspaces, dirPickerOpen, activePaneType])
 
   return (
     <div id="app">
