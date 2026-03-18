@@ -279,8 +279,10 @@ function WorkspaceRow({
   const wsColor = workspace.color
 
   const hasCustomName = workspace.name && !workspace.name.startsWith('Workspace ')
-  const defaultTitle = paneInfos[0]?.title || 'shell'
+  const firstPane = paneInfos[0]
+  const defaultTitle = firstPane ? (firstPane.type === 'browser' ? firstPane.url : firstPane.title) || 'shell' : 'shell'
   const displayTitle = hasCustomName ? workspace.name : defaultTitle
+  const isBrowserWorkspace = firstPane?.type === 'browser'
   const initial = (displayTitle === 'shell' ? 'S' : displayTitle.split('/').pop() || 'S').charAt(0).toUpperCase()
 
   const className = [
@@ -326,7 +328,7 @@ function WorkspaceRow({
         </div>
       ) : isEditing ? (
         <div className="ws-single">
-          <span className="ws-icon">&#9632;</span>
+          <span className="ws-icon">{isBrowserWorkspace ? '\u{1F310}' : '\u25A0'}</span>
           <input
             ref={inputRef}
             className="ws-rename-input"
@@ -346,19 +348,19 @@ function WorkspaceRow({
         </div>
       ) : hasCustomName ? (
         <div className="ws-single">
-          <span className="ws-icon">&#9632;</span>
+          <span className="ws-icon">{isBrowserWorkspace ? '\u{1F310}' : '\u25A0'}</span>
           <span className="ws-title">{workspace.name}</span>
         </div>
       ) : isSinglePane ? (
         <div className="ws-single">
-          <span className="ws-icon">&#9632;</span>
-          <span className="ws-title">{formatTitle(paneInfos[0].title)}</span>
+          <span className="ws-icon">{isBrowserWorkspace ? '\u{1F310}' : '\u25A0'}</span>
+          <span className="ws-title">{formatTitle(firstPane.type === 'browser' ? firstPane.url : firstPane.title)}</span>
         </div>
       ) : (
         <div className="ws-multi">
           {paneInfos.map((p) => (
             <span key={p.id} className={`ws-pill ${isActive && p.id === workspace.activePaneId ? 'pill-active' : ''}`}>
-              {formatTitle(p.title)}
+              {p.type === 'browser' ? '\u{1F310} ' : ''}{formatTitle(p.type === 'browser' ? p.url : p.title)}
               {isActive && (
                 <button
                   className="pill-close"

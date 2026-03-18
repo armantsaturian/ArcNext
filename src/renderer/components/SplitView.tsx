@@ -3,6 +3,25 @@ import { SplitNode } from '../model/splitTree'
 import { usePaneStore } from '../store/paneStore'
 import TerminalPane from './TerminalPane'
 
+function PaneRenderer({ paneId }: { paneId: string }) {
+  const paneType = usePaneStore((s) => s.panes.get(paneId)?.type ?? 'terminal')
+  const paneUrl = usePaneStore((s) => {
+    const p = s.panes.get(paneId)
+    return p?.type === 'browser' ? p.url : ''
+  })
+
+  if (paneType === 'browser') {
+    return (
+      <div className="browser-pane-placeholder">
+        <span className="browser-pane-placeholder-icon">&#127760;</span>
+        <span className="browser-pane-placeholder-url">{paneUrl}</span>
+      </div>
+    )
+  }
+
+  return <TerminalPane paneId={paneId} />
+}
+
 const DIVIDER_SIZE = 4
 
 interface PaneBounds {
@@ -68,7 +87,7 @@ export default function SplitView({ node }: Props) {
             height: p.height,
           }}
         >
-          <TerminalPane paneId={p.paneId} />
+          <PaneRenderer paneId={p.paneId} />
         </div>
       ))}
       {dividers.map((d) => (
