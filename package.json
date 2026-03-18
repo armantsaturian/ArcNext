@@ -7,7 +7,9 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
-    "package": "electron-vite build && electron-builder"
+    "package": "electron-vite build && electron-builder",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@xterm/addon-fit": "^0.11.0",
@@ -30,7 +32,8 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "typescript": "^5.7.0",
-    "vite": "^6.0.0"
+    "vite": "^6.0.0",
+    "vitest": "^3.2.4"
   },
   "build": {
     "appId": "com.arcnext.app",
@@ -39,7 +42,10 @@
     "afterPack": "./scripts/after-pack.cjs",
     "mac": {
       "category": "public.app-category.developer-tools",
-      "target": ["dmg", "zip"]
+      "target": [
+        "dmg",
+        "zip"
+      ]
     },
     "publish": {
       "provider": "github",
