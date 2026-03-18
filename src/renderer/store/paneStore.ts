@@ -4,6 +4,7 @@ import {
   navigateDirection, NavDirection
 } from '../model/splitTree'
 import { createTerminal, destroyTerminal } from '../model/terminalManager'
+import { destroyBrowserView } from '../model/browserManager'
 import type { PaneInfo, TerminalPaneInfo, BrowserPaneInfo } from '../../shared/types'
 
 let nextPaneId = 1
@@ -81,8 +82,9 @@ function makeBrowserPane(url: string): BrowserPaneInfo {
 function destroyPane(pane: PaneInfo): void {
   if (pane.type === 'terminal') {
     destroyTerminal(pane.id)
+  } else if (pane.type === 'browser') {
+    destroyBrowserView(pane.id)
   }
-  // Browser pane cleanup will be handled by main process in #7
 }
 
 function makeWorkspace(name?: string): { workspace: Workspace; pane: PaneInfo } {

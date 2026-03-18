@@ -1,12 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// Mock terminalManager before importing the store
+// Mock terminalManager and browserManager before importing the store
 vi.mock('../model/terminalManager', () => ({
   createTerminal: vi.fn(),
   destroyTerminal: vi.fn()
 }))
+vi.mock('../model/browserManager', () => ({
+  destroyBrowserView: vi.fn()
+}))
 
 import { createTerminal, destroyTerminal } from '../model/terminalManager'
+import { destroyBrowserView } from '../model/browserManager'
 import { usePaneStore } from '../store/paneStore'
 import type { PaneInfo, TerminalPaneInfo, BrowserPaneInfo } from '../../shared/types'
 import { allPaneIds } from '../model/splitTree'
@@ -208,7 +212,7 @@ describe('paneStore — browser pane actions', () => {
 describe('paneStore — type-aware cleanup', () => {
   beforeEach(resetStore)
 
-  it('closePane on browser pane does NOT call destroyTerminal', () => {
+  it('closePane on browser pane calls destroyBrowserView, not destroyTerminal', () => {
     // Create a mixed workspace: terminal + browser
     usePaneStore.getState().splitActiveBrowser('horizontal', 'https://example.com')
     const { workspaces, activeWorkspaceId } = usePaneStore.getState()
@@ -220,10 +224,11 @@ describe('paneStore — type-aware cleanup', () => {
     usePaneStore.getState().closePane(browserPaneId)
 
     expect(destroyTerminal).not.toHaveBeenCalled()
+    expect(destroyBrowserView).toHaveBeenCalledWith(browserPaneId)
     expect(usePaneStore.getState().panes.has(browserPaneId)).toBe(false)
   })
 
-  it('closePaneInWorkspace on browser pane does NOT call destroyTerminal', () => {
+  it('closePaneInWorkspace on browser pane calls destroyBrowserView, not destroyTerminal', () => {
     usePaneStore.getState().splitActiveBrowser('horizontal', 'https://example.com')
     const { workspaces, activeWorkspaceId } = usePaneStore.getState()
     const ws = workspaces.find(w => w.id === activeWorkspaceId)!
@@ -233,10 +238,11 @@ describe('paneStore — type-aware cleanup', () => {
     usePaneStore.getState().closePaneInWorkspace(ws.id, browserPaneId)
 
     expect(destroyTerminal).not.toHaveBeenCalled()
+    expect(destroyBrowserView).toHaveBeenCalledWith(browserPaneId)
     expect(usePaneStore.getState().panes.has(browserPaneId)).toBe(false)
   })
 
-  it('removeWorkspace with mixed panes only calls destroyTerminal for terminals', () => {
+  it('removeWorkspace with mixed panes calls correct destroy for each type', () => {
     usePaneStore.getState().splitActiveBrowser('horizontal', 'https://example.com')
     // Need another workspace so we can remove this one
     usePaneStore.getState().addWorkspace()
@@ -257,8 +263,12 @@ describe('paneStore — type-aware cleanup', () => {
     for (const tid of terminalIds) {
       expect(destroyTerminal).toHaveBeenCalledWith(tid)
     }
-    // destroyTerminal should only have been called for terminal panes
     expect(destroyTerminal).toHaveBeenCalledTimes(terminalIds.length)
+
+    for (const bid of browserIds) {
+      expect(destroyBrowserView).toHaveBeenCalledWith(bid)
+    }
+    expect(destroyBrowserView).toHaveBeenCalledTimes(browserIds.length)
   })
 })
 

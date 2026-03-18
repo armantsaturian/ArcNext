@@ -35,6 +35,58 @@ const api = {
       ipcRenderer.on('pty:title', handler)
       return () => { ipcRenderer.removeListener('pty:title', handler) }
     }
+  },
+  browser: {
+    create: (paneId: string, url: string) =>
+      ipcRenderer.send('browser:create', paneId, url),
+    destroy: (paneId: string) =>
+      ipcRenderer.send('browser:destroy', paneId),
+    setBounds: (paneId: string, bounds: { x: number; y: number; width: number; height: number }) =>
+      ipcRenderer.send('browser:setBounds', paneId, bounds),
+    show: (paneId: string) =>
+      ipcRenderer.send('browser:show', paneId),
+    hide: (paneId: string) =>
+      ipcRenderer.send('browser:hide', paneId),
+    navigate: (paneId: string, url: string) =>
+      ipcRenderer.send('browser:navigate', paneId, url),
+    goBack: (paneId: string) =>
+      ipcRenderer.send('browser:goBack', paneId),
+    goForward: (paneId: string) =>
+      ipcRenderer.send('browser:goForward', paneId),
+    reload: (paneId: string) =>
+      ipcRenderer.send('browser:reload', paneId),
+    stop: (paneId: string) =>
+      ipcRenderer.send('browser:stop', paneId),
+    onTitleChanged: (cb: (paneId: string, title: string) => void) => {
+      const handler = (_event: IpcRendererEvent, paneId: string, title: string) => cb(paneId, title)
+      ipcRenderer.on('browser:titleChanged', handler)
+      return () => { ipcRenderer.removeListener('browser:titleChanged', handler) }
+    },
+    onUrlChanged: (cb: (paneId: string, url: string) => void) => {
+      const handler = (_event: IpcRendererEvent, paneId: string, url: string) => cb(paneId, url)
+      ipcRenderer.on('browser:urlChanged', handler)
+      return () => { ipcRenderer.removeListener('browser:urlChanged', handler) }
+    },
+    onLoadingChanged: (cb: (paneId: string, loading: boolean) => void) => {
+      const handler = (_event: IpcRendererEvent, paneId: string, loading: boolean) => cb(paneId, loading)
+      ipcRenderer.on('browser:loadingChanged', handler)
+      return () => { ipcRenderer.removeListener('browser:loadingChanged', handler) }
+    },
+    onNavStateChanged: (cb: (paneId: string, canGoBack: boolean, canGoForward: boolean) => void) => {
+      const handler = (_event: IpcRendererEvent, paneId: string, canGoBack: boolean, canGoForward: boolean) => cb(paneId, canGoBack, canGoForward)
+      ipcRenderer.on('browser:navStateChanged', handler)
+      return () => { ipcRenderer.removeListener('browser:navStateChanged', handler) }
+    },
+    onLoadFailed: (cb: (paneId: string, errorCode: number, errorDesc: string) => void) => {
+      const handler = (_event: IpcRendererEvent, paneId: string, errorCode: number, errorDesc: string) => cb(paneId, errorCode, errorDesc)
+      ipcRenderer.on('browser:loadFailed', handler)
+      return () => { ipcRenderer.removeListener('browser:loadFailed', handler) }
+    },
+    onFocused: (cb: (paneId: string) => void) => {
+      const handler = (_event: IpcRendererEvent, paneId: string) => cb(paneId)
+      ipcRenderer.on('browser:focused', handler)
+      return () => { ipcRenderer.removeListener('browser:focused', handler) }
+    }
   }
 }
 

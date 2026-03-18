@@ -3,6 +3,7 @@ import { autoUpdater } from 'electron-updater'
 import { join } from 'path'
 import { setupPTY, killAllPTY } from './pty'
 import { setupDirHistory, flushDirHistorySync } from './dirHistory'
+import { setupBrowserViewManager, destroyAllBrowserViews } from './browserViewManager'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -25,6 +26,7 @@ function createWindow(): void {
 
   setupPTY(mainWindow)
   setupDirHistory()
+  setupBrowserViewManager(mainWindow)
 
   ipcMain.on('sidebar:traffic-lights', (_e, visible: boolean) => {
     mainWindow?.setWindowButtonVisibility(visible)
@@ -57,6 +59,7 @@ autoUpdater.on('update-downloaded', (info) => {
 
 app.on('before-quit', () => {
   killAllPTY()
+  destroyAllBrowserViews()
   flushDirHistorySync()
 })
 

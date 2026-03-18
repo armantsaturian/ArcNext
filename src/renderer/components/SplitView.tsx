@@ -2,21 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { SplitNode } from '../model/splitTree'
 import { usePaneStore } from '../store/paneStore'
 import TerminalPane from './TerminalPane'
+import BrowserPane from './BrowserPane'
 
-function PaneRenderer({ paneId }: { paneId: string }) {
+function PaneRenderer({ paneId, workspaceId }: { paneId: string; workspaceId: string }) {
   const paneType = usePaneStore((s) => s.panes.get(paneId)?.type ?? 'terminal')
-  const paneUrl = usePaneStore((s) => {
-    const p = s.panes.get(paneId)
-    return p?.type === 'browser' ? p.url : ''
-  })
 
   if (paneType === 'browser') {
-    return (
-      <div className="browser-pane-placeholder">
-        <span className="browser-pane-placeholder-icon">&#127760;</span>
-        <span className="browser-pane-placeholder-url">{paneUrl}</span>
-      </div>
-    )
+    return <BrowserPane paneId={paneId} workspaceId={workspaceId} />
   }
 
   return <TerminalPane paneId={paneId} />
@@ -46,9 +38,10 @@ interface DividerInfo {
 
 interface Props {
   node: SplitNode
+  workspaceId: string
 }
 
-export default function SplitView({ node }: Props) {
+export default function SplitView({ node, workspaceId }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ w: 0, h: 0 })
 
@@ -87,7 +80,7 @@ export default function SplitView({ node }: Props) {
             height: p.height,
           }}
         >
-          <PaneRenderer paneId={p.paneId} />
+          <PaneRenderer paneId={p.paneId} workspaceId={workspaceId} />
         </div>
       ))}
       {dividers.map((d) => (

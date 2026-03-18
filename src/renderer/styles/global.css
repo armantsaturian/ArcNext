@@ -654,3 +654,149 @@ body,
     color: #666;
     font-size: 13px;
 }
+
+/* ── Browser pane ── */
+.browser-pane {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #161616;
+    border-radius: 8px;
+    border: 1px solid #2a2a2a;
+}
+
+.browser-pane.active {
+    border-color: #3a3a3a;
+}
+
+.browser-nav {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 36px;
+    padding: 0 6px;
+    background: #1e1e1e;
+    border-bottom: 1px solid #2a2a2a;
+    flex-shrink: 0;
+    border-radius: 8px 8px 0 0;
+    -webkit-app-region: no-drag;
+}
+
+.browser-nav-btn {
+    width: 28px;
+    height: 28px;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: #aaa;
+    font-size: 16px;
+    line-height: 28px;
+    text-align: center;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.12s;
+    flex-shrink: 0;
+}
+
+.browser-nav-btn:hover:not(:disabled) {
+    background: #2a2a2a;
+    color: #e0e0e0;
+    border-color: #3a3a3a;
+}
+
+.browser-nav-btn:disabled {
+    opacity: 0.3;
+    cursor: default;
+}
+
+.browser-url-form {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    height: 26px;
+    background: #161616;
+    border: 1px solid #2a2a2a;
+    border-radius: 6px;
+    margin-left: 4px;
+    padding: 0 8px;
+    transition: border-color 0.15s;
+}
+
+.browser-url-form:focus-within {
+    border-color: #74c0fc;
+}
+
+.browser-url-lock {
+    font-size: 10px;
+    margin-right: 4px;
+    flex-shrink: 0;
+}
+
+.browser-url-input {
+    flex: 1;
+    min-width: 0;
+    background: none;
+    border: none;
+    outline: none;
+    color: #ccc;
+    font-size: 12px;
+    font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+}
+
+.browser-url-input::selection {
+    background: #74c0fc44;
+}
+
+/* Transparent placeholder — WebContentsView is overlaid on top by the main process */
+.browser-content {
+    flex: 1;
+    position: relative;
+    background: transparent;
+    overflow: hidden;
+}
+
+/* Error overlay (shown when WebContentsView is hidden due to load failure) */
+.browser-error {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: #161616;
+}
+
+.browser-error-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #e0e0e0;
+}
+
+.browser-error-detail {
+    font-size: 13px;
+    color: #888;
+    max-width: 400px;
+    text-align: center;
+}
+
+.browser-error-retry {
+    margin-top: 8px;
+    padding: 6px 16px;
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 6px;
+    color: #e0e0e0;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.browser-error-retry:hover {
+    background: #3a3a3a;
+}

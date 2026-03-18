@@ -31,6 +31,10 @@ export default function App() {
   const addWorkspace = usePaneStore((s) => s.addWorkspace)
   const setPaneTitle = usePaneStore((s) => s.setPaneTitle)
   const setPaneCwd = usePaneStore((s) => s.setPaneCwd)
+  const setBrowserPaneUrl = usePaneStore((s) => s.setBrowserPaneUrl)
+  const setBrowserPaneNavState = usePaneStore((s) => s.setBrowserPaneNavState)
+  const setBrowserPaneLoading = usePaneStore((s) => s.setBrowserPaneLoading)
+  const setActivePaneInWorkspace = usePaneStore((s) => s.setActivePaneInWorkspace)
   const switchWorkspace = usePaneStore((s) => s.switchWorkspace)
   const navigateDir = usePaneStore((s) => s.navigateDir)
   const toggleSidebar = usePaneStore((s) => s.toggleSidebar)
@@ -60,6 +64,28 @@ export default function App() {
       window.arcnext.dirHistory.visit(cwd)
     })
   }, [setPaneCwd])
+
+  // Wire browser view events from main process into the store
+  useEffect(() => {
+    const unsubs = [
+      window.arcnext.browser.onTitleChanged((paneId, title) => {
+        setPaneTitle(paneId, title)
+      }),
+      window.arcnext.browser.onUrlChanged((paneId, url) => {
+        setBrowserPaneUrl(paneId, url)
+      }),
+      window.arcnext.browser.onLoadingChanged((paneId, loading) => {
+        setBrowserPaneLoading(paneId, loading)
+      }),
+      window.arcnext.browser.onNavStateChanged((paneId, canGoBack, canGoForward) => {
+        setBrowserPaneNavState(paneId, canGoBack, canGoForward)
+      }),
+      window.arcnext.browser.onFocused((paneId) => {
+        setActivePaneInWorkspace(paneId)
+      })
+    ]
+    return () => unsubs.forEach((unsub) => unsub())
+  }, [setPaneTitle, setBrowserPaneUrl, setBrowserPaneLoading, setBrowserPaneNavState, setActivePaneInWorkspace])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -177,7 +203,7 @@ export default function App() {
       <div id="workspace">
         {workspaces.map((w) => (
           <div key={w.id} className={`ws-layer ${w.id === activeWorkspaceId ? 'active' : ''}`}>
-            <SplitView node={w.tree} />
+            <SplitView node={w.tree} workspaceId={w.id} />
           </div>
         ))}
       </div>
