@@ -164,7 +164,7 @@ export default function Sidebar() {
             onDrop={(e) => {
               e.preventDefault()
               if (dragSourceId && dragSourceId !== ws.id) {
-                const direction = e.shiftKey ? 'horizontal' : 'vertical'
+                const direction = e.shiftKey ? 'vertical' : 'horizontal'
                 mergeWorkspaces(ws.id, dragSourceId, direction)
               }
               setDragSourceId(null)
