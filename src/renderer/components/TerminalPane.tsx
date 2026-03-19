@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { usePaneStore } from '../store/paneStore'
-import { attachTerminal, detachTerminal, fitTerminal, focusTerminal, writeToTerminalPTY } from '../model/terminalManager'
+import { attachTerminal, detachTerminal, fitTerminal, focusTerminal, blurTerminal, writeToTerminalPTY } from '../model/terminalManager'
 
 interface Props {
   paneId: string
@@ -33,9 +33,13 @@ export default function TerminalPane({ paneId }: Props) {
     return () => detachTerminal(paneId)
   }, [paneId])
 
-  // Focus when active
+  // Focus when active, blur when not
   useEffect(() => {
-    if (isActive) focusTerminal(paneId)
+    if (isActive) {
+      focusTerminal(paneId)
+    } else {
+      blurTerminal(paneId)
+    }
   }, [isActive, paneId])
 
   // Refit on container resize

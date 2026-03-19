@@ -89,6 +89,19 @@ export default function BrowserPane({ paneId, workspaceId }: Props) {
     }
   }, [paneId, isWorkspaceActive, error])
 
+  // Listen for Cmd+L URL focus event from App.tsx
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail
+      if (detail?.paneId === paneId && isActivePane) {
+        urlInputRef.current?.focus()
+        urlInputRef.current?.select()
+      }
+    }
+    window.addEventListener('browser-focus-url', handler)
+    return () => window.removeEventListener('browser-focus-url', handler)
+  }, [paneId, isActivePane])
+
   // Listen for load failures
   useEffect(() => {
     return window.arcnext.browser.onLoadFailed((id, code, desc) => {

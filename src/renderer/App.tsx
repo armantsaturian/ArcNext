@@ -25,6 +25,8 @@ function useActivePaneType(): 'terminal' | 'browser' | null {
 export default function App() {
   const ws = useActiveWorkspace()
   const activePaneType = useActivePaneType()
+  const focusState = usePaneStore((s) => s.focusState)
+  const setFocusState = usePaneStore((s) => s.setFocusState)
   const activeWorkspaceId = usePaneStore((s) => s.activeWorkspaceId)
   const splitActive = usePaneStore((s) => s.splitActive)
   const closePane = usePaneStore((s) => s.closePane)
@@ -104,14 +106,45 @@ export default function App() {
     removeUndockedBrowserPane
   ])
 
+  // Track UI focus (inputs/textareas) to suppress shortcuts while editing
+  useEffect(() => {
+    const onFocusIn = (e: FocusEvent) => {
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        setFocusState('ui')
+      }
+    }
+    const onFocusOut = (e: FocusEvent) => {
+      const related = e.relatedTarget as HTMLElement | null
+      if (related?.tagName === 'INPUT' || related?.tagName === 'TEXTAREA') return
+      if (activePaneType) setFocusState(activePaneType)
+    }
+    document.addEventListener('focusin', onFocusIn)
+    document.addEventListener('focusout', onFocusOut)
+    return () => {
+      document.removeEventListener('focusin', onFocusIn)
+      document.removeEventListener('focusout', onFocusOut)
+    }
+  }, [setFocusState, activePaneType])
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const meta = e.metaKey
       const alt = e.altKey
       const key = e.key.length === 1 ? e.key.toLowerCase() : e.key
 
+      // DirPicker is a modal — suppress all shortcuts except Cmd+G to close
+      if (dirPickerOpen) {
+        if (meta && !e.shiftKey && !alt && key === 'g') {
+          e.preventDefault()
+          setDirPickerOpen(false)
+          return
+        }
+        return
+      }
+
       // Cmd+Shift+Enter — undock active browser pane
-      if (meta && e.shiftKey && !alt && e.key === 'Enter' && activePaneType === 'browser') {
+      if (meta && e.shiftKey && !alt && e.key === 'Enter' && activePaneType === 'browser' && focusState !== 'ui') {
         e.preventDefault()
         if (ws) undockBrowserPane(ws.activePaneId)
         return
@@ -125,8 +158,8 @@ export default function App() {
         return
       }
 
-      // Terminal-only shortcuts — only fire when active pane is a terminal
-      if (activePaneType === 'terminal') {
+      // Terminal-only shortcuts — only fire when terminal has focus
+      if (focusState === 'terminal') {
         // Option+Left/Right — word jump
         if (alt && !meta && e.key === 'ArrowLeft') {
           e.preventDefault()
@@ -168,6 +201,36 @@ export default function App() {
           e.preventDefault()
           e.stopImmediatePropagation()
           if (ws) writeToTerminalPTY(ws.activePaneId, '\x05') // Ctrl+E
+          return
+        }
+      }
+
+      // Browser-only shortcuts — only fire when browser has focus
+      if (focusState === 'browser') {
+        // Cmd+L — focus URL bar
+        if (meta && !e.shiftKey && !alt && key === 'l') {
+          e.preventDefault()
+          window.dispatchEvent(new CustomEvent('browser-focus-url', {
+            detail: { paneId: ws?.activePaneId }
+          }))
+          return
+        }
+        // Cmd+R — reload
+        if (meta && !e.shiftKey && !alt && key === 'r') {
+          e.preventDefault()
+          if (ws) window.arcnext.browser.reload(ws.activePaneId)
+          return
+        }
+        // Cmd+[ — back
+        if (meta && !e.shiftKey && !alt && e.key === '[') {
+          e.preventDefault()
+          if (ws) window.arcnext.browser.goBack(ws.activePaneId)
+          return
+        }
+        // Cmd+] — forward
+        if (meta && !e.shiftKey && !alt && e.key === ']') {
+          e.preventDefault()
+          if (ws) window.arcnext.browser.goForward(ws.activePaneId)
           return
         }
       }
@@ -219,7 +282,7 @@ export default function App() {
 
     window.addEventListener('keydown', handler, true)
     return () => window.removeEventListener('keydown', handler, true)
-  }, [splitActive, closePane, addWorkspace, switchWorkspace, navigateDir, toggleSidebar, undockBrowserPane, ws, workspaces, dirPickerOpen, activePaneType])
+  }, [splitActive, closePane, addWorkspace, switchWorkspace, navigateDir, toggleSidebar, undockBrowserPane, ws, workspaces, dirPickerOpen, activePaneType, focusState, setFocusState])
 
   return (
     <div id="app">

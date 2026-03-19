@@ -3,7 +3,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 // Mock terminalManager and browserManager before importing the store
 vi.mock('../model/terminalManager', () => ({
   createTerminal: vi.fn(),
-  destroyTerminal: vi.fn()
+  destroyTerminal: vi.fn(),
+  blurTerminal: vi.fn()
 }))
 vi.mock('../model/browserManager', () => ({
   destroyBrowserView: vi.fn(),
@@ -21,7 +22,8 @@ function resetStore() {
   usePaneStore.setState({
     workspaces: [],
     activeWorkspaceId: '',
-    panes: new Map()
+    panes: new Map(),
+    focusState: 'terminal'
   })
   vi.clearAllMocks()
   // Create a fresh workspace via addWorkspace
@@ -467,5 +469,98 @@ describe('paneStore — mixed workspace operations', () => {
     // One should be terminal, one should be browser (order depends on tree structure)
     const types = [ws0Pane.type, ws1Pane.type].sort()
     expect(types).toEqual(['browser', 'terminal'])
+  })
+})
+
+describe('paneStore — focusState tracking', () => {
+  beforeEach(resetStore)
+
+  it('initial focusState is terminal', () => {
+    expect(usePaneStore.getState().focusState).toBe('terminal')
+  })
+
+  it('setActivePaneInWorkspace to a browser pane sets focusState to browser', () => {
+    usePaneStore.getState().splitActiveBrowser('horizontal', 'https://example.com')
+    const { workspaces, activeWorkspaceId } = usePaneStore.getState()
+    const ws = workspaces.find(w => w.id === activeWorkspaceId)!
+    const browserPaneId = ws.activePaneId
+
+    // Switch to the terminal pane first
+    const ids = allPaneIds(ws.tree)
+    const terminalPaneId = ids.find(id => id !== browserPaneId)!
+    usePaneStore.getState().setActivePaneInWorkspace(terminalPaneId)
+    expect(usePaneStore.getState().focusState).toBe('terminal')
+
+    // Switch back to browser
+    usePaneStore.getState().setActivePaneInWorkspace(browserPaneId)
+    expect(usePaneStore.getState().focusState).toBe('browser')
+  })
+
+  it('setActivePaneInWorkspace to a terminal pane sets focusState to terminal', () => {
+    usePaneStore.getState().splitActiveBrowser('horizontal', 'https://example.com')
+    const { workspaces, activeWorkspaceId } = usePaneStore.getState()
+    const ws = workspaces.find(w => w.id === activeWorkspaceId)!
+    const browserPaneId = ws.activePaneId
+    expect(usePaneStore.getState().focusState).toBe('browser')
+
+    const ids = allPaneIds(ws.tree)
+    const terminalPaneId = ids.find(id => id !== browserPaneId)!
+    usePaneStore.getState().setActivePaneInWorkspace(terminalPaneId)
+    expect(usePaneStore.getState().focusState).toBe('terminal')
+  })
+
+  it('switchWorkspace to a browser workspace updates focusState via subscriber', () => {
+    // Add a browser workspace
+    usePaneStore.getState().addBrowserWorkspace('https://example.com')
+    expect(usePaneStore.getState().focusState).toBe('browser')
+
+    // Switch back to terminal workspace
+    const terminalWsId = usePaneStore.getState().workspaces[0].id
+    usePaneStore.getState().switchWorkspace(terminalWsId)
+    expect(usePaneStore.getState().focusState).toBe('terminal')
+
+    // Switch to browser workspace
+    const browserWsId = usePaneStore.getState().workspaces[1].id
+    usePaneStore.getState().switchWorkspace(browserWsId)
+    expect(usePaneStore.getState().focusState).toBe('browser')
+  })
+
+  it('setFocusState(ui) sets UI focus', () => {
+    usePaneStore.getState().setFocusState('ui')
+    expect(usePaneStore.getState().focusState).toBe('ui')
+  })
+
+  it('setActivePaneInWorkspace while in ui mode exits to correct pane type', () => {
+    usePaneStore.getState().splitActiveBrowser('horizontal', 'https://example.com')
+    const { workspaces, activeWorkspaceId } = usePaneStore.getState()
+    const ws = workspaces.find(w => w.id === activeWorkspaceId)!
+    const browserPaneId = ws.activePaneId
+
+    // Enter UI mode
+    usePaneStore.getState().setFocusState('ui')
+    expect(usePaneStore.getState().focusState).toBe('ui')
+
+    // Click browser pane — should exit UI mode to 'browser'
+    usePaneStore.getState().setActivePaneInWorkspace(browserPaneId)
+    expect(usePaneStore.getState().focusState).toBe('browser')
+  })
+
+  it('addBrowserWorkspace sets focusState to browser via subscriber', () => {
+    expect(usePaneStore.getState().focusState).toBe('terminal')
+    usePaneStore.getState().addBrowserWorkspace('https://example.com')
+    expect(usePaneStore.getState().focusState).toBe('browser')
+  })
+
+  it('closePane on active browser pane updates focusState to match new active pane', () => {
+    // Create mixed workspace: terminal + browser
+    usePaneStore.getState().splitActiveBrowser('horizontal', 'https://example.com')
+    const { workspaces, activeWorkspaceId } = usePaneStore.getState()
+    const ws = workspaces.find(w => w.id === activeWorkspaceId)!
+    const browserPaneId = ws.activePaneId
+    expect(usePaneStore.getState().focusState).toBe('browser')
+
+    // Close the browser pane — should fall back to the terminal pane
+    usePaneStore.getState().closePane(browserPaneId)
+    expect(usePaneStore.getState().focusState).toBe('terminal')
   })
 })

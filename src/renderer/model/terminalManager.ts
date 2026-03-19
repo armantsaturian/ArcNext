@@ -167,6 +167,11 @@ export function focusTerminal(paneId: string): void {
   terminals.get(paneId)?.term.focus()
 }
 
+/** Blur the terminal */
+export function blurTerminal(paneId: string): void {
+  terminals.get(paneId)?.term.blur()
+}
+
 /** Write data directly to the PTY (for sending escape sequences) */
 export function writeToTerminalPTY(paneId: string, data: string): void {
   window.arcnext.pty.write(paneId, data)

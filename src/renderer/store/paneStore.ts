@@ -76,6 +76,10 @@ interface PaneStore {
   // Dock/undock
   undockBrowserPane: (paneId: string) => void
   removeUndockedBrowserPane: (paneId: string) => void
+
+  // Focus state
+  focusState: 'terminal' | 'browser' | 'ui'
+  setFocusState: (state: 'terminal' | 'browser' | 'ui') => void
 }
 
 function makeTerminalPane(): TerminalPaneInfo {
@@ -333,11 +337,14 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
   },
 
   setActivePaneInWorkspace: (paneId) => {
-    const { workspaces, activeWorkspaceId } = get()
+    const { workspaces, activeWorkspaceId, panes } = get()
+    const pane = panes.get(paneId)
+    const focusState = pane?.type === 'browser' ? 'browser' : 'terminal'
     set({
       workspaces: workspaces.map((w) =>
         w.id === activeWorkspaceId ? { ...w, activePaneId: paneId } : w
-      )
+      ),
+      focusState
     })
   },
 
@@ -533,8 +540,28 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
       workspaces: workspaces.map((w) => w.id === ws.id ? updatedWs : w),
       panes: newPanes
     })
-  }
+  },
+
+  focusState: 'terminal',
+  setFocusState: (state) => set({ focusState: state })
 }))
+
+// Auto-sync focusState when the active pane changes through any action
+let _prevWsId = ''
+let _prevPaneId = ''
+usePaneStore.subscribe((state) => {
+  const ws = state.workspaces.find((w) => w.id === state.activeWorkspaceId)
+  const wsId = state.activeWorkspaceId
+  const paneId = ws?.activePaneId ?? ''
+  if (wsId === _prevWsId && paneId === _prevPaneId) return
+  _prevWsId = wsId
+  _prevPaneId = paneId
+  const pane = ws ? state.panes.get(paneId) : null
+  const expected: 'terminal' | 'browser' = pane?.type === 'browser' ? 'browser' : 'terminal'
+  if (state.focusState !== expected) {
+    usePaneStore.setState({ focusState: expected })
+  }
+})
 
 /** Helper: get the active workspace from the store */
 export function useActiveWorkspace(): Workspace | undefined {
