@@ -46,7 +46,7 @@ export default function BrowserPane({ paneId, workspaceId }: Props) {
   useEffect(() => {
     window.arcnext.browser.create(paneId, url)
     return () => {
-      window.arcnext.browser.destroy(paneId)
+      window.arcnext.browser.hide(paneId)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paneId]) // url intentionally excluded — create once with initial url
