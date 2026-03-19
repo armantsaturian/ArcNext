@@ -190,6 +190,12 @@ export default function BrowserPane({ paneId, workspaceId }: Props) {
         </button>
       </div>
       <div className="browser-content" ref={placeholderRef}>
+        {overlayActive && !error && (
+          <div className="browser-placeholder">
+            <div className="browser-placeholder-title">{pane.title || 'Untitled'}</div>
+            <div className="browser-placeholder-url">{url}</div>
+          </div>
+        )}
         {error && (
           <div className="browser-error">
             <div className="browser-error-title">Failed to load page</div>

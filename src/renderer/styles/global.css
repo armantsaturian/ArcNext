@@ -819,3 +819,36 @@ body,
 .browser-error-retry:hover {
     background: #3a3a3a;
 }
+
+.browser-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: #1a1a1a;
+  opacity: 0.8;
+}
+
+.browser-placeholder-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #888;
+  max-width: 300px;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.browser-placeholder-url {
+  font-size: 12px;
+  color: #555;
+  max-width: 300px;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
