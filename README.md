@@ -1,12 +1,26 @@
-# ArcNext
+<p align="center">
+  <img src="arcnext.png" width="128" alt="ArcNext logo" />
+</p>
 
-You like Arc Browser? You like living in the terminal with AI agents? You'll love ArcNext.
+<h1 align="center">ArcNext</h1>
 
-A terminal emulator with Arc browser-style UX, built on Electron. For developers who've shifted from browser+terminal+IDE to terminal-heavy workflows.
+<p align="center">
+  Arc-style workspace UX for your terminal. Built for the agent era.
+</p>
+
+---
+
+A terminal emulator with Arc browser-style UX, built on Electron. For developers who've shifted from browser+terminal+IDE to terminal-heavy, agent-driven workflows.
 
 ## Why build this?
 
-The times are changing, i spend more time in terminal than in browser. I run a dozen of agents with different context and need to jump between them. See this https://x.com/armantsaturian/status/2032392669763158205?s=20 and https://x.com/karpathy/status/2031767720933634100. We need a new surface. Arc + Terminal with proper Agent Command Control = ArcTerm.
+Developer workflows have fundamentally changed. The terminal is no longer just where you run builds — it's where you *work*. AI agents handle code, research, debugging, and deployment, each needing their own context and shell. The browser has moved from center stage to a supporting role.
+
+The problem: existing terminals weren't designed for this. You end up juggling a dozen tabs, losing track of which agent is where, and constantly context-switching between terminal, browser, and IDE.
+
+ArcNext treats terminals the way Arc treats browser tabs — organized into workspaces with a vertical sidebar, split panes, and the ability to dock web pages right alongside your shells. It's a single surface for running multiple agents, each in their own workspace, with a browser always one click away.
+
+See the [original motivation](https://x.com/armantsaturian/status/2032392669763158205) and [Karpathy's take on the shift](https://x.com/karpathy/status/2031767720933634100).
 
 ## Features
 
