@@ -82,8 +82,8 @@ interface PaneStore {
   setFocusState: (state: 'terminal' | 'browser' | 'ui') => void
 
   // Overlay state (hides native browser views so DOM modals are visible)
-  overlayActive: boolean
-  setOverlayActive: (active: boolean) => void
+  activeOverlays: Set<string>
+  setOverlay: (id: string, active: boolean) => void
 }
 
 function makeTerminalPane(): TerminalPaneInfo {
@@ -549,8 +549,13 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
   focusState: 'terminal',
   setFocusState: (state) => set({ focusState: state }),
 
-  overlayActive: false,
-  setOverlayActive: (active) => set({ overlayActive: active })
+  activeOverlays: new Set<string>(),
+  setOverlay: (id, active) => set((s) => {
+    if (active === s.activeOverlays.has(id)) return s
+    const next = new Set(s.activeOverlays)
+    active ? next.add(id) : next.delete(id)
+    return { activeOverlays: next }
+  })
 }))
 
 // Auto-sync focusState when the active pane changes through any action

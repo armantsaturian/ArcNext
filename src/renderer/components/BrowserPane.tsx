@@ -17,7 +17,7 @@ export default function BrowserPane({ paneId, workspaceId }: Props) {
     return p?.type === 'browser' ? p as BrowserPaneInfo : null
   })
   const isWorkspaceActive = usePaneStore((s) => s.activeWorkspaceId === workspaceId)
-  const overlayActive = usePaneStore((s) => s.overlayActive)
+  const overlayActive = usePaneStore((s) => s.activeOverlays.size > 0)
   const isActivePane = usePaneStore((s) => {
     const ws = s.workspaces.find((w) => w.id === workspaceId)
     return ws?.activePaneId === paneId

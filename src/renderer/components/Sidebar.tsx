@@ -44,11 +44,19 @@ export default function Sidebar() {
   const toggleSidebar = usePaneStore((s) => s.toggleSidebar)
   const setSidebarWidth = usePaneStore((s) => s.setSidebarWidth)
 
+  const setOverlay = usePaneStore((s) => s.setOverlay)
+
   const [dragSourceId, setDragSourceId] = useState<string | null>(null)
   const [dragOverId, setDragOverId] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; workspaceId: string } | null>(null)
   const [colorPicker, setColorPicker] = useState<{ x: number; y: number; workspaceId: string } | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
+
+  const sidebarPopupOpen = !!(contextMenu || colorPicker)
+  useEffect(() => {
+    setOverlay('sidebar', sidebarPopupOpen)
+    return () => setOverlay('sidebar', false)
+  }, [sidebarPopupOpen, setOverlay])
 
   useEffect(() => {
     if (!contextMenu) return

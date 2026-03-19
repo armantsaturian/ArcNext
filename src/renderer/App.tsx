@@ -44,11 +44,11 @@ export default function App() {
   const undockBrowserPane = usePaneStore((s) => s.undockBrowserPane)
   const removeUndockedBrowserPane = usePaneStore((s) => s.removeUndockedBrowserPane)
   const workspaces = usePaneStore((s) => s.workspaces)
-  const setOverlayActive = usePaneStore((s) => s.setOverlayActive)
+  const setOverlay = usePaneStore((s) => s.setOverlay)
   const [dirPickerOpen, setDirPickerOpen] = useState(false)
 
-  const openDirPicker = () => { setDirPickerOpen(true); setOverlayActive(true) }
-  const closeDirPicker = () => { setDirPickerOpen(false); setOverlayActive(false) }
+  const openDirPicker = () => { setDirPickerOpen(true); setOverlay('dirPicker', true) }
+  const closeDirPicker = () => { setDirPickerOpen(false); setOverlay('dirPicker', false) }
 
   // Prevent Electron's default file-drop navigation so per-component drop handlers work
   useEffect(() => {
