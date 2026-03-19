@@ -3,6 +3,7 @@ out/
 dist/
 *.tsbuildinfo
 .env
+.env.build
 
 # macOS
 .DS_Store

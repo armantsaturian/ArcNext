@@ -1,6 +1,6 @@
 {
   "name": "arcnext",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Terminal emulator with Arc browser-style UX, built for developers who live in the terminal with AI agents.",
   "main": "./out/main/main.js",
   "scripts": {
@@ -39,13 +39,17 @@
     "appId": "com.arcnext.app",
     "productName": "ArcNext",
     "icon": "arcnext.png",
-    "afterPack": "./scripts/after-pack.cjs",
     "mac": {
       "category": "public.app-category.developer-tools",
       "target": [
         "dmg",
         "zip"
-      ]
+      ],
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "notarize": true
     },
     "publish": {
       "provider": "github",
