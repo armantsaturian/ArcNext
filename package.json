@@ -1,6 +1,6 @@
 {
   "name": "arcnext",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Terminal emulator with Arc browser-style UX, built for developers who live in the terminal with AI agents.",
   "main": "./out/main/main.js",
   "scripts": {
