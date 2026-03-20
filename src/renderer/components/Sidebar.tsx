@@ -68,6 +68,10 @@ export default function Sidebar() {
   const setOverlay = usePaneStore((s) => s.setOverlay)
 
   const moveWorkspace = usePaneStore((s) => s.moveWorkspace)
+  const pinWorkspace = usePaneStore((s) => s.pinWorkspace)
+  const unpinWorkspace = usePaneStore((s) => s.unpinWorkspace)
+  const sleepWorkspace = usePaneStore((s) => s.sleepWorkspace)
+  const wakeWorkspace = usePaneStore((s) => s.wakeWorkspace)
 
   const [dragSourceId, setDragSourceId] = useState<string | null>(null)
   const [dragOverState, setDragOverState] = useState<{
@@ -77,6 +81,7 @@ export default function Sidebar() {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; workspaceId: string } | null>(null)
   const [colorPicker, setColorPicker] = useState<{ x: number; y: number; workspaceId: string } | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [dividerDropActive, setDividerDropActive] = useState(false)
 
   const sidebarPopupOpen = !!(contextMenu || colorPicker)
   useEffect(() => {
@@ -160,78 +165,140 @@ export default function Sidebar() {
         </button>
       </div>
       <div className="sidebar-list" onDragOver={(e) => { if (dragSourceId) e.preventDefault() }}>
-        {workspaces.map((ws) => (
-          <WorkspaceRow
-            key={ws.id}
-            workspace={ws}
-            panes={panes}
-            collapsed={sidebarCollapsed}
-            isActive={ws.id === activeWorkspaceId}
-            isDragging={ws.id === dragSourceId}
-            dropPosition={dragOverState?.targetId === ws.id && ws.id !== dragSourceId ? dragOverState.position : null}
-            onSelect={() => switchWorkspace(ws.id)}
-            onClose={() => removeWorkspace(ws.id)}
-            onClosePane={(paneId) => closePaneInWorkspace(ws.id, paneId)}
-            isEditing={editingId === ws.id}
-            onDoubleClick={() => {
-              if (!sidebarCollapsed) {
-                setContextMenu(null)
-                setColorPicker(null)
-                setEditingId(ws.id)
-              }
-            }}
-            onRename={(name) => {
-              setWorkspaceName(ws.id, name)
-              setEditingId(null)
-            }}
-            onCancelRename={() => setEditingId(null)}
-            onDragStart={() => setDragSourceId(ws.id)}
-            onDragOver={(e) => {
-              e.preventDefault()
-              if (dragSourceId === ws.id) { setDragOverState(null); return }
-              const rect = e.currentTarget.getBoundingClientRect()
-              const ratio = (e.clientY - rect.top) / rect.height
-              const position = ratio < 0.3 ? 'before' : ratio > 0.7 ? 'after' : 'on'
-              const srcIdx = workspaces.findIndex((w) => w.id === dragSourceId)
-              const tgtIdx = workspaces.findIndex((w) => w.id === ws.id)
-              if (position === 'before' && tgtIdx === srcIdx + 1) { setDragOverState(null); return }
-              if (position === 'after' && tgtIdx === srcIdx - 1) { setDragOverState(null); return }
-              if (dragOverState?.targetId === ws.id && dragOverState?.position === position) return
-              setDragOverState({ targetId: ws.id, position })
-            }}
-            onDragLeave={(e) => {
-              if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node)) {
-                setDragOverState(null)
-              }
-            }}
-            onDrop={(e) => {
-              e.preventDefault()
-              if (dragSourceId && dragSourceId !== ws.id && dragOverState) {
-                if (dragOverState.position === 'on') {
-                  mergeWorkspaces(ws.id, dragSourceId, e.shiftKey ? 'vertical' : 'horizontal')
-                } else {
-                  const fromIndex = workspaces.findIndex((w) => w.id === dragSourceId)
-                  let toIndex = workspaces.findIndex((w) => w.id === ws.id)
-                  if (dragOverState.position === 'after') toIndex++
-                  if (fromIndex < toIndex) toIndex--
-                  moveWorkspace(fromIndex, toIndex)
+        {(() => {
+          const pinnedWs = workspaces.filter((w) => w.pinned)
+          const unpinnedWs = workspaces.filter((w) => !w.pinned)
+
+          const handleDragOver = (ws: Workspace) => (e: React.DragEvent) => {
+            e.preventDefault()
+            if (dragSourceId === ws.id) { setDragOverState(null); return }
+            const rect = e.currentTarget.getBoundingClientRect()
+            const ratio = (e.clientY - rect.top) / rect.height
+            const position = ratio < 0.3 ? 'before' : ratio > 0.7 ? 'after' : 'on'
+            const srcIdx = workspaces.findIndex((w) => w.id === dragSourceId)
+            const tgtIdx = workspaces.findIndex((w) => w.id === ws.id)
+            if (position === 'before' && tgtIdx === srcIdx + 1) { setDragOverState(null); return }
+            if (position === 'after' && tgtIdx === srcIdx - 1) { setDragOverState(null); return }
+            if (dragOverState?.targetId === ws.id && dragOverState?.position === position) return
+            setDragOverState({ targetId: ws.id, position })
+          }
+
+          const handleDrop = (ws: Workspace) => (e: React.DragEvent) => {
+            e.preventDefault()
+            if (dragSourceId && dragSourceId !== ws.id && dragOverState) {
+              const sourceWs = workspaces.find((w) => w.id === dragSourceId)
+              if (dragOverState.position === 'on') {
+                // Wake dormant workspace before merging
+                if (ws.dormant) wakeWorkspace(ws.id)
+                if (sourceWs?.dormant) wakeWorkspace(dragSourceId)
+                mergeWorkspaces(ws.id, dragSourceId, e.shiftKey ? 'vertical' : 'horizontal')
+              } else {
+                // Check if crossing pinned boundary
+                const sourceIsPinned = sourceWs?.pinned
+                const targetIsPinned = ws.pinned
+                if (!sourceIsPinned && targetIsPinned) {
+                  pinWorkspace(dragSourceId)
+                } else if (sourceIsPinned && !targetIsPinned) {
+                  unpinWorkspace(dragSourceId)
                 }
+                // Reorder
+                const updated = usePaneStore.getState().workspaces
+                const fromIndex = updated.findIndex((w) => w.id === dragSourceId)
+                let toIndex = updated.findIndex((w) => w.id === ws.id)
+                if (dragOverState.position === 'after') toIndex++
+                if (fromIndex < toIndex) toIndex--
+                moveWorkspace(fromIndex, toIndex)
               }
-              setDragSourceId(null)
-              setDragOverState(null)
-            }}
-            onDragEnd={() => {
-              setDragSourceId(null)
-              setDragOverState(null)
-            }}
-            onContextMenu={(e) => {
-              e.preventDefault()
-              setColorPicker(null)
-              setEditingId(null)
-              setContextMenu({ x: e.clientX, y: e.clientY, workspaceId: ws.id })
-            }}
-          />
-        ))}
+            }
+            setDragSourceId(null)
+            setDragOverState(null)
+            setDividerDropActive(false)
+          }
+
+          const renderRow = (ws: Workspace) => (
+            <WorkspaceRow
+              key={ws.id}
+              workspace={ws}
+              panes={panes}
+              collapsed={sidebarCollapsed}
+              isActive={ws.id === activeWorkspaceId}
+              isDragging={ws.id === dragSourceId}
+              dropPosition={dragOverState?.targetId === ws.id && ws.id !== dragSourceId ? dragOverState.position : null}
+              onSelect={() => {
+                if (ws.dormant) wakeWorkspace(ws.id)
+                switchWorkspace(ws.id)
+              }}
+              onClose={() => {
+                if (ws.pinned) sleepWorkspace(ws.id)
+                else removeWorkspace(ws.id)
+              }}
+              onClosePane={(paneId) => closePaneInWorkspace(ws.id, paneId)}
+              isEditing={editingId === ws.id}
+              onDoubleClick={() => {
+                if (!sidebarCollapsed) {
+                  setContextMenu(null)
+                  setColorPicker(null)
+                  setEditingId(ws.id)
+                }
+              }}
+              onRename={(name) => {
+                setWorkspaceName(ws.id, name)
+                setEditingId(null)
+              }}
+              onCancelRename={() => setEditingId(null)}
+              onDragStart={() => setDragSourceId(ws.id)}
+              onDragOver={handleDragOver(ws)}
+              onDragLeave={(e) => {
+                if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node)) {
+                  setDragOverState(null)
+                }
+              }}
+              onDrop={handleDrop(ws)}
+              onDragEnd={() => {
+                setDragSourceId(null)
+                setDragOverState(null)
+                setDividerDropActive(false)
+              }}
+              onContextMenu={(e) => {
+                e.preventDefault()
+                setColorPicker(null)
+                setEditingId(null)
+                setContextMenu({ x: e.clientX, y: e.clientY, workspaceId: ws.id })
+              }}
+            />
+          )
+
+          return (
+            <>
+              {pinnedWs.map(renderRow)}
+              <div
+                className={`sidebar-divider${dividerDropActive ? ' divider-drop-active' : ''}`}
+                onDragOver={(e) => {
+                  if (dragSourceId) {
+                    e.preventDefault()
+                    setDividerDropActive(true)
+                  }
+                }}
+                onDragLeave={() => setDividerDropActive(false)}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  if (dragSourceId) {
+                    const sourceWs = workspaces.find((w) => w.id === dragSourceId)
+                    if (sourceWs && !sourceWs.pinned) {
+                      pinWorkspace(dragSourceId)
+                    } else if (sourceWs && sourceWs.pinned) {
+                      unpinWorkspace(dragSourceId)
+                    }
+                  }
+                  setDragSourceId(null)
+                  setDragOverState(null)
+                  setDividerDropActive(false)
+                }}
+              />
+              {unpinnedWs.map(renderRow)}
+            </>
+          )
+        })()}
         <button
           className={`sidebar-add${dragSourceId && dragOverState?.targetId === '__add' ? ' sidebar-add-drop' : ''}`}
           onClick={addWorkspace}
@@ -240,8 +307,11 @@ export default function Sidebar() {
           onDrop={(e) => {
             e.preventDefault()
             if (dragSourceId) {
-              const from = workspaces.findIndex((w) => w.id === dragSourceId)
-              if (from < workspaces.length - 1) moveWorkspace(from, workspaces.length - 1)
+              const sourceWs = workspaces.find((w) => w.id === dragSourceId)
+              if (sourceWs?.pinned) unpinWorkspace(dragSourceId)
+              const updated = usePaneStore.getState().workspaces
+              const from = updated.findIndex((w) => w.id === dragSourceId)
+              if (from < updated.length - 1) moveWorkspace(from, updated.length - 1)
             }
             setDragSourceId(null); setDragOverState(null)
           }}
@@ -352,6 +422,7 @@ function WorkspaceRow({
     'ws-row',
     isActive && 'active',
     isDragging && 'ws-dragging',
+    workspace.dormant && 'ws-dormant',
     dropPosition === 'on' && 'ws-drop-target',
     dropPosition === 'before' && 'ws-insert-before',
     dropPosition === 'after' && 'ws-insert-after'

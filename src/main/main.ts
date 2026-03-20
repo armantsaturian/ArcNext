@@ -5,6 +5,7 @@ import { randomUUID } from 'crypto'
 import { setupPTY, killAllPTY } from './pty'
 import { setupDirHistory, flushDirHistorySync } from './dirHistory'
 import { setupWebHistory, flushWebHistorySync } from './webHistory'
+import { setupPinnedWorkspaces, flushPinnedWorkspacesSync } from './pinnedWorkspaces'
 import { setupBrowserViewManager, destroyAllBrowserViews, adoptView, releaseView } from './browserViewManager'
 import {
   createExternalBrowserWindow,
@@ -80,6 +81,7 @@ function createWindow(): void {
   setupPTY(mainWindow)
   setupDirHistory()
   setupWebHistory()
+  setupPinnedWorkspaces()
   setupBrowserViewManager(mainWindow)
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -218,6 +220,7 @@ app.on('before-quit', () => {
   closeAllExternalWindows()
   flushDirHistorySync()
   flushWebHistorySync()
+  flushPinnedWorkspacesSync()
 })
 
 app.on('window-all-closed', () => {

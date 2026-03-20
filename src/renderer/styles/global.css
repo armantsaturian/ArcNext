@@ -192,6 +192,53 @@ body,
     border: 1px dashed #3a3a3a;
 }
 
+/* ── Pinned/unpinned divider ── */
+.sidebar-divider {
+    position: relative;
+    height: 21px;
+    flex-shrink: 0;
+}
+
+.sidebar-divider::after {
+    content: '';
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    top: 50%;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-divider.divider-drop-active::after {
+    left: 12px;
+    right: 8px;
+    top: 0;
+    height: 2px;
+    background: #74c0fc;
+    border-radius: 1px;
+}
+
+.sidebar-divider.divider-drop-active::before {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 0;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #74c0fc;
+}
+
+/* ── Dormant workspace (pinned but sleeping) ── */
+.ws-row.ws-dormant {
+    opacity: 0.5;
+}
+
+.ws-row.ws-dormant:hover {
+    opacity: 0.8;
+}
+
 /* ── Workspace rows ── */
 .ws-row {
     position: relative;
@@ -248,8 +295,14 @@ body,
     z-index: 5;
     pointer-events: none;
 }
-.ws-row.ws-insert-before::after { top: -2px; }
-.ws-row.ws-insert-after::after { bottom: -2px; }
+
+.ws-row.ws-insert-before::after {
+    top: -2px;
+}
+
+.ws-row.ws-insert-after::after {
+    bottom: -2px;
+}
 
 /* Reorder indicator — circle */
 .ws-row.ws-insert-before::before,
@@ -264,14 +317,21 @@ body,
     z-index: 5;
     pointer-events: none;
 }
-.ws-row.ws-insert-before::before { top: -4px; }
-.ws-row.ws-insert-after::before { bottom: -4px; }
+
+.ws-row.ws-insert-before::before {
+    top: -4px;
+}
+
+.ws-row.ws-insert-after::before {
+    bottom: -4px;
+}
 
 .sidebar-collapsed .ws-row.ws-insert-before::after,
 .sidebar-collapsed .ws-row.ws-insert-after::after {
     left: 8px;
     right: 4px;
 }
+
 .sidebar-collapsed .ws-row.ws-insert-before::before,
 .sidebar-collapsed .ws-row.ws-insert-after::before {
     left: 1px;
@@ -924,34 +984,34 @@ body,
 }
 
 .browser-placeholder {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  background: #1a1a1a;
-  opacity: 0.8;
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    background: #1a1a1a;
+    opacity: 0.8;
 }
 
 .browser-placeholder-title {
-  font-size: 14px;
-  font-weight: 500;
-  color: #888;
-  max-width: 300px;
-  text-align: center;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+    font-size: 14px;
+    font-weight: 500;
+    color: #888;
+    max-width: 300px;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .browser-placeholder-url {
-  font-size: 12px;
-  color: #555;
-  max-width: 300px;
-  text-align: center;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+    font-size: 12px;
+    color: #555;
+    max-width: 300px;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }

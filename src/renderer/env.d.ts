@@ -3,6 +3,7 @@ import type {
   BrowserUndockedPayload,
   ExternalBrowserShellState,
   ExternalBrowserWindowInfo,
+  PinnedWorkspaceEntry,
   WebEntry
 } from '../shared/types'
 
@@ -22,6 +23,11 @@ interface ArcNextAPI {
   webHistory: {
     visit(url: string, title?: string, faviconUrl?: string): Promise<void>
     query(): Promise<Array<WebEntry>>
+  }
+  pinnedWorkspaces: {
+    load(): Promise<PinnedWorkspaceEntry[]>
+    save(data: PinnedWorkspaceEntry[]): Promise<void>
+    saveSync(data: PinnedWorkspaceEntry[]): void
   }
   pty: {
     create(paneId: string, cwd?: string): void

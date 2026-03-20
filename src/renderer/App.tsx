@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import SplitView from './components/SplitView'
 import Sidebar from './components/Sidebar'
 import UnifiedPicker from './components/UnifiedPicker'
-import { usePaneStore, useActiveWorkspace } from './store/paneStore'
+import { usePaneStore, useActiveWorkspace, flushPersistPinned } from './store/paneStore'
 import { setTitleChangeCallback, setCwdChangeCallback, writeToTerminalPTY } from './model/terminalManager'
 import { NavDirection } from './model/splitTree'
 
@@ -46,6 +46,7 @@ export default function App() {
   const removeUndockedBrowserPane = usePaneStore((s) => s.removeUndockedBrowserPane)
   const workspaces = usePaneStore((s) => s.workspaces)
   const setOverlay = usePaneStore((s) => s.setOverlay)
+  const wakeWorkspace = usePaneStore((s) => s.wakeWorkspace)
   const [dirPickerOpen, setDirPickerOpen] = useState(false)
 
   const openDirPicker = () => { setDirPickerOpen(true); setOverlay('dirPicker', true) }
@@ -60,6 +61,22 @@ export default function App() {
       document.removeEventListener('dragover', prevent)
       document.removeEventListener('drop', prevent)
     }
+  }, [])
+
+  // Load pinned workspaces from disk on startup
+  useEffect(() => {
+    window.arcnext.pinnedWorkspaces.load().then((entries) => {
+      if (entries?.length) {
+        usePaneStore.getState().loadPinnedWorkspaces(entries)
+      }
+    })
+  }, [])
+
+  // Flush pending pinned-workspace saves on quit to prevent data loss from debounce
+  useEffect(() => {
+    const handler = () => flushPersistPinned()
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
   }, [])
 
   // Wire terminal title changes into the store
@@ -291,10 +308,16 @@ export default function App() {
         splitActive('vertical')
         return
       }
-      // Cmd+W — close pane
+      // Cmd+W — close pane (sleep if pinned)
       if (meta && !e.shiftKey && !alt && key === 'w') {
         e.preventDefault()
-        if (ws) closePane(ws.activePaneId)
+        if (ws) {
+          if (ws.pinned) {
+            usePaneStore.getState().sleepWorkspace(ws.id)
+          } else {
+            closePane(ws.activePaneId)
+          }
+        }
         return
       }
       // Cmd+T — new workspace
@@ -307,20 +330,24 @@ export default function App() {
       if (meta && !alt && e.key >= '1' && e.key <= '9') {
         e.preventDefault()
         const idx = parseInt(e.key) - 1
-        if (idx < workspaces.length) switchWorkspace(workspaces[idx].id)
+        if (idx < workspaces.length) {
+          const target = workspaces[idx]
+          if (target.dormant) wakeWorkspace(target.id)
+          switchWorkspace(target.id)
+        }
         return
       }
     }
 
     window.addEventListener('keydown', handler, true)
     return () => window.removeEventListener('keydown', handler, true)
-  }, [splitActive, closePane, addWorkspace, switchWorkspace, navigateDir, toggleSidebar, undockBrowserPane, ws, workspaces, dirPickerOpen, activePaneType, focusState, setFocusState])
+  }, [splitActive, closePane, addWorkspace, switchWorkspace, navigateDir, toggleSidebar, undockBrowserPane, wakeWorkspace, ws, workspaces, dirPickerOpen, activePaneType, focusState, setFocusState])
 
   return (
     <div id="app">
       <Sidebar />
       <div id="workspace">
-        {workspaces.map((w) => (
+        {workspaces.filter((w) => !w.dormant).map((w) => (
           <div key={w.id} className={`ws-layer ${w.id === activeWorkspaceId ? 'active' : ''}`}>
             <SplitView node={w.tree} workspaceId={w.id} />
           </div>

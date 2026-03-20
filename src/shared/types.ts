@@ -34,6 +34,23 @@ export interface WebEntry {
   score: number
 }
 
+export interface SerializedPane {
+  type: 'terminal' | 'browser'
+  id: string
+  title: string
+  cwd?: string
+  url?: string
+  faviconUrl?: string
+}
+
+export interface PinnedWorkspaceEntry {
+  name: string
+  color?: string
+  tree: unknown
+  activePaneId: string
+  panes: SerializedPane[]
+}
+
 export interface ExternalBrowserWindowInfo {
   id: number
   url: string

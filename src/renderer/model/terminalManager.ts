@@ -33,7 +33,7 @@ parkingDiv.id = 'terminal-parking'
 parkingDiv.style.cssText = 'visibility:hidden;position:absolute;width:0;height:0;overflow:hidden'
 document.body.appendChild(parkingDiv)
 
-export function createTerminal(paneId: string): Terminal {
+export function createTerminal(paneId: string, cwd?: string): Terminal {
   if (terminals.has(paneId)) return terminals.get(paneId)!.term
 
   const term = new Terminal({
@@ -80,7 +80,7 @@ export function createTerminal(paneId: string): Terminal {
   }
 
   // PTY connection
-  window.arcnext.pty.create(paneId)
+  window.arcnext.pty.create(paneId, cwd)
 
   term.onData((data) => {
     window.arcnext.pty.write(paneId, data)
