@@ -25,3 +25,10 @@
 - Dev: `npm run dev`
 - Build: `npm run build`
 - Package: `npm run package`
+
+## Publishing a release
+- Source credentials from `.env.build` before building: `source .env.build`
+- Then publish via electron-builder: `electron-vite build && electron-builder --publish always`
+- This requires a `GH_TOKEN` env var with repo write access, plus the Apple signing vars from `.env.build` (`APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`).
+- electron-builder uploads the DMG, ZIP, **and** `latest-mac.yml` to the GitHub release. The `latest-mac.yml` file is required for `electron-updater` to detect new versions — without it, the in-app update prompt silently fails.
+- Never manually upload only the DMG/ZIP to a GitHub release; the YAML metadata file will be missing and users won't get update notifications.
