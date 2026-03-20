@@ -228,10 +228,8 @@ export default function Sidebar() {
                 if (ws.dormant) wakeWorkspace(ws.id)
                 switchWorkspace(ws.id)
               }}
-              onClose={() => {
-                if (ws.pinned) sleepWorkspace(ws.id)
-                else removeWorkspace(ws.id)
-              }}
+              onSleep={() => sleepWorkspace(ws.id)}
+              onRemove={() => removeWorkspace(ws.id)}
               onClosePane={(paneId) => closePaneInWorkspace(ws.id, paneId)}
               isEditing={editingId === ws.id}
               onDoubleClick={() => {
@@ -387,7 +385,8 @@ interface WorkspaceRowProps {
   dropPosition: 'before' | 'after' | 'on' | null
   isEditing: boolean
   onSelect: () => void
-  onClose: () => void
+  onSleep: () => void
+  onRemove: () => void
   onClosePane: (paneId: string) => void
   onDoubleClick: () => void
   onRename: (name: string) => void
@@ -402,7 +401,7 @@ interface WorkspaceRowProps {
 
 function WorkspaceRow({
   workspace, panes, collapsed, isActive, isDragging, dropPosition, isEditing,
-  onSelect, onClose, onClosePane, onDoubleClick, onRename, onCancelRename,
+  onSelect, onSleep, onRemove, onClosePane, onDoubleClick, onRename, onCancelRename,
   onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd, onContextMenu
 }: WorkspaceRowProps) {
   const inputRef = useRef<HTMLInputElement>(null)
@@ -511,15 +510,22 @@ function WorkspaceRow({
           ))}
         </div>
       )}
-      {!(isActive && !isSinglePane) && !isEditing && (
-        <button
-          className="ws-close"
-          draggable={false}
-          onClick={(e) => { e.stopPropagation(); onClose() }}
-        >
-          &times;
-        </button>
-      )}
+      {(!isActive || isSinglePane || workspace.pinned) && !isEditing && (() => {
+        const isSleepAction = workspace.pinned && isActive
+        return (
+          <button
+            className={`ws-close${isSleepAction ? ' ws-close-sleep' : ''}`}
+            draggable={false}
+            title={isSleepAction ? 'Close and Keep Pinned' : 'Archive this tab'}
+            onClick={(e) => {
+              e.stopPropagation()
+              isSleepAction ? onSleep() : onRemove()
+            }}
+          >
+            {isSleepAction ? '\u2013' : '\u00d7'}
+          </button>
+        )
+      })()}
     </div>
   )
 }

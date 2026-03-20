@@ -370,6 +370,11 @@ body,
     color: #ff6b6b;
 }
 
+.ws-row .ws-close.ws-close-sleep:hover {
+    background: #f0a04b33;
+    color: #f0a04b;
+}
+
 /* Single-pane workspace */
 .ws-single {
     display: flex;
