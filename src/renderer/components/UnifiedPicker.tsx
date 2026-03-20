@@ -99,6 +99,19 @@ function hostnameFromUrl(url: string): string {
   }
 }
 
+function compactUrl(url: string): string {
+  try {
+    const u = new URL(url)
+    const host = u.hostname.replace(/^www\./, '')
+    const path = u.pathname === '/' ? '' : u.pathname
+    const full = host + path
+    if (full.length > 40) return full.slice(0, 37) + '...'
+    return full
+  } catch {
+    return url
+  }
+}
+
 export default function UnifiedPicker({ onClose }: Props) {
   const [query, setQuery] = useState('')
   const [allDirEntries, setAllDirEntries] = useState<DirEntry[]>([])
@@ -141,8 +154,19 @@ export default function UnifiedPicker({ onClose }: Props) {
         (e.title && fuzzyMatch(e.title, query))
       )
     : allWebEntries
+  // Deduplicate by title — keep highest-scored entry per title
+  const dedupMap = new Map<string, (typeof filteredWebs)[0]>()
+  for (const e of filteredWebs) {
+    const key = (e.title || e.url).toLowerCase()
+    const existing = dedupMap.get(key)
+    if (!existing || e.score > existing.score) {
+      dedupMap.set(key, e)
+    }
+  }
+  const dedupedWebs = [...dedupMap.values()]
+
   const webLimit = query ? 15 : 4
-  const webHistoryItems: PickerItem[] = filteredWebs.slice(0, webLimit).map((e) => ({
+  const webHistoryItems: PickerItem[] = dedupedWebs.slice(0, webLimit).map((e) => ({
     type: 'web' as const,
     key: `web:${e.url}`,
     url: e.url,
@@ -352,7 +376,7 @@ export default function UnifiedPicker({ onClose }: Props) {
                   <div
                     key={item.key}
                     data-selectable
-                    className={`picker-item${idx === selectedIndex ? ' selected' : ''}`}
+                    className={`picker-item picker-item-compact${idx === selectedIndex ? ' selected' : ''}`}
                     onClick={() => handleSelect(item)}
                     onMouseEnter={() => setSelectedIndex(idx)}
                   >
@@ -367,9 +391,9 @@ export default function UnifiedPicker({ onClose }: Props) {
                       ) : (
                         <span className="picker-item-favicon-icon">{'\u{1F310}'}</span>
                       )}
-                      <span className="picker-item-name">{highlightMatch(displayTitle, query)}</span>
+                      <span className="picker-item-name picker-item-name-truncate">{highlightMatch(displayTitle, query)}</span>
+                      <span className="picker-item-url-compact">{compactUrl(item.url!)}</span>
                     </div>
-                    <span className="picker-item-path">{highlightMatch(item.url!, query)}</span>
                   </div>
                 )
               })}

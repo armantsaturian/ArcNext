@@ -766,6 +766,11 @@ body,
     gap: 2px;
 }
 
+.picker-item.picker-item-compact {
+    padding: 6px 12px;
+    gap: 0;
+}
+
 .picker-item.selected {
     background: rgba(116, 192, 252, 0.1);
 }
@@ -814,6 +819,22 @@ body,
     color: #74c0fc;
     margin-left: auto;
     flex-shrink: 0;
+}
+
+.picker-item-name-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+.picker-item-url-compact {
+    font-size: 11px;
+    color: #666;
+    margin-left: auto;
+    flex-shrink: 0;
+    white-space: nowrap;
+    font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
 }
 
 .picker-empty {
