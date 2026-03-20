@@ -628,9 +628,9 @@ body,
     background-color: #161616;
 }
 
-/* ── Dir Picker (Quick Go) ── */
+/* ── Unified Picker (Quick Go) ── */
 
-.dir-picker-overlay {
+.picker-overlay {
     position: fixed;
     inset: 0;
     z-index: 200;
@@ -640,9 +640,9 @@ body,
     padding-top: 80px;
 }
 
-.dir-picker {
+.picker {
     width: 500px;
-    max-height: 400px;
+    max-height: 480px;
     background: #1e1e1e;
     border: 1px solid #3a3a3a;
     border-radius: 10px;
@@ -653,7 +653,7 @@ body,
     align-self: flex-start;
 }
 
-.dir-picker-input {
+.picker-input {
     width: 100%;
     padding: 12px 16px;
     background: none;
@@ -666,17 +666,33 @@ body,
     box-sizing: border-box;
 }
 
-.dir-picker-input::placeholder {
+.picker-input::placeholder {
     color: #666;
 }
 
-.dir-picker-results {
+.picker-results {
     flex: 1;
     overflow-y: auto;
     padding: 4px;
 }
 
-.dir-picker-item {
+.picker-section-header {
+    padding: 6px 12px 4px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #555;
+    user-select: none;
+}
+
+.picker-section-divider {
+    height: 1px;
+    background: #333;
+    margin: 4px 12px;
+}
+
+.picker-item {
     padding: 8px 12px;
     border-radius: 6px;
     cursor: pointer;
@@ -685,30 +701,57 @@ body,
     gap: 2px;
 }
 
-.dir-picker-item.selected {
+.picker-item.selected {
     background: rgba(116, 192, 252, 0.1);
 }
 
-.dir-picker-name {
+.picker-item-name {
     font-size: 13px;
     font-weight: 500;
     color: #e0e0e0;
     font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
 }
 
-.dir-picker-path {
+.picker-item-path {
     font-size: 11px;
     color: #888;
     font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
 }
 
-.dir-picker-item mark {
+.picker-item mark {
     background: none;
     color: #74c0fc;
     font-weight: 600;
 }
 
-.dir-picker-empty {
+.picker-item-web-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.picker-item-favicon {
+    width: 14px;
+    height: 14px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.picker-item-favicon-icon {
+    font-size: 13px;
+    flex-shrink: 0;
+    width: 14px;
+    text-align: center;
+}
+
+.picker-item-badge {
+    font-size: 10px;
+    color: #74c0fc;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.picker-empty {
     padding: 16px;
     text-align: center;
     color: #666;

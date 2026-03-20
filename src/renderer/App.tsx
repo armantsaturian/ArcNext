@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import SplitView from './components/SplitView'
 import Sidebar from './components/Sidebar'
-import DirPicker from './components/DirPicker'
+import UnifiedPicker from './components/UnifiedPicker'
 import { usePaneStore, useActiveWorkspace } from './store/paneStore'
 import { setTitleChangeCallback, setCwdChangeCallback, writeToTerminalPTY } from './model/terminalManager'
 import { NavDirection } from './model/splitTree'
@@ -77,12 +77,19 @@ export default function App() {
 
   // Wire browser view events from main process into the store
   useEffect(() => {
+    const getPaneUrl = (paneId: string): string | undefined => {
+      const pane = usePaneStore.getState().panes.get(paneId)
+      return pane?.type === 'browser' ? (pane as import('./store/paneStore').BrowserPaneInfo).url : undefined
+    }
     const unsubs = [
       window.arcnext.browser.onTitleChanged((paneId, title) => {
         setPaneTitle(paneId, title)
+        const url = getPaneUrl(paneId)
+        if (url) window.arcnext.webHistory.visit(url, title)
       }),
       window.arcnext.browser.onUrlChanged((paneId, url) => {
         setBrowserPaneUrl(paneId, url)
+        window.arcnext.webHistory.visit(url)
       }),
       window.arcnext.browser.onLoadingChanged((paneId, loading) => {
         setBrowserPaneLoading(paneId, loading)
@@ -95,6 +102,8 @@ export default function App() {
       }),
       window.arcnext.browser.onFaviconChanged((paneId, faviconUrl) => {
         setBrowserPaneFavicon(paneId, faviconUrl)
+        const url = getPaneUrl(paneId)
+        if (url) window.arcnext.webHistory.visit(url, undefined, faviconUrl)
       }),
       window.arcnext.browser.onDocked(({ paneId, url, title }) => {
         addBrowserWorkspace(url, { paneId, title, isLoading: false })
@@ -302,7 +311,7 @@ export default function App() {
           </div>
         ))}
       </div>
-      {dirPickerOpen && <DirPicker onClose={closeDirPicker} />}
+      {dirPickerOpen && <UnifiedPicker onClose={closeDirPicker} />}
     </div>
   )
 }

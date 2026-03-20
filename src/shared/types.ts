@@ -25,6 +25,15 @@ export interface DirEntry {
   score: number
 }
 
+export interface WebEntry {
+  url: string
+  title: string
+  faviconUrl: string
+  visitCount: number
+  lastVisit: number
+  score: number
+}
+
 export interface ExternalBrowserWindowInfo {
   id: number
   url: string
@@ -56,6 +65,8 @@ export interface IPCChannels {
   'pty:title': (paneId: string, title: string) => void
   'dirHistory:visit': (path: string) => void
   'dirHistory:query': () => Promise<DirEntry[]>
+  'webHistory:visit': (url: string, title?: string, faviconUrl?: string) => void
+  'webHistory:query': () => Promise<WebEntry[]>
   // Browser view lifecycle
   'browser:create': (paneId: string, url: string) => void
   'browser:destroy': (paneId: string) => void

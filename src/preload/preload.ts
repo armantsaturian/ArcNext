@@ -12,6 +12,11 @@ const api = {
     visit: (path: string) => ipcRenderer.invoke('dirHistory:visit', path),
     query: () => ipcRenderer.invoke('dirHistory:query')
   },
+  webHistory: {
+    visit: (url: string, title?: string, faviconUrl?: string) =>
+      ipcRenderer.invoke('webHistory:visit', url, title, faviconUrl),
+    query: () => ipcRenderer.invoke('webHistory:query')
+  },
   pty: {
     create: (paneId: string, cwd?: string) =>
       ipcRenderer.send('pty:create', paneId, cwd),

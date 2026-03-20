@@ -2,7 +2,8 @@ import type {
   BrowserDockedPayload,
   BrowserUndockedPayload,
   ExternalBrowserShellState,
-  ExternalBrowserWindowInfo
+  ExternalBrowserWindowInfo,
+  WebEntry
 } from '../shared/types'
 
 interface ArcNextAPI {
@@ -17,6 +18,10 @@ interface ArcNextAPI {
       lastVisit: number
       score: number
     }>>
+  }
+  webHistory: {
+    visit(url: string, title?: string, faviconUrl?: string): Promise<void>
+    query(): Promise<Array<WebEntry>>
   }
   pty: {
     create(paneId: string, cwd?: string): void

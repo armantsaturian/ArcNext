@@ -4,6 +4,7 @@ import { join } from 'path'
 import { randomUUID } from 'crypto'
 import { setupPTY, killAllPTY } from './pty'
 import { setupDirHistory, flushDirHistorySync } from './dirHistory'
+import { setupWebHistory, flushWebHistorySync } from './webHistory'
 import { setupBrowserViewManager, destroyAllBrowserViews, adoptView, releaseView } from './browserViewManager'
 import {
   createExternalBrowserWindow,
@@ -78,6 +79,7 @@ function createWindow(): void {
 
   setupPTY(mainWindow)
   setupDirHistory()
+  setupWebHistory()
   setupBrowserViewManager(mainWindow)
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -215,6 +217,7 @@ app.on('before-quit', () => {
   destroyAllBrowserViews()
   closeAllExternalWindows()
   flushDirHistorySync()
+  flushWebHistorySync()
 })
 
 app.on('window-all-closed', () => {
