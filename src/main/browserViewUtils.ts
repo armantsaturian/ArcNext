@@ -1,4 +1,4 @@
-import { WebContentsView, session } from 'electron'
+import { WebContentsView, session, Menu, MenuItem, clipboard } from 'electron'
 
 export const BROWSER_PARTITION = 'persist:browser'
 
@@ -35,6 +35,104 @@ export function normalizeBrowserUrl(url: string): string {
   }
 
   return `https://www.google.com/search?q=${encodeURIComponent(url)}`
+}
+
+function buildContextMenu(
+  wc: Electron.WebContents,
+  params: Electron.ContextMenuParams,
+  callbacks: BrowserWebContentsCallbacks
+): Menu {
+  const menu = new Menu()
+  const { editFlags, selectionText, isEditable, linkURL, mediaType, srcURL } = params
+
+  if (linkURL) {
+    menu.append(new MenuItem({
+      label: 'Open Link in New Window',
+      click: () => callbacks.onOpenExternal?.(linkURL)
+    }))
+    menu.append(new MenuItem({
+      label: 'Copy Link Address',
+      click: () => clipboard.writeText(linkURL)
+    }))
+    menu.append(new MenuItem({ type: 'separator' }))
+  }
+
+  if (mediaType === 'image' && srcURL) {
+    menu.append(new MenuItem({
+      label: 'Save Image As\u2026',
+      click: () => wc.downloadURL(srcURL)
+    }))
+    menu.append(new MenuItem({
+      label: 'Copy Image',
+      click: () => wc.copyImageAt(params.x, params.y)
+    }))
+    menu.append(new MenuItem({
+      label: 'Copy Image Address',
+      click: () => clipboard.writeText(srcURL)
+    }))
+    menu.append(new MenuItem({ type: 'separator' }))
+  }
+
+  if (isEditable) {
+    menu.append(new MenuItem({
+      label: 'Undo', accelerator: 'CmdOrCtrl+Z', registerAccelerator: false,
+      enabled: editFlags.canUndo, click: () => wc.undo()
+    }))
+    menu.append(new MenuItem({
+      label: 'Redo', accelerator: 'CmdOrCtrl+Shift+Z', registerAccelerator: false,
+      enabled: editFlags.canRedo, click: () => wc.redo()
+    }))
+    menu.append(new MenuItem({ type: 'separator' }))
+    menu.append(new MenuItem({
+      label: 'Cut', accelerator: 'CmdOrCtrl+X', registerAccelerator: false,
+      enabled: editFlags.canCut, click: () => wc.cut()
+    }))
+    menu.append(new MenuItem({
+      label: 'Copy', accelerator: 'CmdOrCtrl+C', registerAccelerator: false,
+      enabled: editFlags.canCopy, click: () => wc.copy()
+    }))
+    menu.append(new MenuItem({
+      label: 'Paste', accelerator: 'CmdOrCtrl+V', registerAccelerator: false,
+      enabled: editFlags.canPaste, click: () => wc.paste()
+    }))
+    menu.append(new MenuItem({ type: 'separator' }))
+    menu.append(new MenuItem({
+      label: 'Select All', accelerator: 'CmdOrCtrl+A', registerAccelerator: false,
+      enabled: editFlags.canSelectAll, click: () => wc.selectAll()
+    }))
+  } else if (selectionText) {
+    menu.append(new MenuItem({
+      label: 'Copy', accelerator: 'CmdOrCtrl+C', registerAccelerator: false,
+      enabled: editFlags.canCopy, click: () => wc.copy()
+    }))
+    menu.append(new MenuItem({ type: 'separator' }))
+    menu.append(new MenuItem({
+      label: 'Select All', accelerator: 'CmdOrCtrl+A', registerAccelerator: false,
+      click: () => wc.selectAll()
+    }))
+  }
+
+  if (!isEditable && !selectionText && !linkURL && mediaType === 'none') {
+    menu.append(new MenuItem({
+      label: 'Back', enabled: wc.canGoBack(),
+      click: () => wc.goBack()
+    }))
+    menu.append(new MenuItem({
+      label: 'Forward', enabled: wc.canGoForward(),
+      click: () => wc.goForward()
+    }))
+    menu.append(new MenuItem({
+      label: 'Reload', accelerator: 'CmdOrCtrl+R', registerAccelerator: false,
+      click: () => wc.reload()
+    }))
+    menu.append(new MenuItem({ type: 'separator' }))
+    menu.append(new MenuItem({
+      label: 'Select All', accelerator: 'CmdOrCtrl+A', registerAccelerator: false,
+      click: () => wc.selectAll()
+    }))
+  }
+
+  return menu
 }
 
 export function wireBrowserViewEvents(
@@ -100,6 +198,17 @@ export function wireBrowserViewEvents(
   wc.on('page-favicon-updated', onFaviconUpdated)
   wc.on('before-input-event', onBeforeInput)
 
+  const onContextMenu = (
+    _event: Electron.Event,
+    params: Electron.ContextMenuParams
+  ): void => {
+    const menu = buildContextMenu(wc, params, callbacks)
+    if (menu.items.length === 0) return
+    menu.popup()
+  }
+
+  wc.on('context-menu', onContextMenu)
+
   wc.setWindowOpenHandler(({ url }) => {
     callbacks.onOpenExternal?.(url)
     return { action: 'deny' }
@@ -115,6 +224,7 @@ export function wireBrowserViewEvents(
     wc.removeListener('focus', onFocus)
     wc.removeListener('page-favicon-updated', onFaviconUpdated)
     wc.removeListener('before-input-event', onBeforeInput)
+    wc.removeListener('context-menu', onContextMenu)
     wc.setWindowOpenHandler(() => ({ action: 'deny' }))
   }
 }
