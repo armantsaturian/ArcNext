@@ -88,6 +88,11 @@ const api = {
       ipcRenderer.on('browser:focused', handler)
       return () => { ipcRenderer.removeListener('browser:focused', handler) }
     },
+    onFaviconChanged: (cb: (paneId: string, faviconUrl: string) => void) => {
+      const handler = (_event: IpcRendererEvent, paneId: string, faviconUrl: string) => cb(paneId, faviconUrl)
+      ipcRenderer.on('browser:faviconChanged', handler)
+      return () => { ipcRenderer.removeListener('browser:faviconChanged', handler) }
+    },
     listExternalWindows: () =>
       ipcRenderer.invoke('browser:listExternalWindows'),
     dockWindow: (windowId: number) =>

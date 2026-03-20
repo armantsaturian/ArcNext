@@ -37,6 +37,7 @@ export default function App() {
   const setBrowserPaneUrl = usePaneStore((s) => s.setBrowserPaneUrl)
   const setBrowserPaneNavState = usePaneStore((s) => s.setBrowserPaneNavState)
   const setBrowserPaneLoading = usePaneStore((s) => s.setBrowserPaneLoading)
+  const setBrowserPaneFavicon = usePaneStore((s) => s.setBrowserPaneFavicon)
   const setActivePaneInWorkspace = usePaneStore((s) => s.setActivePaneInWorkspace)
   const switchWorkspace = usePaneStore((s) => s.switchWorkspace)
   const navigateDir = usePaneStore((s) => s.navigateDir)
@@ -92,6 +93,9 @@ export default function App() {
       window.arcnext.browser.onFocused((paneId) => {
         setActivePaneInWorkspace(paneId)
       }),
+      window.arcnext.browser.onFaviconChanged((paneId, faviconUrl) => {
+        setBrowserPaneFavicon(paneId, faviconUrl)
+      }),
       window.arcnext.browser.onDocked(({ paneId, url, title }) => {
         addBrowserWorkspace(url, { paneId, title, isLoading: false })
       }),
@@ -107,6 +111,7 @@ export default function App() {
     setBrowserPaneLoading,
     setBrowserPaneNavState,
     setActivePaneInWorkspace,
+    setBrowserPaneFavicon,
     removeUndockedBrowserPane
   ])
 

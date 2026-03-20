@@ -44,6 +44,7 @@ interface ArcNextAPI {
     onNavStateChanged(cb: (paneId: string, canGoBack: boolean, canGoForward: boolean) => void): () => void
     onLoadFailed(cb: (paneId: string, errorCode: number, errorDesc: string) => void): () => void
     onFocused(cb: (paneId: string) => void): () => void
+    onFaviconChanged(cb: (paneId: string, faviconUrl: string) => void): () => void
     listExternalWindows(): Promise<ExternalBrowserWindowInfo[]>
     dockWindow(windowId: number): Promise<BrowserDockedPayload | null>
     undockPane(paneId: string): Promise<boolean>

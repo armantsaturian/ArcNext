@@ -47,6 +47,11 @@ function wireViewEvents(view: WebContentsView, paneId: string): () => void {
         mainWin.webContents.send('browser:focused', paneId)
       }
     },
+    onFavicon: (faviconUrl) => {
+      if (mainWin && !mainWin.isDestroyed()) {
+        mainWin.webContents.send('browser:faviconChanged', paneId, faviconUrl)
+      }
+    },
     onOpenExternal: (url) => {
       createExternalBrowserWindow(url)
     },
@@ -167,6 +172,15 @@ export function adoptView(paneId: string, view: WebContentsView): void {
     win.webContents.send('browser:urlChanged', paneId, url)
     win.webContents.send('browser:loadingChanged', paneId, wc.isLoading())
     win.webContents.send('browser:navStateChanged', paneId, wc.canGoBack(), wc.canGoForward())
+
+    // Extract favicon for already-loaded pages (page-favicon-updated won't re-fire)
+    wc.executeJavaScript("document.querySelector('link[rel*=\"icon\"]')?.href || ''")
+      .then((favicon: string) => {
+        if (favicon && win && !win.isDestroyed()) {
+          win.webContents.send('browser:faviconChanged', paneId, favicon)
+        }
+      })
+      .catch(() => {})
   }
 }
 

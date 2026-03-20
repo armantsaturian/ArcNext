@@ -1,6 +1,27 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { usePaneStore, Workspace, PaneInfo } from '../store/paneStore'
+import { usePaneStore, Workspace, PaneInfo, BrowserPaneInfo } from '../store/paneStore'
 import { allPaneIds } from '../model/splitTree'
+
+function FaviconIcon({ pane, size = 12 }: { pane: PaneInfo; size?: number }) {
+  const [error, setError] = useState(false)
+  const faviconUrl = pane.type === 'browser' ? (pane as BrowserPaneInfo).faviconUrl : undefined
+
+  useEffect(() => { setError(false) }, [faviconUrl])
+
+  if (!faviconUrl || error) {
+    return <>{'\u{1F310}'}</>
+  }
+
+  return (
+    <img
+      className="ws-favicon"
+      src={faviconUrl}
+      alt=""
+      style={{ width: size, height: size }}
+      onError={() => setError(true)}
+    />
+  )
+}
 
 const COLOR_PALETTE = [
   '#74c0fc', '#51cf66', '#ffd43b', '#ff6b6b',
@@ -332,11 +353,11 @@ function WorkspaceRow({
     >
       {collapsed ? (
         <div className="ws-collapsed-icon">
-          {initial}
+          {isBrowserWorkspace && firstPane ? <FaviconIcon pane={firstPane} size={16} /> : initial}
         </div>
       ) : isEditing ? (
         <div className="ws-single">
-          <span className="ws-icon">{isBrowserWorkspace ? '\u{1F310}' : '\u25A0'}</span>
+          <span className="ws-icon">{isBrowserWorkspace && firstPane ? <FaviconIcon pane={firstPane} /> : '\u25A0'}</span>
           <input
             data-suppress-shortcuts
             ref={inputRef}
@@ -357,19 +378,19 @@ function WorkspaceRow({
         </div>
       ) : hasCustomName ? (
         <div className="ws-single">
-          <span className="ws-icon">{isBrowserWorkspace ? '\u{1F310}' : '\u25A0'}</span>
+          <span className="ws-icon">{isBrowserWorkspace && firstPane ? <FaviconIcon pane={firstPane} /> : '\u25A0'}</span>
           <span className="ws-title">{workspace.name}</span>
         </div>
       ) : isSinglePane ? (
         <div className="ws-single">
-          <span className="ws-icon">{isBrowserWorkspace ? '\u{1F310}' : '\u25A0'}</span>
+          <span className="ws-icon">{isBrowserWorkspace && firstPane ? <FaviconIcon pane={firstPane} /> : '\u25A0'}</span>
           <span className="ws-title">{formatTitle(paneDisplayTitle(firstPane))}</span>
         </div>
       ) : (
         <div className="ws-multi">
           {paneInfos.map((p) => (
             <span key={p.id} className={`ws-pill ${isActive && p.id === workspace.activePaneId ? 'pill-active' : ''}`}>
-              {p.type === 'browser' ? '\u{1F310} ' : ''}{formatTitle(paneDisplayTitle(p))}
+              {p.type === 'browser' ? <><FaviconIcon pane={p} />{' '}</> : ''}{formatTitle(paneDisplayTitle(p))}
               {isActive && (
                 <button
                   className="pill-close"

@@ -72,6 +72,7 @@ interface PaneStore {
   setBrowserPaneUrl: (id: string, url: string) => void
   setBrowserPaneNavState: (id: string, canGoBack: boolean, canGoForward: boolean) => void
   setBrowserPaneLoading: (id: string, isLoading: boolean) => void
+  setBrowserPaneFavicon: (id: string, faviconUrl: string) => void
 
   // Dock/undock
   undockBrowserPane: (paneId: string) => void
@@ -488,6 +489,15 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
     if (!pane || pane.type !== 'browser') return
     const newPanes = new Map(panes)
     newPanes.set(id, { ...pane, isLoading })
+    set({ panes: newPanes })
+  },
+
+  setBrowserPaneFavicon: (id, faviconUrl) => {
+    const { panes } = get()
+    const pane = panes.get(id)
+    if (!pane || pane.type !== 'browser') return
+    const newPanes = new Map(panes)
+    newPanes.set(id, { ...pane, faviconUrl })
     set({ panes: newPanes })
   },
 

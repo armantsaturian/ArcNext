@@ -9,6 +9,7 @@ interface BrowserWebContentsCallbacks {
   onNavState?: (canGoBack: boolean, canGoForward: boolean) => void
   onLoadFailed?: (errorCode: number, errorDescription: string) => void
   onFocus?: () => void
+  onFavicon?: (faviconUrl: string) => void
   onOpenExternal?: (url: string) => void
   onBeforeInput?: (input: Electron.Input) => boolean
 }
@@ -78,6 +79,10 @@ export function wireBrowserViewEvents(
     callbacks.onFocus?.()
   }
 
+  const onFaviconUpdated = (_event: Electron.Event, favicons: string[]): void => {
+    if (favicons.length > 0) callbacks.onFavicon?.(favicons[0])
+  }
+
   const onBeforeInput = (event: Electron.Event, input: Electron.Input): void => {
     const handled = callbacks.onBeforeInput?.(input) ?? false
     if (handled) {
@@ -92,6 +97,7 @@ export function wireBrowserViewEvents(
   wc.on('did-stop-loading', onDidStopLoading)
   wc.on('did-fail-load', onDidFailLoad)
   wc.on('focus', onFocus)
+  wc.on('page-favicon-updated', onFaviconUpdated)
   wc.on('before-input-event', onBeforeInput)
 
   wc.setWindowOpenHandler(({ url }) => {
@@ -107,6 +113,7 @@ export function wireBrowserViewEvents(
     wc.removeListener('did-stop-loading', onDidStopLoading)
     wc.removeListener('did-fail-load', onDidFailLoad)
     wc.removeListener('focus', onFocus)
+    wc.removeListener('page-favicon-updated', onFaviconUpdated)
     wc.removeListener('before-input-event', onBeforeInput)
     wc.setWindowOpenHandler(() => ({ action: 'deny' }))
   }

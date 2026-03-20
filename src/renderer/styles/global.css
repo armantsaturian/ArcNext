@@ -270,6 +270,12 @@ body,
     color: var(--ws-color, #74c0fc);
 }
 
+.ws-favicon {
+    border-radius: 2px;
+    vertical-align: middle;
+    object-fit: contain;
+}
+
 .ws-title {
     font-size: 13px;
     overflow: hidden;

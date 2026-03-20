@@ -13,6 +13,7 @@ export interface BrowserPaneInfo {
   canGoBack: boolean
   canGoForward: boolean
   isLoading: boolean
+  faviconUrl?: string
 }
 
 export type PaneInfo = TerminalPaneInfo | BrowserPaneInfo
@@ -73,6 +74,7 @@ export interface IPCChannels {
   'browser:navStateChanged': (paneId: string, canGoBack: boolean, canGoForward: boolean) => void
   'browser:loadFailed': (paneId: string, errorCode: number, errorDesc: string) => void
   'browser:focused': (paneId: string) => void
+  'browser:faviconChanged': (paneId: string, faviconUrl: string) => void
   // External browser windows
   'browser:listExternalWindows': () => Promise<ExternalBrowserWindowInfo[]>
   'browser:dockWindow': (windowId: number) => Promise<BrowserDockedPayload | null>
