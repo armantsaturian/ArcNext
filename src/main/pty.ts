@@ -18,6 +18,19 @@ export function setupPTY(window: BrowserWindow): void {
     for (const [k, v] of Object.entries(process.env)) {
       if (typeof v === 'string') env[k] = v
     }
+    // Ensure UTF-8 encoding for the PTY.
+    // macOS GUI apps launched from Finder/Dock often lack locale env vars,
+    // causing the shell to fall back to Mac Roman and garble multi-byte chars.
+    // LC_ALL takes precedence over everything, then LC_CTYPE for encoding, then LANG.
+    const hasUtf8 = (v?: string): boolean => !!v && /utf-?8/i.test(v)
+    if (!hasUtf8(env['LC_ALL'])) {
+      if (env['LC_ALL']) delete env['LC_ALL'] // non-UTF-8 LC_ALL would override our fix
+      if (!hasUtf8(env['LANG'])) {
+        env['LANG'] = env['LANG']
+          ? env['LANG'].replace(/\..*$/, '.UTF-8')  // preserve language, fix encoding
+          : 'en_US.UTF-8'
+      }
+    }
     // Inject shell integration for zsh
     if (shell.endsWith('/zsh') || shell === 'zsh') {
       env['ARCNEXT_SHELL_INTEGRATION'] = '1'
