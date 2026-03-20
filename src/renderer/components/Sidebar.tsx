@@ -457,7 +457,12 @@ function paneDisplayTitle(pane: PaneInfo): string {
   if (pane.type === 'browser') {
     return pane.title || pane.url
   }
-  return pane.title
+  // Prefer CWD basename for terminals (e.g. "arcnext" instead of "armantsaturian@MacBook-Pro")
+  if (pane.cwd) {
+    const basename = pane.cwd.split('/').filter(Boolean).pop()
+    if (basename) return basename
+  }
+  return pane.title || 'shell'
 }
 
 function formatTitle(title: string): string {
