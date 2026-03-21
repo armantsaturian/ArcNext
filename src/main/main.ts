@@ -3,6 +3,7 @@ import { autoUpdater } from 'electron-updater'
 import { join } from 'path'
 import { randomUUID } from 'crypto'
 import { setupPTY, killAllPTY } from './pty'
+import { showQuitDialog } from './quitDialog'
 import { setupDirHistory, flushDirHistorySync } from './dirHistory'
 import { setupWebHistory, flushWebHistorySync } from './webHistory'
 import { setupPinnedWorkspaces, flushPinnedWorkspacesSync } from './pinnedWorkspaces'
@@ -61,21 +62,12 @@ function createWindow(): void {
     if (forceQuit) return
 
     e.preventDefault()
-    dialog
-      .showMessageBox(mainWindow!, {
-        type: 'question',
-        buttons: ['Quit', 'Cancel'],
-        defaultId: 1,
-        cancelId: 1,
-        message: 'Are you sure you want to quit?',
-        detail: 'All terminal sessions will be closed.'
-      })
-      .then(({ response }) => {
-        if (response === 0) {
-          forceQuit = true
-          app.quit()
-        }
-      })
+    showQuitDialog(mainWindow!).then((shouldQuit) => {
+      if (shouldQuit) {
+        forceQuit = true
+        app.quit()
+      }
+    })
   })
 
   setupPTY(mainWindow)
