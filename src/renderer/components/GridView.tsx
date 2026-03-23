@@ -52,6 +52,7 @@ interface Props {
 export default function GridView({ grid, workspaceId }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ w: 0, h: 0 })
+  const activePaneId = usePaneStore((s) => s.workspaces.find((w) => w.id === workspaceId)?.activePaneId)
 
   useEffect(() => {
     const el = containerRef.current
@@ -74,7 +75,7 @@ export default function GridView({ grid, workspaceId }: Props) {
       {panes.map((p) => (
         <div
           key={p.paneId}
-          className="split-pane-wrapper"
+          className={`split-pane-wrapper${panes.length > 1 && p.paneId === activePaneId ? ' pane-focused' : ''}`}
           style={{
             position: 'absolute',
             left: p.left,

@@ -689,6 +689,11 @@ body,
     border-color: #3a3a3a;
 }
 
+.pane-focused .terminal-pane.active {
+    border-color: rgba(255, 255, 255, 0.25);
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.15);
+}
+
 .terminal-pane.drag-over {
     outline: 2px solid #74c0fc;
     outline-offset: -2px;
@@ -899,6 +904,11 @@ body,
 
 .browser-pane.active {
     border-color: #3a3a3a;
+}
+
+.pane-focused .browser-pane.active {
+    border-color: rgba(255, 255, 255, 0.25);
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.15);
 }
 
 .browser-nav {
