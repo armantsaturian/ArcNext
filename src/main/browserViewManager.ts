@@ -16,50 +16,20 @@ function wireViewEvents(view: WebContentsView, paneId: string): () => void {
   if (!win) return () => {}
 
   const mainWin = win
+  const send = (channel: string, ...args: unknown[]): void => {
+    if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send(channel, ...args)
+  }
+
   return wireBrowserViewEvents(view, {
-    onTitle: (title) => {
-      if (mainWin && !mainWin.isDestroyed()) {
-        mainWin.webContents.send('browser:titleChanged', paneId, title)
-      }
-    },
-    onUrl: (url) => {
-      if (mainWin && !mainWin.isDestroyed()) {
-        mainWin.webContents.send('browser:urlChanged', paneId, url)
-      }
-    },
-    onLoading: (loading) => {
-      if (mainWin && !mainWin.isDestroyed()) {
-        mainWin.webContents.send('browser:loadingChanged', paneId, loading)
-      }
-    },
-    onNavState: (canGoBack, canGoForward) => {
-      if (mainWin && !mainWin.isDestroyed()) {
-        mainWin.webContents.send('browser:navStateChanged', paneId, canGoBack, canGoForward)
-      }
-    },
-    onLoadFailed: (errorCode, errorDescription) => {
-      if (mainWin && !mainWin.isDestroyed()) {
-        mainWin.webContents.send('browser:loadFailed', paneId, errorCode, errorDescription)
-      }
-    },
-    onFocus: () => {
-      if (mainWin && !mainWin.isDestroyed()) {
-        mainWin.webContents.send('browser:focused', paneId)
-      }
-    },
-    onFavicon: (faviconUrl) => {
-      if (mainWin && !mainWin.isDestroyed()) {
-        mainWin.webContents.send('browser:faviconChanged', paneId, faviconUrl)
-      }
-    },
-    onOpenExternal: (url) => {
-      createExternalBrowserWindow(url)
-    },
-    onFoundInPage: (activeMatch, totalMatches) => {
-      if (mainWin && !mainWin.isDestroyed()) {
-        mainWin.webContents.send('browser:foundInPage', paneId, activeMatch, totalMatches)
-      }
-    },
+    onTitle: (title) => send('browser:titleChanged', paneId, title),
+    onUrl: (url) => send('browser:urlChanged', paneId, url),
+    onLoading: (loading) => send('browser:loadingChanged', paneId, loading),
+    onNavState: (canGoBack, canGoForward) => send('browser:navStateChanged', paneId, canGoBack, canGoForward),
+    onLoadFailed: (errorCode, errorDescription) => send('browser:loadFailed', paneId, errorCode, errorDescription),
+    onFocus: () => send('browser:focused', paneId),
+    onFavicon: (faviconUrl) => send('browser:faviconChanged', paneId, faviconUrl),
+    onOpenExternal: (url) => createExternalBrowserWindow(url),
+    onFoundInPage: (activeMatch, totalMatches) => send('browser:foundInPage', paneId, activeMatch, totalMatches),
     onBeforeInput: (input) => {
       const meta = input.meta || input.control
       if (!meta || input.type !== 'keyDown') return false
@@ -86,8 +56,8 @@ function wireViewEvents(view: WebContentsView, paneId: string): () => void {
         // Cmd+Alt: arrow keys
         (input.alt && ['arrowleft', 'arrowright', 'arrowup', 'arrowdown'].includes(key))
 
-      if (shouldForward && mainWin && !mainWin.isDestroyed()) {
-        mainWin.webContents.send('browser:appShortcut', input.key, !!input.meta, !!input.control, !!input.shift, !!input.alt)
+      if (shouldForward) {
+        send('browser:appShortcut', input.key, !!input.meta, !!input.control, !!input.shift, !!input.alt)
         return true
       }
 

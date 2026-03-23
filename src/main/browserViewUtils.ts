@@ -153,6 +153,7 @@ export function wireBrowserViewEvents(
   const onDidNavigate = (_event: Electron.Event, url: string): void => {
     callbacks.onUrl?.(url)
     sendNavState()
+    wc.setVisualZoomLevelLimits(1, 5)
   }
 
   const onDidNavigateInPage = (_event: Electron.Event, url: string): void => {
@@ -182,6 +183,10 @@ export function wireBrowserViewEvents(
     if (favicons.length > 0) callbacks.onFavicon?.(favicons[0])
   }
 
+  const onFoundInPage = (_event: Electron.Event, result: Electron.Result): void => {
+    callbacks.onFoundInPage?.(result.activeMatchOrdinal, result.matches)
+  }
+
   const onBeforeInput = (event: Electron.Event, input: Electron.Input): void => {
     const handled = callbacks.onBeforeInput?.(input) ?? false
     if (handled) {
@@ -189,18 +194,19 @@ export function wireBrowserViewEvents(
     }
   }
 
+  const enablePinchZoom = (): void => {
+    wc.setVisualZoomLevelLimits(1, 5)
+  }
+
   wc.on('page-title-updated', onTitleUpdated)
   wc.on('did-navigate', onDidNavigate)
   wc.on('did-navigate-in-page', onDidNavigateInPage)
   wc.on('did-start-loading', onDidStartLoading)
   wc.on('did-stop-loading', onDidStopLoading)
+  wc.on('did-finish-load', enablePinchZoom)
   wc.on('did-fail-load', onDidFailLoad)
   wc.on('focus', onFocus)
   wc.on('page-favicon-updated', onFaviconUpdated)
-  const onFoundInPage = (_event: Electron.Event, result: Electron.Result): void => {
-    callbacks.onFoundInPage?.(result.activeMatchOrdinal, result.matches)
-  }
-
   wc.on('before-input-event', onBeforeInput)
   wc.on('found-in-page', onFoundInPage)
 
@@ -232,6 +238,7 @@ export function wireBrowserViewEvents(
     wc.removeListener('before-input-event', onBeforeInput)
     wc.removeListener('found-in-page', onFoundInPage)
     wc.removeListener('context-menu', onContextMenu)
+    wc.removeListener('did-finish-load', enablePinchZoom)
     wc.setWindowOpenHandler(() => ({ action: 'deny' }))
   }
 }
