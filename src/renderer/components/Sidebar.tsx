@@ -299,7 +299,7 @@ export default function Sidebar() {
         })()}
         <button
           className={`sidebar-add${dragSourceId && dragOverState?.targetId === '__add' ? ' sidebar-add-drop' : ''}`}
-          onClick={addWorkspace}
+          onClick={() => addWorkspace()}
           onDragOver={(e) => { if (dragSourceId) { e.preventDefault(); setDragOverState({ targetId: '__add', position: 'before' }) } }}
           onDragLeave={() => setDragOverState(null)}
           onDrop={(e) => {
