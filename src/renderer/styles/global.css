@@ -442,14 +442,15 @@ body,
     color: var(--ws-text, #555);
 }
 
-/* Multi-pane workspace — concatenated pills */
+/* Multi-pane workspace — single unified bar with dividers */
 .ws-multi {
     display: flex;
-    gap: 2px;
     overflow: hidden;
     flex: 1;
     align-self: stretch;
     align-items: stretch;
+    background: color-mix(in srgb, var(--ws-color, transparent) 75%, #1e1e1e);
+    border-radius: 6px;
 }
 
 .ws-pill {
@@ -458,8 +459,8 @@ body,
     min-width: 0;
     padding: 0 8px;
     color: var(--ws-text, inherit);
-    background: color-mix(in srgb, var(--ws-color, transparent) 75%, #1e1e1e);
-    border-radius: 6px;
+    background: transparent;
+    border-radius: 0;
     font-size: 12px;
     text-align: left;
     line-height: 28px;
@@ -469,12 +470,33 @@ body,
     transition: background 0.15s;
 }
 
+.ws-pill + .ws-pill::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 20%;
+    height: 60%;
+    width: 1px;
+    background: rgba(255, 255, 255, 0.25);
+}
+
 .ws-row.active .ws-pill {
     padding-right: 20px;
 }
 
 .ws-pill.pill-active {
     background: color-mix(in srgb, var(--ws-color, transparent) 90%, #2a2a2a);
+}
+
+.ws-pill:first-child.pill-active {
+    border-radius: 6px 0 0 6px;
+}
+
+.ws-pill:last-child.pill-active {
+    border-radius: 0 6px 6px 0;
+}
+
+.ws-pill:only-child.pill-active {
     border-radius: 6px;
 }
 
