@@ -1,6 +1,6 @@
 import { app, ipcMain } from 'electron'
 import { join } from 'path'
-import { readFileSync, writeFileSync } from 'fs'
+import { FrecencyStore } from './frecencyStore'
 import { normalizeUrl, isValidUrl } from '../shared/urlUtils'
 
 interface StoredWebEntry {
@@ -11,33 +11,24 @@ interface StoredWebEntry {
   lastVisit: number
 }
 
-const HISTORY_PATH = join(app.getPath('userData'), 'web-history.json')
-const MAX_ENTRIES = 500
-
-let entries: Map<string, StoredWebEntry> = new Map()
-let flushTimer: ReturnType<typeof setTimeout> | null = null
-
-function frecencyScore(entry: StoredWebEntry, now: number): number {
-  const ageHours = (now - entry.lastVisit) / (1000 * 60 * 60)
-  let recencyWeight: number
-  if (ageHours < 1) recencyWeight = 4
-  else if (ageHours < 24) recencyWeight = 2
-  else if (ageHours < 7 * 24) recencyWeight = 1
-  else recencyWeight = 0.5
-  return Math.sqrt(entry.visitCount) * recencyWeight
-}
+const store = new FrecencyStore<StoredWebEntry>({
+  filePath: join(app.getPath('userData'), 'web-history.json'),
+  maxEntries: 500,
+  keyFn: (e) => e.url
+})
 
 function recordVisit(url: string, title?: string, faviconUrl?: string): void {
   if (!isValidUrl(url)) return
   const key = normalizeUrl(url)
-  const existing = entries.get(key)
+  const existing = store.get(key)
   if (existing) {
     existing.visitCount++
     existing.lastVisit = Date.now()
     if (title) existing.title = title
     if (faviconUrl) existing.faviconUrl = faviconUrl
+    store.set(key, existing)
   } else {
-    entries.set(key, {
+    store.set(key, {
       url: key,
       title: title || '',
       faviconUrl: faviconUrl || '',
@@ -45,66 +36,20 @@ function recordVisit(url: string, title?: string, faviconUrl?: string): void {
       lastVisit: Date.now()
     })
   }
-  pruneIfNeeded()
-  debouncedFlush()
-}
-
-function queryEntries(): Array<StoredWebEntry & { score: number }> {
-  const now = Date.now()
-  return [...entries.values()]
-    .map((e) => ({ ...e, score: frecencyScore(e, now) }))
-    .sort((a, b) => b.score - a.score)
-}
-
-function pruneIfNeeded(): void {
-  if (entries.size <= MAX_ENTRIES) return
-  const now = Date.now()
-  const sorted = [...entries.values()]
-    .map((e) => ({ ...e, score: frecencyScore(e, now) }))
-    .sort((a, b) => a.score - b.score)
-  const toRemove = sorted.slice(0, sorted.length - MAX_ENTRIES)
-  for (const e of toRemove) entries.delete(e.url)
-}
-
-function loadFromDisk(): void {
-  try {
-    const raw = readFileSync(HISTORY_PATH, 'utf-8')
-    const data = JSON.parse(raw)
-    if (data.version === 1 && Array.isArray(data.entries)) {
-      entries = new Map(data.entries.map((e: StoredWebEntry) => [e.url, e]))
-    }
-  } catch {
-    // file doesn't exist or is corrupt — start fresh
-  }
-}
-
-function flushToDisk(): void {
-  const data = { version: 1, entries: [...entries.values()] }
-  try {
-    writeFileSync(HISTORY_PATH, JSON.stringify(data), 'utf-8')
-  } catch {
-    // don't crash on write failure
-  }
-}
-
-function debouncedFlush(): void {
-  if (flushTimer) clearTimeout(flushTimer)
-  flushTimer = setTimeout(() => flushToDisk(), 5000)
 }
 
 export function setupWebHistory(): void {
-  loadFromDisk()
+  store.load()
 
   ipcMain.handle('webHistory:visit', (_event, url: string, title?: string, faviconUrl?: string) => {
     recordVisit(url, title, faviconUrl)
   })
 
   ipcMain.handle('webHistory:query', () => {
-    return queryEntries()
+    return store.query()
   })
 }
 
 export function flushWebHistorySync(): void {
-  if (flushTimer) clearTimeout(flushTimer)
-  flushToDisk()
+  store.flushSync()
 }
