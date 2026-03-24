@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Full Disk Access</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html, body {
+        height: 100%;
+        overflow: hidden;
+        background: transparent;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        color: #fff;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .dialog {
+        width: 100%;
+        padding: 32px 28px 24px;
+        text-align: center;
+        -webkit-app-region: drag;
+      }
+      .icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 20px;
+        border-radius: 18px;
+        object-fit: contain;
+      }
+      .title {
+        font-size: 17px;
+        font-weight: 600;
+        margin-bottom: 6px;
+        letter-spacing: -0.2px;
+      }
+      .detail {
+        font-size: 13px;
+        color: rgba(255,255,255,0.65);
+        margin-bottom: 24px;
+        line-height: 1.4;
+        transition: color 0.2s;
+      }
+      .buttons {
+        display: flex;
+        gap: 10px;
+        -webkit-app-region: no-drag;
+      }
+      button {
+        flex: 1;
+        height: 44px;
+        border: 2px solid transparent;
+        border-radius: 10px;
+        background: rgba(255,255,255,0.1);
+        color: #fff;
+        font-size: 15px;
+        font-weight: 500;
+        cursor: pointer;
+        outline: none;
+        transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+      }
+      button:hover {
+        background: rgba(255,255,255,0.15);
+      }
+      button:focus-visible {
+        border-color: #a878d4;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="dialog">
+      <img id="icon" class="icon" alt="ArcNext" />
+      <div class="title">Full Disk Access Required</div>
+      <div id="detail" class="detail">
+        ArcNext needs Full Disk Access to discover your projects. Grant access in System Settings, then come back.
+      </div>
+      <div class="buttons">
+        <button id="openSettings" type="button">Open Settings</button>
+        <button id="checkAccess" type="button">I've Granted Access</button>
+      </div>
+    </div>
+    <script type="module" src="./fdaDialog.ts"></script>
+  </body>
+</html>

@@ -13,10 +13,10 @@ interface DiscoveredDir {
 const MAX_DISCOVERED = 200
 const MAX_DEPTH = 4
 
-const NOISE_EXCLUSIONS = [
-  '*/Library/*', '*/node_modules/*', '*/.cache/*', '*/Caches/*',
-  '*/.Trash/*', '*/System/*', '*/opt/homebrew/*', '*/.cargo/*',
-  '*/.npm/*', '*/.rustup/*', '*/.local/*', '*/vendor/bundle/*'
+const PRUNE_DIRS = [
+  'Library', 'node_modules', '.cache', 'Caches',
+  '.Trash', 'System', '.cargo', '.npm', '.rustup',
+  '.local', 'vendor'
 ]
 
 const COMMON_FOLDERS = ['Desktop', 'Documents', 'Downloads']
@@ -42,10 +42,13 @@ function dirExists(p: string): boolean {
 
 function discoverGitRepos(): Promise<DiscoveredDir[]> {
   const home = homedir()
+  const pruneExpr = PRUNE_DIRS.flatMap((d, i) =>
+    i === 0 ? ['-name', d] : ['-o', '-name', d]
+  )
   const args = [
-    home, '-name', '.git', '-type', 'd',
-    '-maxdepth', String(MAX_DEPTH),
-    ...NOISE_EXCLUSIONS.flatMap((pat) => ['-not', '-path', pat])
+    home, '-maxdepth', String(MAX_DEPTH),
+    '(', ...pruneExpr, ')', '-prune',
+    '-o', '-name', '.git', '-type', 'd', '-print'
   ]
 
   return new Promise((resolve) => {
