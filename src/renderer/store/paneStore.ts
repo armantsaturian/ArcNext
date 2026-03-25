@@ -307,19 +307,19 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
   separateWorkspace: (workspaceId) => {
     const { workspaces } = get()
     const ws = workspaces.find((w) => w.id === workspaceId)
-    if (!ws || ws.grid.columns.length <= 1) return
+    if (!ws) return
+    const paneIds = allPaneIds(ws.grid)
+    if (paneIds.length <= 1) return
 
-    // Each column becomes its own workspace (first reuses original ID)
-    const separated: Workspace[] = ws.grid.columns.map((col, i) => {
-      const grid: GridLayout = { columns: [{ ...col, width: 1 }] }
-      const paneIds = allPaneIds(grid)
+    // Each pane becomes its own workspace (first reuses original ID)
+    const separated: Workspace[] = paneIds.map((paneId, i) => {
       const id = i === 0 ? ws.id : genWorkspaceId()
       return {
         ...ws,
         id,
         name: i === 0 ? ws.name : `Workspace ${id.split('-')[1]}`,
-        grid,
-        activePaneId: paneIds.includes(ws.activePaneId) ? ws.activePaneId : paneIds[0]
+        grid: createGrid(paneId),
+        activePaneId: paneId
       }
     })
 

@@ -135,7 +135,8 @@ const api = {
       const handler = (_event: IpcRendererEvent, key: string, meta: boolean, ctrl: boolean, shift: boolean, alt: boolean) => cb(key, meta, ctrl, shift, alt)
       ipcRenderer.on('browser:appShortcut', handler)
       return () => { ipcRenderer.removeListener('browser:appShortcut', handler) }
-    }
+    },
+    focusRenderer: () => ipcRenderer.send('browser:focusRenderer')
   }
 }
 

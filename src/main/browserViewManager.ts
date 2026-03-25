@@ -147,6 +147,10 @@ export function setupBrowserViewManager(mainWindow: BrowserWindow): void {
   ipcMain.on('browser:stopFindInPage', (_e, paneId: string) => {
     views.get(paneId)?.view.webContents.stopFindInPage('clearSelection')
   })
+
+  ipcMain.on('browser:focusRenderer', () => {
+    if (win && !win.isDestroyed()) win.webContents.focus()
+  })
 }
 
 function destroyView(paneId: string): void {

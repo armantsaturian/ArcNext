@@ -8,6 +8,7 @@ import { setupDirHistory, flushDirHistorySync } from './dirHistory'
 import { setupDirDiscovery } from './dirDiscovery'
 import { setupWebHistory, flushWebHistorySync } from './webHistory'
 import { setupPinnedWorkspaces, flushPinnedWorkspacesSync } from './pinnedWorkspaces'
+import { hasFullDiskAccess, showFDADialog } from './fullDiskAccess'
 import { setupBrowserViewManager, destroyAllBrowserViews, adoptView, releaseView } from './browserViewManager'
 import {
   createExternalBrowserWindow,
@@ -187,6 +188,12 @@ function buildApplicationMenu(): Menu {
 
 app.whenReady().then(() => {
   Menu.setApplicationMenu(buildApplicationMenu())
+
+  if (process.platform === 'darwin' && !hasFullDiskAccess()) {
+    showFDADialog()
+    return
+  }
+
   createWindow()
   autoUpdater.checkForUpdatesAndNotify()
 })

@@ -344,7 +344,7 @@ export default function Sidebar() {
             >
               Color
             </button>
-            {ctxWs && ctxWs.grid.columns.length > 1 && (
+            {ctxWs && allPaneIds(ctxWs.grid).length > 1 && (
               <button
                 className="ctx-menu-item"
                 onClick={() => {

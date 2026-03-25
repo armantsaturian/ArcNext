@@ -59,7 +59,7 @@ export default function BrowserPane({ paneId, workspaceId }: Props) {
   }, [paneId])
 
   const findHandler = useMemo(() => ({
-    open: () => setFindOpen(true),
+    open: () => { window.arcnext.browser.focusRenderer(); setFindOpen(true) },
     close: () => handleFindClose(),
     next: () => handleFindNext(),
     prev: () => handleFindPrev(),
@@ -145,6 +145,7 @@ export default function BrowserPane({ paneId, workspaceId }: Props) {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail
       if (detail?.paneId === paneId && isActivePane) {
+        window.arcnext.browser.focusRenderer()
         urlInputRef.current?.focus()
         urlInputRef.current?.select()
       }

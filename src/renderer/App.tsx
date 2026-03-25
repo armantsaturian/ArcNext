@@ -49,7 +49,7 @@ export default function App() {
   const wakeWorkspace = usePaneStore((s) => s.wakeWorkspace)
   const [pickerOpen, setPickerOpen] = useState(false)
 
-  const openPicker = () => { setPickerOpen(true); setOverlay('picker', true) }
+  const openPicker = () => { window.arcnext.browser.focusRenderer(); setPickerOpen(true); setOverlay('picker', true) }
   const closePicker = () => { setPickerOpen(false); setOverlay('picker', false) }
   const togglePicker = () => { pickerOpen ? closePicker() : openPicker() }
 
