@@ -384,6 +384,45 @@ body,
     color: var(--ws-color, #74c0fc);
 }
 
+/* ── Agent Indicator ── */
+.agent-indicator {
+    display: inline-grid;
+    grid-template-columns: repeat(3, 4px);
+    grid-template-rows: repeat(3, 4px);
+    gap: 1.5px;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
+.agent-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.agent-thinking .agent-dot {
+    animation: agent-pulse 1.1s ease-in-out infinite;
+    opacity: 0.25;
+}
+
+.agent-thinking {
+    color: #e0e0e0;
+}
+
+.agent-idle {
+    color: #666;
+}
+
+.agent-idle .agent-dot {
+    opacity: 0.5;
+}
+
+@keyframes agent-pulse {
+    0%, 100% { opacity: 0.2; }
+    50% { opacity: 1; }
+}
+
 .ws-favicon {
     border-radius: 2px;
     vertical-align: middle;

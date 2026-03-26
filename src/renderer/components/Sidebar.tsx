@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { usePaneStore, Workspace, PaneInfo, BrowserPaneInfo } from '../store/paneStore'
 import { allPaneIds } from '../model/gridLayout'
+import type { AgentState } from '../../shared/types'
+import AgentIndicator from './AgentIndicator'
 
 function FaviconIcon({ pane, size = 12 }: { pane: PaneInfo; size?: number }) {
   const [error, setError] = useState(false)
@@ -66,6 +68,7 @@ export default function Sidebar() {
   const setSidebarWidth = usePaneStore((s) => s.setSidebarWidth)
 
   const setOverlay = usePaneStore((s) => s.setOverlay)
+  const agentStates = usePaneStore((s) => s.agentStates)
 
   const moveWorkspace = usePaneStore((s) => s.moveWorkspace)
   const pinWorkspace = usePaneStore((s) => s.pinWorkspace)
@@ -215,7 +218,17 @@ export default function Sidebar() {
             setDividerDropActive(false)
           }
 
-          const renderRow = (ws: Workspace) => (
+          const renderRow = (ws: Workspace) => {
+            // Compute aggregate agent state for this workspace
+            const wsPaneIds = allPaneIds(ws.grid)
+            let wsAgentState: AgentState | null = null
+            for (const pid of wsPaneIds) {
+              const as = agentStates.get(pid)
+              if (!as) continue
+              if (as.status === 'thinking') { wsAgentState = as; break }
+              if (!wsAgentState) wsAgentState = as
+            }
+            return (
             <WorkspaceRow
               key={ws.id}
               workspace={ws}
@@ -224,6 +237,7 @@ export default function Sidebar() {
               isActive={ws.id === activeWorkspaceId}
               isDragging={ws.id === dragSourceId}
               dropPosition={dragOverState?.targetId === ws.id && ws.id !== dragSourceId ? dragOverState.position : null}
+              agentState={wsAgentState}
               onSelect={() => {
                 if (ws.dormant) wakeWorkspace(ws.id)
                 switchWorkspace(ws.id)
@@ -264,7 +278,7 @@ export default function Sidebar() {
                 setContextMenu({ x: e.clientX, y: e.clientY, workspaceId: ws.id })
               }}
             />
-          )
+          )}
 
           return (
             <>
@@ -383,6 +397,7 @@ interface WorkspaceRowProps {
   isActive: boolean
   isDragging: boolean
   dropPosition: 'before' | 'after' | 'on' | null
+  agentState: AgentState | null
   isEditing: boolean
   onSelect: () => void
   onSleep: () => void
@@ -400,7 +415,7 @@ interface WorkspaceRowProps {
 }
 
 function WorkspaceRow({
-  workspace, panes, collapsed, isActive, isDragging, dropPosition, isEditing,
+  workspace, panes, collapsed, isActive, isDragging, dropPosition, agentState, isEditing,
   onSelect, onSleep, onRemove, onClosePane, onDoubleClick, onRename, onCancelRename,
   onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd, onContextMenu
 }: WorkspaceRowProps) {
@@ -416,6 +431,11 @@ function WorkspaceRow({
   const displayTitle = hasCustomName ? workspace.name : defaultTitle
   const isBrowserWorkspace = firstPane?.type === 'browser'
   const initial = (displayTitle === 'shell' ? 'S' : displayTitle.split('/').pop() || 'S').charAt(0).toUpperCase()
+
+  // Show agent indicator instead of default icon when an agent is detected
+  const terminalIcon = agentState
+    ? <AgentIndicator status={agentState.status} />
+    : '\u25A0'
 
   const className = [
     'ws-row',
@@ -459,11 +479,11 @@ function WorkspaceRow({
     >
       {collapsed ? (
         <div className="ws-collapsed-icon">
-          {isBrowserWorkspace && firstPane ? <FaviconIcon pane={firstPane} size={16} /> : initial}
+          {agentState ? <AgentIndicator status={agentState.status} /> : isBrowserWorkspace && firstPane ? <FaviconIcon pane={firstPane} size={16} /> : initial}
         </div>
       ) : isEditing ? (
         <div className="ws-single">
-          <span className="ws-icon">{isBrowserWorkspace && firstPane ? <FaviconIcon pane={firstPane} /> : '\u25A0'}</span>
+          <span className="ws-icon">{isBrowserWorkspace && firstPane ? <FaviconIcon pane={firstPane} /> : terminalIcon}</span>
           <input
             data-suppress-shortcuts
             ref={inputRef}
@@ -484,12 +504,12 @@ function WorkspaceRow({
         </div>
       ) : hasCustomName ? (
         <div className="ws-single">
-          <span className="ws-icon">{isBrowserWorkspace && firstPane ? <FaviconIcon pane={firstPane} /> : '\u25A0'}</span>
+          <span className="ws-icon">{isBrowserWorkspace && firstPane ? <FaviconIcon pane={firstPane} /> : terminalIcon}</span>
           <span className="ws-title">{workspace.name}</span>
         </div>
       ) : isSinglePane ? (
         <div className="ws-single">
-          <span className="ws-icon">{isBrowserWorkspace && firstPane ? <FaviconIcon pane={firstPane} /> : '\u25A0'}</span>
+          <span className="ws-icon">{isBrowserWorkspace && firstPane ? <FaviconIcon pane={firstPane} /> : terminalIcon}</span>
           <span className="ws-title">{formatTitle(paneDisplayTitle(firstPane))}</span>
         </div>
       ) : (

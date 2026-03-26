@@ -72,6 +72,14 @@ export interface ExternalBrowserShellState {
   title: string
 }
 
+export type AgentType = 'claude' | 'codex'
+export type AgentStatus = 'thinking' | 'idle'
+
+export interface AgentState {
+  agent: AgentType
+  status: AgentStatus
+}
+
 export interface IPCChannels {
   'pty:create': (paneId: string, cwd?: string) => void
   'pty:write': (paneId: string, data: string) => void

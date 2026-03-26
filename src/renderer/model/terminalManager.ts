@@ -8,8 +8,12 @@ import '@xterm/xterm/css/xterm.css'
 
 type TitleCallback = (paneId: string, title: string) => void
 type CwdCallback = (paneId: string, cwd: string) => void
+type CommandCallback = (paneId: string, command: string | null) => void
+type PtyDataCallback = (paneId: string) => void
 let onTitleChange: TitleCallback | null = null
 let onCwdChange: CwdCallback | null = null
+let onCommandChange: CommandCallback | null = null
+let onPtyData: PtyDataCallback | null = null
 
 export function setTitleChangeCallback(cb: TitleCallback): void {
   onTitleChange = cb
@@ -17,6 +21,14 @@ export function setTitleChangeCallback(cb: TitleCallback): void {
 
 export function setCwdChangeCallback(cb: CwdCallback): void {
   onCwdChange = cb
+}
+
+export function setCommandChangeCallback(cb: CommandCallback): void {
+  onCommandChange = cb
+}
+
+export function setPtyDataCallback(cb: PtyDataCallback): void {
+  onPtyData = cb
 }
 
 interface ManagedTerminal {
@@ -104,7 +116,10 @@ export function createTerminal(paneId: string, cwd?: string): Terminal {
   })
 
   const removeDataListener = window.arcnext.pty.onData((id, data) => {
-    if (id === paneId) term.write(data)
+    if (id === paneId) {
+      term.write(data)
+      onPtyData?.(paneId)
+    }
   })
 
   const removeExitListener = window.arcnext.pty.onExit((id, code) => {
@@ -126,6 +141,18 @@ export function createTerminal(paneId: string, cwd?: string): Terminal {
       if (cwd) onCwdChange?.(paneId, cwd)
     } catch {
       // malformed OSC 7, ignore
+    }
+    return true
+  })
+
+  // OSC 7771 — command lifecycle from shell integration (preexec/precmd)
+  term.parser.registerOscHandler(7771, (data) => {
+    if (data.startsWith('cmd:')) {
+      // preexec: command is about to run — data is "cmd:<command_name>"
+      onCommandChange?.(paneId, data.slice(4))
+    } else if (data === 'prompt') {
+      // precmd: command finished, back to prompt
+      onCommandChange?.(paneId, null)
     }
     return true
   })

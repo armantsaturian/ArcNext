@@ -3,7 +3,11 @@ import GridView from './components/GridView'
 import Sidebar from './components/Sidebar'
 import UnifiedPicker from './components/UnifiedPicker'
 import { usePaneStore, useActiveWorkspace, flushPersistPinned } from './store/paneStore'
-import { setTitleChangeCallback, setCwdChangeCallback, writeToTerminalPTY } from './model/terminalManager'
+import { setTitleChangeCallback, setCwdChangeCallback, setCommandChangeCallback, setPtyDataCallback, writeToTerminalPTY } from './model/terminalManager'
+import {
+  setAgentStateCallback, onCommandStart, onCommandEnd,
+  onTitleChange as agentOnTitleChange, onPtyData as agentOnPtyData, startIdleChecker
+} from './model/agentDetector'
 import { findController } from './model/findController'
 import { NavDirection } from './model/gridLayout'
 
@@ -80,9 +84,12 @@ export default function App() {
     return () => window.removeEventListener('beforeunload', handler)
   }, [])
 
-  // Wire terminal title changes into the store
+  // Wire terminal title changes into the store + agent detector
   useEffect(() => {
-    setTitleChangeCallback((paneId, title) => setPaneTitle(paneId, title))
+    setTitleChangeCallback((paneId, title) => {
+      setPaneTitle(paneId, title)
+      agentOnTitleChange(paneId, title)
+    })
   }, [setPaneTitle])
 
   // Wire cwd changes into the store and dir history
@@ -92,6 +99,19 @@ export default function App() {
       window.arcnext.dirHistory.visit(cwd)
     })
   }, [setPaneCwd])
+
+  // Wire shell hooks (OSC 7771) into agent detector
+  const setAgentState = usePaneStore((s) => s.setAgentState)
+  useEffect(() => {
+    setAgentStateCallback((paneId, state) => setAgentState(paneId, state))
+    setCommandChangeCallback((paneId, command) => {
+      if (command) onCommandStart(paneId, command)
+      else onCommandEnd(paneId)
+    })
+    setPtyDataCallback((paneId) => agentOnPtyData(paneId))
+    const stopIdleChecker = startIdleChecker()
+    return () => { stopIdleChecker() }
+  }, [setAgentState])
 
   // Wire browser view events from main process into the store
   useEffect(() => {

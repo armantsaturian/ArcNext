@@ -10,12 +10,27 @@ elif [[ -f "$HOME/.zshenv" ]]; then
   source "$HOME/.zshenv"
 fi
 
-# Inject OSC 7 directory tracking
+# Inject shell integration hooks
 if [[ -n "$ARCNEXT_SHELL_INTEGRATION" ]]; then
+  autoload -Uz add-zsh-hook
+
+  # OSC 7 — directory tracking
   __arcnext_osc7() {
     printf '\e]7;file://%s%s\a' "${HOST}" "${PWD}"
   }
-  autoload -Uz add-zsh-hook
   add-zsh-hook chpwd __arcnext_osc7
   __arcnext_osc7
+
+  # OSC 7771 — command lifecycle tracking (for AI agent detection)
+  # preexec: fires when user hits Enter, before the command runs
+  __arcnext_preexec() {
+    local cmd="${1%% *}"
+    printf '\e]7771;cmd:%s\a' "${cmd}"
+  }
+  # precmd: fires when the command finishes and the prompt is about to display
+  __arcnext_precmd() {
+    printf '\e]7771;prompt\a'
+  }
+  add-zsh-hook preexec __arcnext_preexec
+  add-zsh-hook precmd __arcnext_precmd
 fi

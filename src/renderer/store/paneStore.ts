@@ -6,7 +6,7 @@ import {
 } from '../model/gridLayout'
 import { createTerminal, destroyTerminal } from '../model/terminalManager'
 import { destroyBrowserView, undockBrowserView } from '../model/browserManager'
-import type { PaneInfo, TerminalPaneInfo, BrowserPaneInfo, SerializedPane, PinnedWorkspaceEntry } from '../../shared/types'
+import type { PaneInfo, TerminalPaneInfo, BrowserPaneInfo, SerializedPane, PinnedWorkspaceEntry, AgentState } from '../../shared/types'
 
 let nextPaneId = 1
 let nextWorkspaceId = 1
@@ -98,6 +98,10 @@ interface PaneStore {
   // Overlay state (hides native browser views so DOM modals are visible)
   activeOverlays: Set<string>
   setOverlay: (id: string, active: boolean) => void
+
+  // Agent detection
+  agentStates: Map<string, AgentState>
+  setAgentState: (paneId: string, state: AgentState | null) => void
 }
 
 function makeTerminalPane(cwd?: string): TerminalPaneInfo {
@@ -774,7 +778,22 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
     const next = new Set(s.activeOverlays)
     active ? next.add(id) : next.delete(id)
     return { activeOverlays: next }
-  })
+  }),
+
+  agentStates: new Map<string, AgentState>(),
+  setAgentState: (paneId, state) => {
+    const { agentStates } = get()
+    const newStates = new Map(agentStates)
+    if (state) {
+      const existing = agentStates.get(paneId)
+      if (existing && existing.agent === state.agent && existing.status === state.status) return
+      newStates.set(paneId, state)
+    } else {
+      if (!agentStates.has(paneId)) return
+      newStates.delete(paneId)
+    }
+    set({ agentStates: newStates })
+  }
 }))
 
 /** Flush any pending debounced persistPinned call immediately via sync IPC (for beforeunload). */
