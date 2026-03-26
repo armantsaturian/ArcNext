@@ -4,7 +4,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('../model/terminalManager', () => ({
   createTerminal: vi.fn(),
   destroyTerminal: vi.fn(),
-  blurTerminal: vi.fn()
+  blurTerminal: vi.fn(),
+  serializeTerminal: vi.fn(() => null)
 }))
 vi.mock('../model/browserManager', () => ({
   destroyBrowserView: vi.fn(),

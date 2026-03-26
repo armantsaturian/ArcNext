@@ -4,12 +4,19 @@ import {
   allPaneIds, adjacentPaneId, navigateDirection, mergeGrids, mergeGridAsRows,
   NavDirection
 } from '../model/gridLayout'
-import { createTerminal, destroyTerminal } from '../model/terminalManager'
+import { createTerminal, destroyTerminal, serializeTerminal } from '../model/terminalManager'
 import { destroyBrowserView, undockBrowserView } from '../model/browserManager'
 import type { PaneInfo, TerminalPaneInfo, BrowserPaneInfo, SerializedPane, PinnedWorkspaceEntry, AgentState } from '../../shared/types'
 
 let nextPaneId = 1
 let nextWorkspaceId = 1
+
+/**
+ * Side-channel for dormant terminal scrollback data.
+ * Kept outside zustand so large strings don't participate in
+ * store snapshots, Map cloning, or React re-renders.
+ */
+const dormantScrollback = new Map<string, string>()
 
 function genPaneId(): string {
   return `pane-${nextPaneId++}`
@@ -227,6 +234,7 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
       const pane = panes.get(pid)
       if (pane) destroyPaneResource(pane)
       newPanes.delete(pid)
+      dormantScrollback.delete(pid)
     }
 
     const remaining = workspaces.filter((w) => w.id !== id)
@@ -640,10 +648,16 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
     const ws = workspaces.find((w) => w.id === id)
     if (!ws || !ws.pinned || ws.dormant) return
 
+    // Capture scrollback into side-channel before destroying
     const paneIds = allPaneIds(ws.grid)
     for (const pid of paneIds) {
       const pane = panes.get(pid)
-      if (pane) destroyPaneResource(pane)
+      if (!pane) continue
+      if (pane.type === 'terminal') {
+        const content = serializeTerminal(pid)
+        if (content) dormantScrollback.set(pid, content)
+      }
+      destroyPaneResource(pane)
     }
 
     const updated = { ...ws, dormant: true }
@@ -673,7 +687,10 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
       const pane = panes.get(pid)
       if (!pane) continue
       if (pane.type === 'terminal') {
-        createTerminal(pid, (pane as TerminalPaneInfo).cwd || undefined)
+        const tp = pane as TerminalPaneInfo
+        const savedScrollback = dormantScrollback.get(pid)
+        createTerminal(pid, tp.cwd || undefined, savedScrollback)
+        dormantScrollback.delete(pid)
       }
     }
 
@@ -715,6 +732,7 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
         const newId = idMap.get(sp.id)!
         if (sp.type === 'terminal') {
           newPanes.set(newId, { type: 'terminal', id: newId, title: sp.title || 'shell', cwd: sp.cwd || '' })
+          if (sp.scrollback) dormantScrollback.set(newId, sp.scrollback)
         } else {
           newPanes.set(newId, {
             type: 'browser', id: newId, title: sp.title || '', url: sp.url || '',
@@ -749,7 +767,10 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
         const pane = panes.get(pid)
         if (!pane) return { type: 'terminal' as const, id: pid, title: 'shell' }
         if (pane.type === 'terminal') {
-          return { type: 'terminal' as const, id: pane.id, title: pane.title, cwd: (pane as TerminalPaneInfo).cwd }
+          const tp = pane as TerminalPaneInfo
+          // Live terminal: capture from xterm. Dormant: use side-channel.
+          const scrollback = ws.dormant ? dormantScrollback.get(pid) : (serializeTerminal(pid) ?? undefined)
+          return { type: 'terminal' as const, id: pane.id, title: pane.title, cwd: tp.cwd, scrollback }
         }
         const bp = pane as BrowserPaneInfo
         return { type: 'browser' as const, id: pane.id, title: pane.title, url: bp.url, faviconUrl: bp.faviconUrl }

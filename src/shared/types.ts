@@ -41,6 +41,7 @@ export interface SerializedPane {
   cwd?: string
   url?: string
   faviconUrl?: string
+  scrollback?: string
 }
 
 export interface PinnedWorkspaceEntry {

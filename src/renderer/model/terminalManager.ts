@@ -3,6 +3,7 @@ import { FitAddon } from '@xterm/addon-fit'
 import { WebglAddon } from '@xterm/addon-webgl'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import { SearchAddon } from '@xterm/addon-search'
+import { SerializeAddon } from '@xterm/addon-serialize'
 import { openExternalLink } from './openExternalLink'
 import '@xterm/xterm/css/xterm.css'
 
@@ -35,6 +36,7 @@ interface ManagedTerminal {
   term: Terminal
   fit: FitAddon
   search: SearchAddon
+  serialize: SerializeAddon
   webgl: WebglAddon | null
   removeDataListener: () => void
   removeExitListener: () => void
@@ -47,7 +49,7 @@ parkingDiv.id = 'terminal-parking'
 parkingDiv.style.cssText = 'visibility:hidden;position:absolute;width:0;height:0;overflow:hidden'
 document.body.appendChild(parkingDiv)
 
-export function createTerminal(paneId: string, cwd?: string): Terminal {
+export function createTerminal(paneId: string, cwd?: string, scrollback?: string): Terminal {
   if (terminals.has(paneId)) return terminals.get(paneId)!.term
 
   const term = new Terminal({
@@ -75,8 +77,10 @@ export function createTerminal(paneId: string, cwd?: string): Terminal {
 
   const fit = new FitAddon()
   const search = new SearchAddon()
+  const serialize = new SerializeAddon()
   term.loadAddon(fit)
   term.loadAddon(search)
+  term.loadAddon(serialize)
   term.loadAddon(new WebLinksAddon((_event, uri) => openExternalLink(uri)))
 
   // Open terminal into a parked host div immediately so DOM element always exists
@@ -106,6 +110,12 @@ export function createTerminal(paneId: string, cwd?: string): Terminal {
     webgl = addon
   } catch {
     // WebGL not available, canvas fallback
+  }
+
+  // Restore scrollback BEFORE connecting PTY so saved content isn't interleaved
+  // with fresh shell output
+  if (scrollback) {
+    term.write(scrollback)
   }
 
   // PTY connection
@@ -157,7 +167,7 @@ export function createTerminal(paneId: string, cwd?: string): Terminal {
     return true
   })
 
-  terminals.set(paneId, { term, fit, search, webgl, removeDataListener, removeExitListener })
+  terminals.set(paneId, { term, fit, search, serialize, webgl, removeDataListener, removeExitListener })
   return term
 }
 
@@ -239,6 +249,17 @@ export function terminalFindPrevious(paneId: string, text: string): boolean {
 /** Clear search decorations */
 export function terminalClearSearch(paneId: string): void {
   terminals.get(paneId)?.search.clearDecorations()
+}
+
+/** Serialize the terminal's full scrollback + screen via SerializeAddon. */
+export function serializeTerminal(paneId: string): string | null {
+  const managed = terminals.get(paneId)
+  if (!managed) return null
+  try {
+    return managed.serialize.serialize()
+  } catch {
+    return null
+  }
 }
 
 /** Destroy the terminal and kill its PTY. Only call on explicit user close. */

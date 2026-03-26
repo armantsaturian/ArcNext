@@ -1,20 +1,35 @@
 import { app, ipcMain } from 'electron'
 import { join } from 'path'
-import { readFileSync, writeFileSync } from 'fs'
+import { readFileSync, writeFileSync, writeFile, existsSync } from 'fs'
+import { gzipSync, gunzipSync, gzip } from 'zlib'
 import type { PinnedWorkspaceEntry } from '../shared/types'
 
-const FILE_PATH = join(app.getPath('userData'), 'pinned-workspaces.json')
+const FILE_PATH = join(app.getPath('userData'), 'pinned-workspaces.json.gz')
+const LEGACY_PATH = join(app.getPath('userData'), 'pinned-workspaces.json')
 
 let workspaces: PinnedWorkspaceEntry[] = []
 let flushTimer: ReturnType<typeof setTimeout> | null = null
 
 function loadFromDisk(): PinnedWorkspaceEntry[] {
   try {
-    const raw = readFileSync(FILE_PATH, 'utf-8')
-    const data = JSON.parse(raw)
-    if (data.version === 1 && Array.isArray(data.workspaces)) {
-      workspaces = data.workspaces
-      return workspaces
+    // Try compressed file first
+    if (existsSync(FILE_PATH)) {
+      const compressed = readFileSync(FILE_PATH)
+      const raw = gunzipSync(compressed).toString('utf-8')
+      const data = JSON.parse(raw)
+      if (data.version === 1 && Array.isArray(data.workspaces)) {
+        workspaces = data.workspaces
+        return workspaces
+      }
+    }
+    // Fall back to legacy uncompressed file
+    if (existsSync(LEGACY_PATH)) {
+      const raw = readFileSync(LEGACY_PATH, 'utf-8')
+      const data = JSON.parse(raw)
+      if (data.version === 1 && Array.isArray(data.workspaces)) {
+        workspaces = data.workspaces
+        return workspaces
+      }
     }
   } catch {
     // file doesn't exist or is corrupt — start fresh
@@ -22,18 +37,29 @@ function loadFromDisk(): PinnedWorkspaceEntry[] {
   return []
 }
 
-function flushToDisk(): void {
-  const data = { version: 1, workspaces }
+/** Sync flush — used for beforeunload and app quit where we can't await. */
+function flushToDiskSync(): void {
+  const json = JSON.stringify({ version: 1, workspaces })
   try {
-    writeFileSync(FILE_PATH, JSON.stringify(data), 'utf-8')
+    const compressed = gzipSync(json, { level: 1 })
+    writeFileSync(FILE_PATH, compressed)
   } catch {
     // don't crash on write failure
   }
 }
 
+/** Async flush — used for debounced saves to avoid blocking main process. */
+function flushToDiskAsync(): void {
+  const json = JSON.stringify({ version: 1, workspaces })
+  gzip(json, { level: 1 }, (err, compressed) => {
+    if (err) return
+    writeFile(FILE_PATH, compressed, () => {})
+  })
+}
+
 function debouncedFlush(): void {
   if (flushTimer) clearTimeout(flushTimer)
-  flushTimer = setTimeout(() => flushToDisk(), 5000)
+  flushTimer = setTimeout(() => flushToDiskAsync(), 5000)
 }
 
 export function setupPinnedWorkspaces(): void {
@@ -52,12 +78,12 @@ export function setupPinnedWorkspaces(): void {
   ipcMain.on('pinnedWorkspaces:saveSync', (event, data: PinnedWorkspaceEntry[]) => {
     workspaces = data
     if (flushTimer) clearTimeout(flushTimer)
-    flushToDisk()
+    flushToDiskSync()
     event.returnValue = true
   })
 }
 
 export function flushPinnedWorkspacesSync(): void {
   if (flushTimer) clearTimeout(flushTimer)
-  flushToDisk()
+  flushToDiskSync()
 }
