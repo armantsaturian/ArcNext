@@ -3,15 +3,19 @@ import { GridLayout, resizeColumns, resizeRows } from '../model/gridLayout'
 import { usePaneStore } from '../store/paneStore'
 import TerminalPane from './TerminalPane'
 import BrowserPane from './BrowserPane'
+import ErrorBoundary from './ErrorBoundary'
 
 function PaneRenderer({ paneId, workspaceId }: { paneId: string; workspaceId: string }) {
   const paneType = usePaneStore((s) => s.panes.get(paneId)?.type ?? 'terminal')
+  const closePane = usePaneStore((s) => s.closePane)
 
-  if (paneType === 'browser') {
-    return <BrowserPane paneId={paneId} workspaceId={workspaceId} />
-  }
-
-  return <TerminalPane paneId={paneId} />
+  return (
+    <ErrorBoundary fallback="pane" onReset={() => closePane(paneId)}>
+      {paneType === 'browser'
+        ? <BrowserPane paneId={paneId} workspaceId={workspaceId} />
+        : <TerminalPane paneId={paneId} />}
+    </ErrorBoundary>
+  )
 }
 
 const DIVIDER_SIZE = 4

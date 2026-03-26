@@ -1245,3 +1245,52 @@ body,
     box-shadow: none;
     justify-content: flex-end;
 }
+
+/* ── Error boundaries ── */
+.error-boundary-pane,
+.error-boundary-app {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 8px;
+    color: #888;
+    font-size: 13px;
+    user-select: none;
+}
+
+.error-boundary-app {
+    font-size: 15px;
+}
+
+.error-boundary-icon {
+    font-size: 24px;
+    opacity: 0.5;
+}
+
+.error-boundary-detail {
+    max-width: 320px;
+    text-align: center;
+    color: #666;
+    font-size: 11px;
+    word-break: break-word;
+}
+
+.error-boundary-pane button,
+.error-boundary-app button {
+    margin-top: 4px;
+    padding: 4px 14px;
+    border: 1px solid #333;
+    border-radius: 6px;
+    background: #1e1e1e;
+    color: #ccc;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.error-boundary-pane button:hover,
+.error-boundary-app button:hover {
+    background: #2a2a2a;
+}
