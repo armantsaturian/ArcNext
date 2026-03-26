@@ -1,8 +1,28 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { usePaneStore, Workspace, PaneInfo, BrowserPaneInfo } from '../store/paneStore'
+import { usePaneStore, Workspace, PaneInfo, TerminalPaneInfo, BrowserPaneInfo } from '../store/paneStore'
 import { allPaneIds } from '../model/gridLayout'
 import type { AgentState } from '../../shared/types'
 import AgentIndicator from './AgentIndicator'
+
+function cwdBasename(cwd: string): string | undefined {
+  return cwd.split('/').filter(Boolean).pop()
+}
+
+function useDismissible<T>(value: T | null, setter: (v: null) => void): void {
+  useEffect(() => {
+    if (!value) return
+    const dismiss = (e: MouseEvent | KeyboardEvent) => {
+      if (e instanceof KeyboardEvent && e.key !== 'Escape') return
+      setter(null)
+    }
+    document.addEventListener('click', dismiss)
+    document.addEventListener('keydown', dismiss)
+    return () => {
+      document.removeEventListener('click', dismiss)
+      document.removeEventListener('keydown', dismiss)
+    }
+  }, [value, setter])
+}
 
 function FaviconIcon({ pane, size = 12 }: { pane: PaneInfo; size?: number }) {
   const [error, setError] = useState(false)
@@ -69,6 +89,8 @@ export default function Sidebar() {
 
   const setOverlay = usePaneStore((s) => s.setOverlay)
   const agentStates = usePaneStore((s) => s.agentStates)
+  const sidebarGrouped = usePaneStore((s) => s.sidebarGrouped)
+  const setSidebarGrouped = usePaneStore((s) => s.setSidebarGrouped)
 
   const moveWorkspace = usePaneStore((s) => s.moveWorkspace)
   const pinWorkspace = usePaneStore((s) => s.pinWorkspace)
@@ -92,33 +114,8 @@ export default function Sidebar() {
     return () => setOverlay('sidebar', false)
   }, [sidebarPopupOpen, setOverlay])
 
-  useEffect(() => {
-    if (!contextMenu) return
-    const dismiss = (e: MouseEvent | KeyboardEvent) => {
-      if (e instanceof KeyboardEvent && e.key !== 'Escape') return
-      setContextMenu(null)
-    }
-    document.addEventListener('click', dismiss)
-    document.addEventListener('keydown', dismiss)
-    return () => {
-      document.removeEventListener('click', dismiss)
-      document.removeEventListener('keydown', dismiss)
-    }
-  }, [contextMenu])
-
-  useEffect(() => {
-    if (!colorPicker) return
-    const dismiss = (e: MouseEvent | KeyboardEvent) => {
-      if (e instanceof KeyboardEvent && e.key !== 'Escape') return
-      setColorPicker(null)
-    }
-    document.addEventListener('click', dismiss)
-    document.addEventListener('keydown', dismiss)
-    return () => {
-      document.removeEventListener('click', dismiss)
-      document.removeEventListener('keydown', dismiss)
-    }
-  }, [colorPicker])
+  useDismissible(contextMenu, () => setContextMenu(null))
+  useDismissible(colorPicker, () => setColorPicker(null))
 
   useEffect(() => {
     window.arcnext.sidebar.setTrafficLightsVisible(!sidebarCollapsed)
@@ -284,7 +281,7 @@ export default function Sidebar() {
             <>
               {pinnedWs.map(renderRow)}
               <div
-                className={`sidebar-divider${dividerDropActive ? ' divider-drop-active' : ''}`}
+                className={`sidebar-divider${dividerDropActive ? ' divider-drop-active' : ''}${sidebarGrouped ? ' divider-grouped' : ''}`}
                 onDragOver={(e) => {
                   if (dragSourceId) {
                     e.preventDefault()
@@ -306,8 +303,32 @@ export default function Sidebar() {
                   setDragOverState(null)
                   setDividerDropActive(false)
                 }}
-              />
-              {unpinnedWs.map(renderRow)}
+              >
+                {!sidebarCollapsed && (
+                  <button
+                    className="divider-group-btn"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setSidebarGrouped(!sidebarGrouped)
+                    }}
+                    title={sidebarGrouped ? 'Ungroup workspaces' : 'Group workspaces'}
+                  >
+                    {sidebarGrouped ? 'Ungroup' : 'Group'}
+                  </button>
+                )}
+              </div>
+              {sidebarGrouped ? (
+                groupUnpinnedWorkspaces(unpinnedWs, panes).map((group) => (
+                  <div key={group.key} className="ws-group">
+                    {!sidebarCollapsed && (
+                      <div className="ws-group-header">{group.label}</div>
+                    )}
+                    {group.workspaces.map(renderRow)}
+                  </div>
+                ))
+              ) : (
+                unpinnedWs.map(renderRow)
+              )}
             </>
           )
         })()}
@@ -436,6 +457,7 @@ function WorkspaceRow({
   const terminalIcon = agentState
     ? <AgentIndicator status={agentState.status} />
     : '\u25A0'
+  const icon = isBrowserWorkspace && firstPane ? <FaviconIcon pane={firstPane} /> : terminalIcon
 
   const className = [
     'ws-row',
@@ -483,7 +505,7 @@ function WorkspaceRow({
         </div>
       ) : isEditing ? (
         <div className="ws-single">
-          <span className="ws-icon">{isBrowserWorkspace && firstPane ? <FaviconIcon pane={firstPane} /> : terminalIcon}</span>
+          <span className="ws-icon">{icon}</span>
           <input
             data-suppress-shortcuts
             ref={inputRef}
@@ -504,12 +526,12 @@ function WorkspaceRow({
         </div>
       ) : hasCustomName ? (
         <div className="ws-single">
-          <span className="ws-icon">{isBrowserWorkspace && firstPane ? <FaviconIcon pane={firstPane} /> : terminalIcon}</span>
+          <span className="ws-icon">{icon}</span>
           <span className="ws-title">{workspace.name}</span>
         </div>
       ) : isSinglePane ? (
         <div className="ws-single">
-          <span className="ws-icon">{isBrowserWorkspace && firstPane ? <FaviconIcon pane={firstPane} /> : terminalIcon}</span>
+          <span className="ws-icon">{icon}</span>
           <span className="ws-title">{formatTitle(paneDisplayTitle(firstPane))}</span>
         </div>
       ) : (
@@ -550,14 +572,68 @@ function WorkspaceRow({
   )
 }
 
+interface WorkspaceGroup {
+  key: string
+  label: string
+  workspaces: Workspace[]
+}
+
+function computeGroupKey(paneInfos: PaneInfo[]): string {
+  const hasTerminal = paneInfos.some((p) => p.type === 'terminal')
+  const hasBrowser = paneInfos.some((p) => p.type === 'browser')
+
+  if (hasBrowser && !hasTerminal) return 'browsers'
+
+  const termPane = paneInfos.find((p) => p.type === 'terminal') as TerminalPaneInfo | undefined
+  if (termPane?.cwd) {
+    const basename = cwdBasename(termPane.cwd)
+    if (basename) return `cwd:${basename}`
+  }
+
+  return 'other'
+}
+
+function groupLabel(key: string): string {
+  if (key === 'browsers') return 'Browsers'
+  if (key === 'other') return 'Other'
+  if (key.startsWith('cwd:')) return key.slice(4)
+  return key
+}
+
+function groupUnpinnedWorkspaces(
+  workspaces: Workspace[],
+  panes: Map<string, PaneInfo>
+): WorkspaceGroup[] {
+  const groups = new Map<string, Workspace[]>()
+  const order: string[] = []
+
+  for (const ws of workspaces) {
+    const paneIds = allPaneIds(ws.grid)
+    const paneInfos = paneIds.map((id) => panes.get(id)).filter(Boolean) as PaneInfo[]
+    const key = computeGroupKey(paneInfos)
+
+    if (!groups.has(key)) {
+      groups.set(key, [])
+      order.push(key)
+    }
+    groups.get(key)!.push(ws)
+  }
+
+  return order.map((key) => ({
+    key,
+    label: groupLabel(key),
+    workspaces: groups.get(key)!
+  }))
+}
+
 function paneDisplayTitle(pane: PaneInfo): string {
   if (pane.type === 'browser') {
     return pane.title || pane.url
   }
   // Prefer CWD basename for terminals (e.g. "arcnext" instead of "armantsaturian@MacBook-Pro")
   if (pane.cwd) {
-    const basename = pane.cwd.split('/').filter(Boolean).pop()
-    if (basename) return basename
+    const name = cwdBasename(pane.cwd)
+    if (name) return name
   }
   return pane.title || 'shell'
 }

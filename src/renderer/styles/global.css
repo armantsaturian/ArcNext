@@ -423,6 +423,56 @@ body,
     50% { opacity: 1; }
 }
 
+/* ── Group toggle button on divider ── */
+.divider-group-btn {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 1px 6px;
+    font-size: 10px;
+    font-weight: 500;
+    color: #666;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s, background 0.15s, color 0.15s;
+    z-index: 1;
+}
+
+.sidebar-divider:hover .divider-group-btn {
+    opacity: 1;
+}
+
+.divider-group-btn:hover {
+    color: #aaa;
+}
+
+.sidebar-divider.divider-grouped .divider-group-btn {
+    opacity: 0.7;
+}
+
+.sidebar-divider.divider-grouped:hover .divider-group-btn {
+    opacity: 1;
+}
+
+/* ── Workspace groups ── */
+.ws-group {
+    margin-bottom: 4px;
+}
+
+.ws-group-header {
+    padding: 6px 12px 2px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #555;
+    user-select: none;
+}
+
 .ws-favicon {
     border-radius: 2px;
     vertical-align: middle;

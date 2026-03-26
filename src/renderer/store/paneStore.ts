@@ -99,6 +99,10 @@ interface PaneStore {
   activeOverlays: Set<string>
   setOverlay: (id: string, active: boolean) => void
 
+  // Sidebar grouping
+  sidebarGrouped: boolean
+  setSidebarGrouped: (grouped: boolean) => void
+
   // Agent detection
   agentStates: Map<string, AgentState>
   setAgentState: (paneId: string, state: AgentState | null) => void
@@ -779,6 +783,14 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
     active ? next.add(id) : next.delete(id)
     return { activeOverlays: next }
   }),
+
+  sidebarGrouped: (() => {
+    try { return localStorage.getItem('arcnext:sidebarGrouped') === '1' } catch { return false }
+  })(),
+  setSidebarGrouped: (grouped) => {
+    set({ sidebarGrouped: grouped })
+    try { localStorage.setItem('arcnext:sidebarGrouped', grouped ? '1' : '0') } catch {}
+  },
 
   agentStates: new Map<string, AgentState>(),
   setAgentState: (paneId, state) => {
