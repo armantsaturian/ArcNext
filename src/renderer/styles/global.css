@@ -450,13 +450,6 @@ body,
     color: #aaa;
 }
 
-.sidebar-divider.divider-grouped .divider-group-btn {
-    opacity: 0.7;
-}
-
-.sidebar-divider.divider-grouped:hover .divider-group-btn {
-    opacity: 1;
-}
 
 /* ── Workspace groups ── */
 .ws-group {
