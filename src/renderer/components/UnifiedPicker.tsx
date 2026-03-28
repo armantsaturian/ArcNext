@@ -59,6 +59,28 @@ function computeGhostText(item: PickerItem, query: string): string {
 
 const DIR_BOOST = 1.5
 
+function PickerRow({ item, idx, selected, onSelect, onHover, compact, children }: {
+  item: PickerItem
+  idx: number
+  selected: boolean
+  onSelect: (item: PickerItem) => void
+  onHover: (idx: number) => void
+  compact?: boolean
+  children: ReactNode
+}) {
+  return (
+    <div
+      key={item.key}
+      data-selectable
+      className={`picker-item${compact ? ' picker-item-compact' : ''}${selected ? ' selected' : ''}`}
+      onClick={() => onSelect(item)}
+      onMouseMove={() => onHover(idx)}
+    >
+      {children}
+    </div>
+  )
+}
+
 export default function UnifiedPicker({ onClose }: Props) {
   const [query, setQuery] = useState('')
   const [allDirEntries, setAllDirEntries] = useState<DirEntry[]>([])
@@ -220,6 +242,10 @@ export default function UnifiedPicker({ onClose }: Props) {
     onClose()
   }, [addWorkspace, onClose])
 
+  const handleHover = useCallback((idx: number) => {
+    setSelection((prev) => selectPickerIndex(prev, itemKeys, idx))
+  }, [itemKeys])
+
   const acceptGhost = useCallback(() => {
     if (!ghostText) return false
     const item = allItems[selectedIndex]
@@ -289,16 +315,10 @@ export default function UnifiedPicker({ onClose }: Props) {
               {sortedDirs.map((item, i) => {
                 const idx = dirOffset + i
                 return (
-                  <div
-                    key={item.key}
-                    data-selectable
-                    className={`picker-item${idx === selectedIndex ? ' selected' : ''}`}
-                    onClick={() => handleSelect(item)}
-                    onMouseMove={() => setSelection((prev) => selectPickerIndex(prev, itemKeys, idx))}
-                  >
+                  <PickerRow key={item.key} item={item} idx={idx} selected={idx === selectedIndex} onSelect={handleSelect} onHover={handleHover}>
                     <span className="picker-item-name">{highlightSubstring(item.displayName, query)}</span>
                     <span className="picker-item-path">{highlightSubstring(item.dirPath!, query)}</span>
-                  </div>
+                  </PickerRow>
                 )
               })}
             </>
@@ -312,31 +332,19 @@ export default function UnifiedPicker({ onClose }: Props) {
               {directUrlItems.map((item, i) => {
                 const idx = directUrlOffset + i
                 return (
-                  <div
-                    key={item.key}
-                    data-selectable
-                    className={`picker-item${idx === selectedIndex ? ' selected' : ''}`}
-                    onClick={() => handleSelect(item)}
-                    onMouseMove={() => setSelection((prev) => selectPickerIndex(prev, itemKeys, idx))}
-                  >
+                  <PickerRow key={item.key} item={item} idx={idx} selected={idx === selectedIndex} onSelect={handleSelect} onHover={handleHover}>
                     <div className="picker-item-web-row">
                       <span className="picker-item-favicon-icon">{'\u{1F310}'}</span>
                       <span className="picker-item-name">{item.displayName}</span>
                     </div>
-                  </div>
+                  </PickerRow>
                 )
               })}
 
               {sortedWebs.map((item, i) => {
                 const idx = webOffset + i
                 return (
-                  <div
-                    key={item.key}
-                    data-selectable
-                    className={`picker-item picker-item-compact${idx === selectedIndex ? ' selected' : ''}`}
-                    onClick={() => handleSelect(item)}
-                    onMouseMove={() => setSelection((prev) => selectPickerIndex(prev, itemKeys, idx))}
-                  >
+                  <PickerRow key={item.key} item={item} idx={idx} selected={idx === selectedIndex} onSelect={handleSelect} onHover={handleHover} compact>
                     <div className="picker-item-web-row">
                       {item.faviconUrl ? (
                         <img
@@ -351,7 +359,7 @@ export default function UnifiedPicker({ onClose }: Props) {
                       <span className="picker-item-name picker-item-name-truncate">{highlightSubstring(item.displayName, query)}</span>
                       <span className="picker-item-url-compact">{compactUrl(item.url!)}</span>
                     </div>
-                  </div>
+                  </PickerRow>
                 )
               })}
             </>
@@ -365,18 +373,12 @@ export default function UnifiedPicker({ onClose }: Props) {
               {googleSearchItem.map((item, i) => {
                 const idx = searchOffset + i
                 return (
-                  <div
-                    key={item.key}
-                    data-selectable
-                    className={`picker-item${idx === selectedIndex ? ' selected' : ''}`}
-                    onClick={() => handleSelect(item)}
-                    onMouseMove={() => setSelection((prev) => selectPickerIndex(prev, itemKeys, idx))}
-                  >
+                  <PickerRow key={item.key} item={item} idx={idx} selected={idx === selectedIndex} onSelect={handleSelect} onHover={handleHover}>
                     <div className="picker-item-web-row">
                       <span className="picker-item-favicon-icon">{'\u{1F50D}'}</span>
                       <span className="picker-item-name">{item.displayName}</span>
                     </div>
-                  </div>
+                  </PickerRow>
                 )
               })}
             </>
