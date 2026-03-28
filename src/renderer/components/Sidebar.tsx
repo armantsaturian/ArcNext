@@ -1,12 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { usePaneStore, Workspace, PaneInfo, TerminalPaneInfo, BrowserPaneInfo } from '../store/paneStore'
 import { allPaneIds } from '../model/gridLayout'
+import { cwdBasename, groupUnpinnedWorkspaces } from '../model/workspaceGrouping'
 import type { AgentState } from '../../shared/types'
 import AgentIndicator from './AgentIndicator'
-
-function cwdBasename(cwd: string): string | undefined {
-  return cwd.split('/').filter(Boolean).pop()
-}
 
 function useDismissible<T>(value: T | null, setter: (v: null) => void): void {
   useEffect(() => {
@@ -570,60 +567,6 @@ function WorkspaceRow({
       })()}
     </div>
   )
-}
-
-interface WorkspaceGroup {
-  key: string
-  label: string
-  workspaces: Workspace[]
-}
-
-function computeGroupKey(paneInfos: PaneInfo[]): string {
-  const hasTerminal = paneInfos.some((p) => p.type === 'terminal')
-  const hasBrowser = paneInfos.some((p) => p.type === 'browser')
-
-  if (hasBrowser && !hasTerminal) return 'browsers'
-
-  const termPane = paneInfos.find((p) => p.type === 'terminal') as TerminalPaneInfo | undefined
-  if (termPane?.cwd) {
-    const basename = cwdBasename(termPane.cwd)
-    if (basename) return `cwd:${basename}`
-  }
-
-  return 'other'
-}
-
-function groupLabel(key: string): string {
-  if (key === 'browsers') return 'WEB'
-  if (key === 'other') return 'Other'
-  if (key.startsWith('cwd:')) return key.slice(4)
-  return key
-}
-
-function groupUnpinnedWorkspaces(
-  workspaces: Workspace[],
-  panes: Map<string, PaneInfo>
-): WorkspaceGroup[] {
-  const groups = new Map<string, Workspace[]>()
-  const order: string[] = []
-
-  for (const ws of workspaces) {
-    const paneIds = allPaneIds(ws.grid)
-    const paneInfos = paneIds.map((id) => panes.get(id)).filter(Boolean) as PaneInfo[]
-    const key = computeGroupKey(paneInfos)
-
-    if (!groups.has(key)) {
-      groups.set(key, [])
-      order.push(key)
-    }
-    groups.get(key)!.push(ws)
-  }
-
-  return order.map((key) => ({
-    key,
-    label: groupLabel(key),
-    workspaces: groups.get(key)!
-  }))
 }
 
 function paneDisplayTitle(pane: PaneInfo): string {

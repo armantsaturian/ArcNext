@@ -4,6 +4,7 @@ import {
   allPaneIds, adjacentPaneId, navigateDirection, mergeGrids, mergeGridAsRows,
   NavDirection
 } from '../model/gridLayout'
+import { getVisualWorkspaceOrder } from '../model/workspaceGrouping'
 import { createTerminal, destroyTerminal, serializeTerminal } from '../model/terminalManager'
 import { destroyBrowserView, undockBrowserView } from '../model/browserManager'
 import type { PaneInfo, TerminalPaneInfo, BrowserPaneInfo, SerializedPane, PinnedWorkspaceEntry, AgentState } from '../../shared/types'
@@ -410,9 +411,8 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
   },
 
   navigateDir: (dir) => {
-    const { workspaces, activeWorkspaceId } = get()
-    const wsIdx = workspaces.findIndex((w) => w.id === activeWorkspaceId)
-    const ws = workspaces[wsIdx]
+    const { workspaces, activeWorkspaceId, sidebarGrouped, panes } = get()
+    const ws = workspaces.find((w) => w.id === activeWorkspaceId)
     if (!ws) return
 
     const target = navigateDirection(ws.grid, ws.activePaneId, dir)
@@ -421,18 +421,24 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
       return
     }
 
-    // At the boundary — cross to adjacent workspace on left/right (skip dormant)
+    // At the boundary — cross to adjacent workspace (skip dormant).
+    // In grouped mode for up/down, use the sidebar's visual order.
+    const ordered = (sidebarGrouped && (dir === 'up' || dir === 'down'))
+      ? getVisualWorkspaceOrder(workspaces, panes)
+      : workspaces
+    const idx = ordered.findIndex((w) => w.id === activeWorkspaceId)
+
     if (dir === 'left' || dir === 'up') {
-      for (let i = wsIdx - 1; i >= 0; i--) {
-        if (!workspaces[i].dormant) {
-          set({ activeWorkspaceId: workspaces[i].id })
+      for (let i = idx - 1; i >= 0; i--) {
+        if (!ordered[i].dormant) {
+          set({ activeWorkspaceId: ordered[i].id })
           break
         }
       }
     } else {
-      for (let i = wsIdx + 1; i < workspaces.length; i++) {
-        if (!workspaces[i].dormant) {
-          set({ activeWorkspaceId: workspaces[i].id })
+      for (let i = idx + 1; i < ordered.length; i++) {
+        if (!ordered[i].dormant) {
+          set({ activeWorkspaceId: ordered[i].id })
           break
         }
       }
