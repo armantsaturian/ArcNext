@@ -234,12 +234,15 @@ export default function Sidebar() {
           }
 
           const renderRow = (ws: Workspace) => {
-            // Compute aggregate agent state for this workspace
             const wsPaneIds = allPaneIds(ws.grid)
+            // Compute aggregate agent state and per-pane agent map for this workspace
             let wsAgentState: AgentState | null = null
+            let wsPaneAgentStates: Map<string, AgentState> | undefined
             for (const pid of wsPaneIds) {
               const as = agentStates.get(pid)
               if (!as) continue
+              if (!wsPaneAgentStates) wsPaneAgentStates = new Map()
+              wsPaneAgentStates.set(pid, as)
               if (as.status === 'thinking') { wsAgentState = as; break }
               if (!wsAgentState) wsAgentState = as
             }
@@ -269,6 +272,7 @@ export default function Sidebar() {
               isDragging={ws.id === dragSourceId}
               dropPosition={dragOverState?.targetId === ws.id && ws.id !== dragSourceId ? dragOverState.position : null}
               agentState={wsAgentState}
+              paneAgentStates={wsPaneAgentStates}
               audioState={wsAudioState}
               grouped={sidebarGrouped}
               onSelect={() => {
@@ -455,6 +459,7 @@ interface WorkspaceRowProps {
   isDragging: boolean
   dropPosition: 'before' | 'after' | 'on' | null
   agentState: AgentState | null
+  paneAgentStates?: Map<string, AgentState>
   audioState: { muted: boolean; paneIds: string[] } | null
   isEditing: boolean
   grouped: boolean
@@ -474,7 +479,7 @@ interface WorkspaceRowProps {
 }
 
 function WorkspaceRow({
-  workspace, panes, collapsed, isActive, isDragging, dropPosition, agentState, audioState, isEditing, grouped,
+  workspace, panes, collapsed, isActive, isDragging, dropPosition, agentState, paneAgentStates, audioState, isEditing, grouped,
   onSelect, onSleep, onRemove, onClosePane, onDoubleClick, onRename, onCancelRename,
   onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd, onContextMenu
 }: WorkspaceRowProps) {
@@ -595,9 +600,14 @@ function WorkspaceRow({
         </div>
       ) : (
         <div className="ws-multi">
-          {paneInfos.map((p) => (
+          {paneInfos.map((p) => {
+            const paneAgent = paneAgentStates?.get(p.id)
+            const pillIcon = paneAgent
+              ? <><AgentIndicator status={paneAgent.status} />{' '}</>
+              : p.type === 'browser' ? <><FaviconIcon pane={p} />{' '}</> : null
+            return (
             <span key={p.id} className={`ws-pill ${isActive && p.id === workspace.activePaneId ? 'pill-active' : ''}`}>
-              {p.type === 'browser' ? <><FaviconIcon pane={p} />{' '}</> : ''}{formatTitle(paneDisplayTitle(p))}
+              {pillIcon}{formatTitle(paneDisplayTitle(p))}
               {isActive && (
                 <button
                   className="pill-close"
@@ -608,7 +618,7 @@ function WorkspaceRow({
                 </button>
               )}
             </span>
-          ))}
+          )})}
         </div>
       )}
       {(!isActive || isSinglePane || workspace.pinned) && !isEditing && (() => {
