@@ -7,10 +7,10 @@ interface ManagedBrowserView {
   paneId: string
   bounds: { x: number; y: number; width: number; height: number }
   cleanup: (() => void) | null
+  mediaPlaying: boolean
 }
 
 const views = new Map<string, ManagedBrowserView>()
-const mediaPlayingState = new Map<string, boolean>()
 let win: BrowserWindow | null = null
 
 function wireViewEvents(view: WebContentsView, paneId: string): () => void {
@@ -32,7 +32,8 @@ function wireViewEvents(view: WebContentsView, paneId: string): () => void {
     onOpenExternal: (url) => createExternalBrowserWindow(url),
     onFoundInPage: (activeMatch, totalMatches) => send('browser:foundInPage', paneId, activeMatch, totalMatches),
     onAudioStateChanged: (playing, muted) => {
-      mediaPlayingState.set(paneId, playing)
+      const managed = views.get(paneId)
+      if (managed) managed.mediaPlaying = playing
       send('browser:audioStateChanged', paneId, playing, muted)
     },
     onBeforeInput: (input) => {
@@ -79,7 +80,7 @@ export function setupBrowserViewManager(mainWindow: BrowserWindow): void {
 
     const view = createBrowserView()
     const cleanup = wireViewEvents(view, paneId)
-    views.set(paneId, { view, paneId, bounds: { x: 0, y: 0, width: 0, height: 0 }, cleanup })
+    views.set(paneId, { view, paneId, bounds: { x: 0, y: 0, width: 0, height: 0 }, cleanup, mediaPlaying: false })
 
     view.webContents.loadURL(url)
   })
@@ -159,7 +160,7 @@ export function setupBrowserViewManager(mainWindow: BrowserWindow): void {
     const wc = managed.view.webContents
     const newMuted = !wc.isAudioMuted()
     wc.setAudioMuted(newMuted)
-    const playing = mediaPlayingState.get(paneId) ?? false
+    const playing = managed.mediaPlaying
     win.webContents.send('browser:audioStateChanged', paneId, playing, newMuted)
   })
 
@@ -177,12 +178,11 @@ function destroyView(paneId: string): void {
   }
   try { managed.view.webContents.close() } catch { /* already closed */ }
   views.delete(paneId)
-  mediaPlayingState.delete(paneId)
 }
 
 export function adoptView(paneId: string, view: WebContentsView): void {
   const cleanup = wireViewEvents(view, paneId)
-  views.set(paneId, { view, paneId, bounds: { x: 0, y: 0, width: 0, height: 0 }, cleanup })
+  views.set(paneId, { view, paneId, bounds: { x: 0, y: 0, width: 0, height: 0 }, cleanup, mediaPlaying: false })
 
   // Send initial state to renderer so it picks up current URL/title/nav
   if (win && !win.isDestroyed()) {
