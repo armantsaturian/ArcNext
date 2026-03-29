@@ -472,6 +472,65 @@ body,
     object-fit: contain;
 }
 
+/* ── Audio / Speaker indicator ── */
+.ws-audio-btn {
+    background: none;
+    border: none;
+    padding: 2px;
+    margin: 0 -2px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ws-text, #aaa);
+    opacity: 0.7;
+    transition: opacity 0.15s, background 0.15s;
+    flex-shrink: 0;
+}
+
+.ws-audio-btn:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.ws-speaker {
+    display: block;
+}
+
+/* Collapsed sidebar: small badge overlay on bottom-right of icon */
+.ws-collapsed-icon {
+    position: relative;
+}
+
+.ws-audio-badge {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 16px;
+    height: 16px;
+    background: #1e1e1e;
+    border: 1px solid #3a3a3a;
+    border-radius: 4px;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #aaa;
+    transition: background 0.15s;
+}
+
+.ws-audio-badge:hover {
+    background: #2a2a2a;
+    color: #e0e0e0;
+}
+
+.ws-audio-badge .ws-speaker {
+    width: 10px;
+    height: 10px;
+}
+
 .ws-title {
     font-size: 13px;
     overflow: hidden;

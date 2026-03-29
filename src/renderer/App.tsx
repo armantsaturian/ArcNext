@@ -42,6 +42,7 @@ export default function App() {
   const setBrowserPaneNavState = usePaneStore((s) => s.setBrowserPaneNavState)
   const setBrowserPaneLoading = usePaneStore((s) => s.setBrowserPaneLoading)
   const setBrowserPaneFavicon = usePaneStore((s) => s.setBrowserPaneFavicon)
+  const setAudioState = usePaneStore((s) => s.setAudioState)
   const setActivePaneInWorkspace = usePaneStore((s) => s.setActivePaneInWorkspace)
   const switchWorkspace = usePaneStore((s) => s.switchWorkspace)
   const navigateDir = usePaneStore((s) => s.navigateDir)
@@ -154,6 +155,9 @@ export default function App() {
         const url = getPaneUrl(paneId)
         if (url) window.arcnext.webHistory.visit(url, undefined, faviconUrl)
       }),
+      window.arcnext.browser.onAudioStateChanged((paneId, playing, muted) => {
+        setAudioState(paneId, playing, muted)
+      }),
       window.arcnext.browser.onDocked(({ paneId, url, title }) => {
         addBrowserWorkspace(url, { paneId, title, isLoading: false })
       }),
@@ -170,6 +174,7 @@ export default function App() {
     setBrowserPaneNavState,
     setActivePaneInWorkspace,
     setBrowserPaneFavicon,
+    setAudioState,
     removeUndockedBrowserPane
   ])
 

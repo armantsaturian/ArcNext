@@ -10,6 +10,7 @@ interface ManagedBrowserView {
 }
 
 const views = new Map<string, ManagedBrowserView>()
+const mediaPlayingState = new Map<string, boolean>()
 let win: BrowserWindow | null = null
 
 function wireViewEvents(view: WebContentsView, paneId: string): () => void {
@@ -30,6 +31,10 @@ function wireViewEvents(view: WebContentsView, paneId: string): () => void {
     onFavicon: (faviconUrl) => send('browser:faviconChanged', paneId, faviconUrl),
     onOpenExternal: (url) => createExternalBrowserWindow(url),
     onFoundInPage: (activeMatch, totalMatches) => send('browser:foundInPage', paneId, activeMatch, totalMatches),
+    onAudioStateChanged: (playing, muted) => {
+      mediaPlayingState.set(paneId, playing)
+      send('browser:audioStateChanged', paneId, playing, muted)
+    },
     onBeforeInput: (input) => {
       const meta = input.meta || input.control
       if (!meta || input.type !== 'keyDown') return false
@@ -148,6 +153,16 @@ export function setupBrowserViewManager(mainWindow: BrowserWindow): void {
     views.get(paneId)?.view.webContents.stopFindInPage('clearSelection')
   })
 
+  ipcMain.on('browser:toggleMute', (_e, paneId: string) => {
+    const managed = views.get(paneId)
+    if (!managed || !win || win.isDestroyed()) return
+    const wc = managed.view.webContents
+    const newMuted = !wc.isAudioMuted()
+    wc.setAudioMuted(newMuted)
+    const playing = mediaPlayingState.get(paneId) ?? false
+    win.webContents.send('browser:audioStateChanged', paneId, playing, newMuted)
+  })
+
   ipcMain.on('browser:focusRenderer', () => {
     if (win && !win.isDestroyed()) win.webContents.focus()
   })
@@ -162,6 +177,7 @@ function destroyView(paneId: string): void {
   }
   try { managed.view.webContents.close() } catch { /* already closed */ }
   views.delete(paneId)
+  mediaPlayingState.delete(paneId)
 }
 
 export function adoptView(paneId: string, view: WebContentsView): void {

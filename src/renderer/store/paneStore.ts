@@ -116,6 +116,10 @@ interface PaneStore {
   // Agent detection
   agentStates: Map<string, AgentState>
   setAgentState: (paneId: string, state: AgentState | null) => void
+
+  // Audio state
+  audioStates: Map<string, { playing: boolean; muted: boolean }>
+  setAudioState: (paneId: string, playing: boolean, muted: boolean) => void
 }
 
 function makeTerminalPane(cwd?: string): TerminalPaneInfo {
@@ -856,6 +860,21 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
       newStates.delete(paneId)
     }
     set({ agentStates: newStates })
+  },
+
+  audioStates: new Map<string, { playing: boolean; muted: boolean }>(),
+  setAudioState: (paneId, playing, muted) => {
+    const { audioStates } = get()
+    const newStates = new Map(audioStates)
+    if (playing || muted) {
+      const existing = audioStates.get(paneId)
+      if (existing && existing.playing === playing && existing.muted === muted) return
+      newStates.set(paneId, { playing, muted })
+    } else {
+      if (!audioStates.has(paneId)) return
+      newStates.delete(paneId)
+    }
+    set({ audioStates: newStates })
   }
 }))
 

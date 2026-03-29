@@ -33,6 +33,7 @@ interface BrowserWebContentsCallbacks {
   onFavicon?: (faviconUrl: string) => void
   onOpenExternal?: (url: string) => void
   onFoundInPage?: (activeMatch: number, totalMatches: number) => void
+  onAudioStateChanged?: (playing: boolean, muted: boolean) => void
   onBeforeInput?: (input: Electron.Input) => boolean
 }
 
@@ -219,6 +220,21 @@ export function wireBrowserViewEvents(
     wc.setVisualZoomLevelLimits(1, 5)
   }
 
+  let mediaPlayingCount = 0
+
+  const onMediaStarted = (): void => {
+    mediaPlayingCount++
+    callbacks.onAudioStateChanged?.(true, wc.isAudioMuted())
+  }
+
+  const onMediaPaused = (): void => {
+    mediaPlayingCount = Math.max(0, mediaPlayingCount - 1)
+    callbacks.onAudioStateChanged?.(mediaPlayingCount > 0, wc.isAudioMuted())
+  }
+
+  wc.on('media-started-playing', onMediaStarted)
+  wc.on('media-paused', onMediaPaused)
+
   wc.on('page-title-updated', onTitleUpdated)
   wc.on('did-navigate', onDidNavigate)
   wc.on('did-navigate-in-page', onDidNavigateInPage)
@@ -248,6 +264,8 @@ export function wireBrowserViewEvents(
   })
 
   return () => {
+    wc.removeListener('media-started-playing', onMediaStarted)
+    wc.removeListener('media-paused', onMediaPaused)
     wc.removeListener('page-title-updated', onTitleUpdated)
     wc.removeListener('did-navigate', onDidNavigate)
     wc.removeListener('did-navigate-in-page', onDidNavigateInPage)

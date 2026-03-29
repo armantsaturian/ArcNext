@@ -136,6 +136,13 @@ const api = {
       ipcRenderer.on('browser:appShortcut', handler)
       return () => { ipcRenderer.removeListener('browser:appShortcut', handler) }
     },
+    onAudioStateChanged: (cb: (paneId: string, playing: boolean, muted: boolean) => void) => {
+      const handler = (_event: IpcRendererEvent, paneId: string, playing: boolean, muted: boolean) => cb(paneId, playing, muted)
+      ipcRenderer.on('browser:audioStateChanged', handler)
+      return () => { ipcRenderer.removeListener('browser:audioStateChanged', handler) }
+    },
+    toggleMute: (paneId: string) =>
+      ipcRenderer.send('browser:toggleMute', paneId),
     focusRenderer: () => ipcRenderer.send('browser:focusRenderer')
   }
 }

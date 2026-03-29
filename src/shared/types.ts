@@ -126,6 +126,8 @@ export interface IPCChannels {
   'browser:stopFindInPage': (paneId: string) => void
   'browser:foundInPage': (paneId: string, activeMatch: number, totalMatches: number) => void
   'browser:appShortcut': (key: string, meta: boolean, ctrl: boolean, shift: boolean, alt: boolean) => void
+  'browser:audioStateChanged': (paneId: string, playing: boolean, muted: boolean) => void
+  'browser:toggleMute': (paneId: string) => void
   // External shell window
   'externalBrowser:getState': () => Promise<ExternalBrowserShellState | null>
   'externalBrowser:dockCurrentWindow': () => void

@@ -64,6 +64,8 @@ interface ArcNextAPI {
     stopFindInPage(paneId: string): void
     onFoundInPage(cb: (paneId: string, activeMatch: number, totalMatches: number) => void): () => void
     onAppShortcut(cb: (key: string, meta: boolean, ctrl: boolean, shift: boolean, alt: boolean) => void): () => void
+    onAudioStateChanged(cb: (paneId: string, playing: boolean, muted: boolean) => void): () => void
+    toggleMute(paneId: string): void
     focusRenderer(): void
   }
   getPathForFile(file: File): string

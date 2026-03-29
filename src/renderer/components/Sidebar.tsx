@@ -6,6 +6,25 @@ import { paneDisplayTitle, formatTitle } from '../model/titleFormatter'
 import type { AgentState } from '../../shared/types'
 import AgentIndicator from './AgentIndicator'
 
+function SpeakerIcon({ muted }: { muted: boolean }) {
+  if (muted) {
+    return (
+      <svg className="ws-speaker" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="11,5 6,9 2,9 2,15 6,15 11,19 11,5" fill="currentColor" stroke="none" />
+        <line x1="23" y1="9" x2="17" y2="15" />
+        <line x1="17" y1="9" x2="23" y2="15" />
+      </svg>
+    )
+  }
+  return (
+    <svg className="ws-speaker" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="11,5 6,9 2,9 2,15 6,15 11,19 11,5" fill="currentColor" stroke="none" />
+      <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+      <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+    </svg>
+  )
+}
+
 function useDismissible<T>(value: T | null, setter: (v: null) => void): void {
   useEffect(() => {
     if (!value) return
@@ -87,6 +106,7 @@ export default function Sidebar() {
 
   const setOverlay = usePaneStore((s) => s.setOverlay)
   const agentStates = usePaneStore((s) => s.agentStates)
+  const audioStates = usePaneStore((s) => s.audioStates)
   const sidebarGrouped = usePaneStore((s) => s.sidebarGrouped)
   const setSidebarGrouped = usePaneStore((s) => s.setSidebarGrouped)
 
@@ -233,6 +253,7 @@ export default function Sidebar() {
               isDragging={ws.id === dragSourceId}
               dropPosition={dragOverState?.targetId === ws.id && ws.id !== dragSourceId ? dragOverState.position : null}
               agentState={wsAgentState}
+              audioStates={audioStates}
               grouped={sidebarGrouped}
               onSelect={() => {
                 if (ws.dormant) wakeWorkspace(ws.id)
@@ -418,6 +439,7 @@ interface WorkspaceRowProps {
   isDragging: boolean
   dropPosition: 'before' | 'after' | 'on' | null
   agentState: AgentState | null
+  audioStates: Map<string, { playing: boolean; muted: boolean }>
   isEditing: boolean
   grouped: boolean
   onSelect: () => void
@@ -436,7 +458,7 @@ interface WorkspaceRowProps {
 }
 
 function WorkspaceRow({
-  workspace, panes, collapsed, isActive, isDragging, dropPosition, agentState, isEditing, grouped,
+  workspace, panes, collapsed, isActive, isDragging, dropPosition, agentState, audioStates, isEditing, grouped,
   onSelect, onSleep, onRemove, onClosePane, onDoubleClick, onRename, onCancelRename,
   onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd, onContextMenu
 }: WorkspaceRowProps) {
@@ -445,6 +467,30 @@ function WorkspaceRow({
   const paneInfos = paneIds.map((id) => panes.get(id)).filter(Boolean) as PaneInfo[]
   const isSinglePane = paneInfos.length === 1
   const wsColor = workspace.color
+
+  // Compute aggregate audio state for this workspace
+  const wsAudio = (() => {
+    let hasPlaying = false
+    let allMuted = true
+    const playingPaneIds: string[] = []
+    for (const pid of paneIds) {
+      const audio = audioStates.get(pid)
+      if (audio?.playing) {
+        hasPlaying = true
+        playingPaneIds.push(pid)
+        if (!audio.muted) allMuted = false
+      }
+    }
+    return hasPlaying ? { playing: true, muted: allMuted, paneIds: playingPaneIds } : null
+  })()
+
+  const handleToggleMute = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!wsAudio) return
+    for (const pid of wsAudio.paneIds) {
+      window.arcnext.browser.toggleMute(pid)
+    }
+  }
 
   const hasCustomName = workspace.name && !workspace.name.startsWith('Workspace ')
   const firstPane = paneInfos[0]
@@ -502,6 +548,11 @@ function WorkspaceRow({
       {collapsed ? (
         <div className="ws-collapsed-icon">
           {agentState ? <AgentIndicator status={agentState.status} /> : isBrowserWorkspace && firstPane ? <FaviconIcon pane={firstPane} size={16} /> : initial}
+          {wsAudio && (
+            <button className="ws-audio-badge" onClick={handleToggleMute} title={wsAudio.muted ? 'Unmute' : 'Mute'}>
+              <SpeakerIcon muted={wsAudio.muted} />
+            </button>
+          )}
         </div>
       ) : isEditing ? (
         <div className="ws-single">
@@ -527,11 +578,21 @@ function WorkspaceRow({
       ) : hasCustomName ? (
         <div className="ws-single">
           <span className="ws-icon">{icon}</span>
+          {wsAudio && (
+            <button className="ws-audio-btn" onClick={handleToggleMute} title={wsAudio.muted ? 'Unmute' : 'Mute'}>
+              <SpeakerIcon muted={wsAudio.muted} />
+            </button>
+          )}
           <span className="ws-title">{workspace.name}</span>
         </div>
       ) : isSinglePane ? (
         <div className="ws-single">
           <span className="ws-icon">{icon}</span>
+          {wsAudio && (
+            <button className="ws-audio-btn" onClick={handleToggleMute} title={wsAudio.muted ? 'Unmute' : 'Mute'}>
+              <SpeakerIcon muted={wsAudio.muted} />
+            </button>
+          )}
           <span className="ws-title">{formatTitle(paneDisplayTitle(firstPane))}</span>
         </div>
       ) : (
