@@ -3,6 +3,7 @@ import { BrowserWindow, WebContentsView, ipcMain, shell } from 'electron'
 import type { BrowserOpenWorkspacePayload } from '../shared/types'
 import { createBrowserPopupWindow } from './browserPopups'
 import { createBrowserView, normalizeBrowserUrl, wireBrowserViewEvents } from './browserViewUtils'
+import { injectSearchResultWorkspaceLinks } from './searchResultWorkspaces'
 
 interface ManagedBrowserView {
   paneId: string
@@ -168,7 +169,7 @@ export function handleBrowserWindowOpen(
 }
 
 function wireViewEvents(view: WebContentsView, paneId: string): () => void {
-  return wireBrowserViewEvents(view, {
+  const cleanupBrowserEvents = wireBrowserViewEvents(view, {
     onTitle: (title) => sendToRenderer('browser:titleChanged', paneId, title),
     onUrl: (url) => {
       const managed = views.get(paneId)
@@ -233,6 +234,19 @@ function wireViewEvents(view: WebContentsView, paneId: string): () => void {
       return false
     }
   })
+
+  const onDidFinishLoad = (): void => {
+    const managed = views.get(paneId)
+    if (!managed) return
+    injectSearchResultWorkspaceLinks(view.webContents, managed.currentUrl)
+  }
+
+  view.webContents.on('did-finish-load', onDidFinishLoad)
+
+  return () => {
+    view.webContents.removeListener('did-finish-load', onDidFinishLoad)
+    cleanupBrowserEvents()
+  }
 }
 
 function createManagedView(managed: ManagedBrowserView): WebContentsView {

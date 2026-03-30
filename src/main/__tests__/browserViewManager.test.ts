@@ -5,6 +5,8 @@ const mockState = vi.hoisted(() => {
   const createdViews: Array<{
     setBounds: ReturnType<typeof vi.fn>
     webContents: {
+      on: ReturnType<typeof vi.fn>
+      removeListener: ReturnType<typeof vi.fn>
       loadURL: ReturnType<typeof vi.fn>
       close: ReturnType<typeof vi.fn>
       goBack: ReturnType<typeof vi.fn>
@@ -24,15 +26,26 @@ const mockState = vi.hoisted(() => {
   }> = []
   const cleanupByView = new WeakMap<object, ReturnType<typeof vi.fn>>()
   const callbacksByView = new WeakMap<object, Record<string, (...args: unknown[]) => void>>()
+  const webContentsListenersByView = new WeakMap<object, Map<string, Array<(...args: unknown[]) => void>>>()
   const openExternal = vi.fn()
   const createBrowserPopupWindow = vi.fn(() => ({ id: 'popup-web-contents' }))
   let nextViewId = 1
 
   const makeView = () => {
+    const listeners = new Map<string, Array<(...args: unknown[]) => void>>()
     const view = {
       id: nextViewId++,
       setBounds: vi.fn(),
       webContents: {
+        on: vi.fn((event: string, listener: (...args: unknown[]) => void) => {
+          const current = listeners.get(event) ?? []
+          current.push(listener)
+          listeners.set(event, current)
+        }),
+        removeListener: vi.fn((event: string, listener: (...args: unknown[]) => void) => {
+          const current = listeners.get(event) ?? []
+          listeners.set(event, current.filter((entry) => entry !== listener))
+        }),
         loadURL: vi.fn(),
         close: vi.fn(),
         goBack: vi.fn(),
@@ -51,6 +64,7 @@ const mockState = vi.hoisted(() => {
       }
     }
     createdViews.push(view)
+    webContentsListenersByView.set(view, listeners)
     return view
   }
 
@@ -65,6 +79,7 @@ const mockState = vi.hoisted(() => {
     createdViews,
     cleanupByView,
     callbacksByView,
+    webContentsListenersByView,
     openExternal,
     createBrowserPopupWindow,
     makeView,
@@ -125,6 +140,11 @@ function emitIpc(channel: string, ...args: unknown[]): void {
   handler({}, ...args)
 }
 
+function emitWebContentsEvent(view: object, event: string, ...args: unknown[]): void {
+  const listeners = mockState.webContentsListenersByView.get(view)?.get(event) ?? []
+  for (const listener of listeners) listener(...args)
+}
+
 describe('browserViewManager', () => {
   let browserViewManager: typeof import('../browserViewManager')
   let mainWindow: ReturnType<typeof createMainWindow>
@@ -156,6 +176,16 @@ describe('browserViewManager', () => {
     expect(view.webContents.loadURL).toHaveBeenCalledWith('https://example.com', undefined)
     expect(view.setBounds).toHaveBeenCalledWith({ x: 12, y: 46, width: 800, height: 601 })
     expect(mainWindow.contentView.addChildView).toHaveBeenCalledWith(view)
+  })
+
+  it('patches supported search result pages after they finish loading', () => {
+    emitIpc('browser:create', 'pane-1', 'https://www.google.com/search?q=hello')
+    emitIpc('browser:show', 'pane-1')
+    const view = mockState.createdViews[0]
+
+    emitWebContentsEvent(view, 'did-finish-load')
+
+    expect(view.webContents.executeJavaScript).toHaveBeenCalledWith(expect.stringContaining('#search a[href] h3'))
   })
 
   it('sleeps the oldest hidden browser view once the hidden-view budget is exceeded', () => {

@@ -29,7 +29,7 @@ Terminals and browser views side by side in any layout.
 ![Split Panes demo](assets/demo-split-panes.gif)
 
 ### Integrated Browser
-Browse next to your terminals. New-page links open as ArcNext workspaces, while auth/payment popups can still open in lightweight windows when sites require them.
+Browse next to your terminals. New-page links open as ArcNext workspaces, search-result clicks keep the results page intact, and auth/payment popups can still open in lightweight windows when sites require them.
 
 ![Integrated Browser demo](assets/demo-browser.gif)
 
