@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockState = vi.hoisted(() => {
   const ipcHandlers = new Map<string, (...args: unknown[]) => void>()
@@ -122,7 +122,12 @@ describe('browserViewManager', () => {
   let browserViewManager: typeof import('../browserViewManager')
   let mainWindow: ReturnType<typeof createMainWindow>
 
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   beforeEach(async () => {
+    vi.useRealTimers()
     vi.resetModules()
     vi.clearAllMocks()
     mockState.reset()
@@ -170,5 +175,24 @@ describe('browserViewManager', () => {
     const recreatedView = mockState.createdViews[2]
     expect(recreatedView.webContents.loadURL).toHaveBeenCalledWith('https://one.example/after-nav')
     expect(mainWindow.contentView.addChildView).toHaveBeenCalledWith(recreatedView)
+  })
+
+  it('ages out the single warm hidden browser view after a timeout', () => {
+    vi.useFakeTimers()
+
+    emitIpc('browser:create', 'pane-1', 'https://one.example')
+    emitIpc('browser:show', 'pane-1')
+    const view = mockState.createdViews[0]
+
+    emitIpc('browser:hide', 'pane-1')
+
+    expect(view.webContents.close).not.toHaveBeenCalled()
+
+    vi.advanceTimersByTime(15_000)
+
+    expect(mockState.cleanupByView.get(view)).toHaveBeenCalledTimes(1)
+    expect(view.webContents.close).toHaveBeenCalledTimes(1)
+    expect(mainWindow.webContents.send).toHaveBeenCalledWith('browser:loadingChanged', 'pane-1', false)
+    expect(mainWindow.webContents.send).toHaveBeenCalledWith('browser:navStateChanged', 'pane-1', false, false)
   })
 })

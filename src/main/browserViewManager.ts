@@ -11,9 +11,11 @@ interface ManagedBrowserView {
   mediaPlaying: boolean
   attached: boolean
   lastHiddenAt: number | null
+  sleepTimer: ReturnType<typeof setTimeout> | null
 }
 
 const MAX_HIDDEN_LIVE_VIEWS = 1
+const HIDDEN_VIEW_SLEEP_MS = 15_000
 
 const views = new Map<string, ManagedBrowserView>()
 let win: BrowserWindow | null = null
@@ -104,8 +106,15 @@ function detachManagedView(managed: ManagedBrowserView): void {
   managed.attached = false
 }
 
+function clearSleepTimer(managed: ManagedBrowserView): void {
+  if (!managed.sleepTimer) return
+  clearTimeout(managed.sleepTimer)
+  managed.sleepTimer = null
+}
+
 function closeManagedView(managed: ManagedBrowserView): void {
   if (!managed.view) return
+  clearSleepTimer(managed)
   managed.cleanup?.()
   managed.cleanup = null
   detachManagedView(managed)
@@ -126,6 +135,15 @@ function sleepView(paneId: string): void {
   sendToRenderer('browser:loadingChanged', paneId, false)
   sendToRenderer('browser:navStateChanged', paneId, false, false)
   sendToRenderer('browser:audioStateChanged', paneId, false, false)
+}
+
+function scheduleSleep(managed: ManagedBrowserView): void {
+  clearSleepTimer(managed)
+  managed.sleepTimer = setTimeout(() => {
+    const current = views.get(managed.paneId)
+    if (!current || current.attached) return
+    sleepView(current.paneId)
+  }, HIDDEN_VIEW_SLEEP_MS)
 }
 
 function trimHiddenViews(): void {
@@ -159,7 +177,8 @@ export function setupBrowserViewManager(mainWindow: BrowserWindow): void {
       cleanup: null,
       mediaPlaying: false,
       attached: false,
-      lastHiddenAt: null
+      lastHiddenAt: null,
+      sleepTimer: null
     })
   })
 
@@ -194,6 +213,7 @@ export function setupBrowserViewManager(mainWindow: BrowserWindow): void {
     }
     managed.attached = true
     managed.lastHiddenAt = null
+    clearSleepTimer(managed)
 
     view.setBounds({
       x: Math.round(managed.bounds.x),
@@ -208,6 +228,7 @@ export function setupBrowserViewManager(mainWindow: BrowserWindow): void {
     if (!managed) return
     detachManagedView(managed)
     managed.lastHiddenAt = managed.view ? Date.now() : null
+    if (managed.view) scheduleSleep(managed)
     trimHiddenViews()
   })
 
@@ -277,7 +298,8 @@ export function adoptView(paneId: string, view: WebContentsView): void {
     cleanup,
     mediaPlaying: false,
     attached: false,
-    lastHiddenAt: null
+    lastHiddenAt: null,
+    sleepTimer: null
   })
 
   // Send initial state to renderer so it picks up current URL/title/nav
@@ -307,6 +329,7 @@ export function releaseView(paneId: string): WebContentsView | null {
 
   managed.cleanup?.()
   managed.cleanup = null
+  clearSleepTimer(managed)
 
   detachManagedView(managed)
 
