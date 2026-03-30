@@ -146,6 +146,12 @@ function scheduleSleep(managed: ManagedBrowserView): void {
   }, HIDDEN_VIEW_SLEEP_MS)
 }
 
+function markViewHidden(managed: ManagedBrowserView): void {
+  managed.lastHiddenAt = managed.view ? Date.now() : null
+  if (managed.view) scheduleSleep(managed)
+  trimHiddenViews()
+}
+
 function trimHiddenViews(): void {
   const hiddenLiveViews = [...views.values()]
     .filter((managed) => managed.view && !managed.attached)
@@ -227,9 +233,7 @@ export function setupBrowserViewManager(mainWindow: BrowserWindow): void {
     const managed = views.get(paneId)
     if (!managed) return
     detachManagedView(managed)
-    managed.lastHiddenAt = managed.view ? Date.now() : null
-    if (managed.view) scheduleSleep(managed)
-    trimHiddenViews()
+    markViewHidden(managed)
   })
 
   ipcMain.on('browser:navigate', (_e, paneId: string, url: string) => {
@@ -238,6 +242,7 @@ export function setupBrowserViewManager(mainWindow: BrowserWindow): void {
     managed.currentUrl = normalizeBrowserUrl(url)
     const { view } = ensureManagedView(managed)
     view.webContents.loadURL(managed.currentUrl)
+    if (!managed.attached) markViewHidden(managed)
   })
 
   ipcMain.on('browser:goBack', (_e, paneId: string) => {

@@ -195,4 +195,29 @@ describe('browserViewManager', () => {
     expect(mainWindow.webContents.send).toHaveBeenCalledWith('browser:loadingChanged', 'pane-1', false)
     expect(mainWindow.webContents.send).toHaveBeenCalledWith('browser:navStateChanged', 'pane-1', false, false)
   })
+
+  it('recreated hidden views from navigate still age out after the timeout', () => {
+    vi.useFakeTimers()
+
+    emitIpc('browser:create', 'pane-1', 'https://one.example')
+    emitIpc('browser:show', 'pane-1')
+    const firstView = mockState.createdViews[0]
+
+    emitIpc('browser:hide', 'pane-1')
+    vi.advanceTimersByTime(15_000)
+
+    expect(firstView.webContents.close).toHaveBeenCalledTimes(1)
+
+    emitIpc('browser:navigate', 'pane-1', 'https://two.example')
+
+    expect(mockState.createdViews).toHaveLength(2)
+    const recreatedView = mockState.createdViews[1]
+    expect(recreatedView.webContents.loadURL).toHaveBeenCalledWith('https://two.example')
+    expect(recreatedView.webContents.close).not.toHaveBeenCalled()
+
+    vi.advanceTimersByTime(15_000)
+
+    expect(mockState.cleanupByView.get(recreatedView)).toHaveBeenCalledTimes(1)
+    expect(recreatedView.webContents.close).toHaveBeenCalledTimes(1)
+  })
 })
