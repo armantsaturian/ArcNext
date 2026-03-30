@@ -29,7 +29,7 @@ Terminals and browser views side by side in any layout.
 ![Split Panes demo](assets/demo-split-panes.gif)
 
 ### Integrated Browser
-Dock any web page next to your terminals. Links open in-app. Undock back to a standalone window anytime. Background browser panes are automatically suspended so old tabs do not pile up renderer processes forever.
+Dock any web page next to your terminals. Links open in-app. Undock back to a standalone window anytime.
 
 ![Integrated Browser demo](assets/demo-browser.gif)
 
