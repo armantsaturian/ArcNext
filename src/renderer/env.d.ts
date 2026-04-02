@@ -1,9 +1,5 @@
 import type {
-  BrowserDockedPayload,
-  BrowserUndockedPayload,
   DirEntry,
-  ExternalBrowserShellState,
-  ExternalBrowserWindowInfo,
   PinnedWorkspaceEntry,
   WebEntry
 } from '../shared/types'
@@ -55,11 +51,7 @@ interface ArcNextAPI {
     onLoadFailed(cb: (paneId: string, errorCode: number, errorDesc: string) => void): () => void
     onFocused(cb: (paneId: string) => void): () => void
     onFaviconChanged(cb: (paneId: string, faviconUrl: string) => void): () => void
-    listExternalWindows(): Promise<ExternalBrowserWindowInfo[]>
-    dockWindow(windowId: number): Promise<BrowserDockedPayload | null>
-    undockPane(paneId: string): Promise<boolean>
-    onDocked(cb: (payload: BrowserDockedPayload) => void): () => void
-    onUndocked(cb: (payload: BrowserUndockedPayload) => void): () => void
+    onOpenInNewWorkspace(cb: (url: string) => void): () => void
     findInPage(paneId: string, text: string, forward?: boolean): void
     stopFindInPage(paneId: string): void
     onFoundInPage(cb: (paneId: string, activeMatch: number, totalMatches: number) => void): () => void
@@ -71,15 +63,8 @@ interface ArcNextAPI {
   getPathForFile(file: File): string
 }
 
-interface ExternalBrowserShellAPI {
-  getState(): Promise<ExternalBrowserShellState | null>
-  dock(): void
-  onStateChanged(cb: (state: ExternalBrowserShellState) => void): () => void
-}
-
 declare global {
   interface Window {
     arcnext: ArcNextAPI
-    externalBrowser: ExternalBrowserShellAPI
   }
 }

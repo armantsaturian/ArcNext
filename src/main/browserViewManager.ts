@@ -1,5 +1,4 @@
 import { BrowserWindow, WebContentsView, ipcMain } from 'electron'
-import { createExternalBrowserWindow } from './externalBrowserWindows'
 import { createBrowserView, normalizeBrowserUrl, wireBrowserViewEvents } from './browserViewUtils'
 
 interface ManagedBrowserView {
@@ -29,7 +28,7 @@ function wireViewEvents(view: WebContentsView, paneId: string): () => void {
     onLoadFailed: (errorCode, errorDescription) => send('browser:loadFailed', paneId, errorCode, errorDescription),
     onFocus: () => send('browser:focused', paneId),
     onFavicon: (faviconUrl) => send('browser:faviconChanged', paneId, faviconUrl),
-    onOpenExternal: (url) => createExternalBrowserWindow(url),
+    onOpenExternal: (url) => send('browser:openInNewWorkspace', url),
     onFoundInPage: (activeMatch, totalMatches) => send('browser:foundInPage', paneId, activeMatch, totalMatches),
     onAudioStateChanged: (playing, muted) => {
       const managed = views.get(paneId)
@@ -57,8 +56,8 @@ function wireViewEvents(view: WebContentsView, paneId: string): () => void {
         (!input.shift && !input.alt && ['w', 'g', 'b', 'd', 'l', 'f', '[', ']'].includes(key)) ||
         // Cmd (no alt): t, 1-9
         (!input.alt && (key === 't' || (key >= '1' && key <= '9'))) ||
-        // Cmd+Shift (no alt): d, Enter
-        (input.shift && !input.alt && (key === 'd' || key === 'g' || input.key === 'Enter')) ||
+        // Cmd+Shift (no alt): d, g
+        (input.shift && !input.alt && (key === 'd' || key === 'g')) ||
         // Cmd+Alt: arrow keys
         (input.alt && ['arrowleft', 'arrowright', 'arrowup', 'arrowdown'].includes(key))
 
@@ -178,45 +177,6 @@ function destroyView(paneId: string): void {
   }
   try { managed.view.webContents.close() } catch { /* already closed */ }
   views.delete(paneId)
-}
-
-export function adoptView(paneId: string, view: WebContentsView): void {
-  const cleanup = wireViewEvents(view, paneId)
-  views.set(paneId, { view, paneId, bounds: { x: 0, y: 0, width: 0, height: 0 }, cleanup, mediaPlaying: false })
-
-  // Send initial state to renderer so it picks up current URL/title/nav
-  if (win && !win.isDestroyed()) {
-    const wc = view.webContents
-    const url = wc.getURL()
-    const title = wc.getTitle()
-    win.webContents.send('browser:titleChanged', paneId, title)
-    win.webContents.send('browser:urlChanged', paneId, url)
-    win.webContents.send('browser:loadingChanged', paneId, wc.isLoading())
-    win.webContents.send('browser:navStateChanged', paneId, wc.canGoBack(), wc.canGoForward())
-
-    // Extract favicon for already-loaded pages (page-favicon-updated won't re-fire)
-    wc.executeJavaScript("document.querySelector('link[rel*=\"icon\"]')?.href || ''")
-      .then((favicon: string) => {
-        if (favicon && win && !win.isDestroyed()) {
-          win.webContents.send('browser:faviconChanged', paneId, favicon)
-        }
-      })
-      .catch(() => {})
-  }
-}
-
-export function releaseView(paneId: string): WebContentsView | null {
-  const managed = views.get(paneId)
-  if (!managed) return null
-
-  managed.cleanup?.()
-
-  if (win && !win.isDestroyed()) {
-    try { win.contentView.removeChildView(managed.view) } catch { /* not attached */ }
-  }
-
-  views.delete(paneId)
-  return managed.view
 }
 
 export function destroyAllBrowserViews(): void {

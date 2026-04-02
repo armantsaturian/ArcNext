@@ -70,7 +70,7 @@ function buildContextMenu(
 
   if (linkURL) {
     menu.append(new MenuItem({
-      label: 'Open Link in New Window',
+      label: 'Open Link in New Workspace',
       click: () => callbacks.onOpenExternal?.(linkURL)
     }))
     menu.append(new MenuItem({

@@ -47,8 +47,6 @@ export default function App() {
   const switchWorkspace = usePaneStore((s) => s.switchWorkspace)
   const navigateDir = usePaneStore((s) => s.navigateDir)
   const toggleSidebar = usePaneStore((s) => s.toggleSidebar)
-  const undockBrowserPane = usePaneStore((s) => s.undockBrowserPane)
-  const removeUndockedBrowserPane = usePaneStore((s) => s.removeUndockedBrowserPane)
   const workspaces = usePaneStore((s) => s.workspaces)
   const setOverlay = usePaneStore((s) => s.setOverlay)
   const wakeWorkspace = usePaneStore((s) => s.wakeWorkspace)
@@ -158,11 +156,8 @@ export default function App() {
       window.arcnext.browser.onAudioStateChanged((paneId, playing, muted) => {
         setAudioState(paneId, playing, muted)
       }),
-      window.arcnext.browser.onDocked(({ paneId, url, title }) => {
-        addBrowserWorkspace(url, { paneId, title, isLoading: false })
-      }),
-      window.arcnext.browser.onUndocked(({ paneId }) => {
-        removeUndockedBrowserPane(paneId)
+      window.arcnext.browser.onOpenInNewWorkspace((url) => {
+        addBrowserWorkspace(url)
       })
     ]
     return () => unsubs.forEach((unsub) => unsub())
@@ -174,8 +169,7 @@ export default function App() {
     setBrowserPaneNavState,
     setActivePaneInWorkspace,
     setBrowserPaneFavicon,
-    setAudioState,
-    removeUndockedBrowserPane
+    setAudioState
   ])
 
   // Receive forwarded app shortcuts from WebContentsView and re-dispatch as synthetic keydown events
@@ -231,13 +225,6 @@ export default function App() {
           closePicker()
           return
         }
-        return
-      }
-
-      // Cmd+Shift+Enter — undock active browser pane
-      if (meta && e.shiftKey && !alt && e.key === 'Enter' && activePaneType === 'browser' && focusState !== 'ui') {
-        e.preventDefault()
-        if (ws) undockBrowserPane(ws.activePaneId)
         return
       }
 
@@ -389,7 +376,7 @@ export default function App() {
 
     window.addEventListener('keydown', handler, true)
     return () => window.removeEventListener('keydown', handler, true)
-  }, [splitActive, closePane, switchWorkspace, navigateDir, toggleSidebar, undockBrowserPane, wakeWorkspace, ws, workspaces, pickerOpen, activePaneType, focusState, setFocusState])
+  }, [splitActive, closePane, switchWorkspace, navigateDir, toggleSidebar, wakeWorkspace, ws, workspaces, pickerOpen, activePaneType, focusState, setFocusState])
 
   return (
     <div id="app">

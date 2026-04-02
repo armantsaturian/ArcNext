@@ -25,7 +25,6 @@ export default function BrowserPane({ paneId, workspaceId }: Props) {
     return ws?.activePaneId === paneId
   })
   const setActive = usePaneStore((s) => s.setActivePaneInWorkspace)
-  const undockBrowserPane = usePaneStore((s) => s.undockBrowserPane)
 
   const url = pane?.url ?? ''
   const canGoBack = pane?.canGoBack ?? false
@@ -232,14 +231,6 @@ export default function BrowserPane({ paneId, workspaceId }: Props) {
             spellCheck={false}
           />
         </form>
-        <button
-          className="browser-nav-action"
-          type="button"
-          onClick={() => undockBrowserPane(paneId)}
-          title="Open this page in its own window"
-        >
-          Undock
-        </button>
       </div>
       {findOpen && (
         <FindBar

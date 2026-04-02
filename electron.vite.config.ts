@@ -30,7 +30,6 @@ export default defineConfig({
       rollupOptions: {
         input: {
           preload: resolve(__dirname, 'src/preload/preload.ts'),
-          externalShellPreload: resolve(__dirname, 'src/preload/externalShellPreload.ts'),
           quitDialogPreload: resolve(__dirname, 'src/preload/quitDialogPreload.ts'),
           fdaDialogPreload: resolve(__dirname, 'src/preload/fdaDialogPreload.ts')
         }
@@ -45,7 +44,6 @@ export default defineConfig({
       rollupOptions: {
         input: {
           index: resolve(__dirname, 'src/renderer/index.html'),
-          externalShell: resolve(__dirname, 'src/renderer/external-shell.html'),
           quitDialog: resolve(__dirname, 'src/renderer/quit-dialog.html'),
           fdaDialog: resolve(__dirname, 'src/renderer/fda-dialog.html')
         }

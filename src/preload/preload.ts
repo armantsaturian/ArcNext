@@ -1,5 +1,4 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent, webUtils } from 'electron'
-import type { BrowserDockedPayload, BrowserUndockedPayload } from '../shared/types'
 
 type Callback = (...args: unknown[]) => void
 
@@ -106,21 +105,10 @@ const api = {
       ipcRenderer.on('browser:faviconChanged', handler)
       return () => { ipcRenderer.removeListener('browser:faviconChanged', handler) }
     },
-    listExternalWindows: () =>
-      ipcRenderer.invoke('browser:listExternalWindows'),
-    dockWindow: (windowId: number) =>
-      ipcRenderer.invoke('browser:dockWindow', windowId),
-    undockPane: (paneId: string) =>
-      ipcRenderer.invoke('browser:undock', paneId),
-    onDocked: (cb: (payload: BrowserDockedPayload) => void) => {
-      const handler = (_event: IpcRendererEvent, payload: BrowserDockedPayload) => cb(payload)
-      ipcRenderer.on('browser:docked', handler)
-      return () => { ipcRenderer.removeListener('browser:docked', handler) }
-    },
-    onUndocked: (cb: (payload: BrowserUndockedPayload) => void) => {
-      const handler = (_event: IpcRendererEvent, payload: BrowserUndockedPayload) => cb(payload)
-      ipcRenderer.on('browser:undocked', handler)
-      return () => { ipcRenderer.removeListener('browser:undocked', handler) }
+    onOpenInNewWorkspace: (cb: (url: string) => void) => {
+      const handler = (_event: IpcRendererEvent, url: string) => cb(url)
+      ipcRenderer.on('browser:openInNewWorkspace', handler)
+      return () => { ipcRenderer.removeListener('browser:openInNewWorkspace', handler) }
     },
     findInPage: (paneId: string, text: string, forward?: boolean) =>
       ipcRenderer.send('browser:findInPage', paneId, text, forward),
