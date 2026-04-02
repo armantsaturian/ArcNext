@@ -1094,25 +1094,6 @@ body,
     cursor: default;
 }
 
-.browser-nav-action {
-    height: 28px;
-    padding: 0 10px;
-    background: none;
-    border: 1px solid transparent;
-    border-radius: 6px;
-    color: #cfcfcf;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.12s;
-    flex-shrink: 0;
-}
-
-.browser-nav-action:hover {
-    background: #2a2a2a;
-    border-color: #3a3a3a;
-}
-
 .browser-url-form {
     flex: 1;
     display: flex;

@@ -31,7 +31,7 @@ interface BrowserWebContentsCallbacks {
   onLoadFailed?: (errorCode: number, errorDescription: string) => void
   onFocus?: () => void
   onFavicon?: (faviconUrl: string) => void
-  onOpenExternal?: (url: string) => void
+  onOpenInNewWorkspace?: (url: string) => void
   onFoundInPage?: (activeMatch: number, totalMatches: number) => void
   onAudioStateChanged?: (playing: boolean, muted: boolean) => void
   onBeforeInput?: (input: Electron.Input) => boolean
@@ -71,7 +71,7 @@ function buildContextMenu(
   if (linkURL) {
     menu.append(new MenuItem({
       label: 'Open Link in New Workspace',
-      click: () => callbacks.onOpenExternal?.(linkURL)
+      click: () => callbacks.onOpenInNewWorkspace?.(linkURL)
     }))
     menu.append(new MenuItem({
       label: 'Copy Link Address',
@@ -269,7 +269,7 @@ export function wireBrowserViewEvents(
   wc.on('context-menu', onContextMenu)
 
   wc.setWindowOpenHandler(({ url }) => {
-    callbacks.onOpenExternal?.(url)
+    callbacks.onOpenInNewWorkspace?.(url)
     return { action: 'deny' }
   })
 

@@ -3,7 +3,7 @@ type OpenWindowFn = (url?: string | URL, target?: string, features?: string) => 
 /**
  * xterm's default WebLinksAddon handler opens a blank popup first and then
  * mutates location.href. Electron's setWindowOpenHandler only sees the first
- * blank open, which leaves the spawned external window stuck on about:blank.
+ * blank open, which leaves the new page stuck on about:blank.
  * Open the final URL directly instead.
  */
 export function openExternalLink(
