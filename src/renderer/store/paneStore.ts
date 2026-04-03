@@ -80,7 +80,7 @@ interface BrowserPaneOptions {
 
 interface PaneStore {
   workspaces: Workspace[]
-  activeWorkspaceId: string
+  activeWorkspaceId: string | null
   panes: Map<string, PaneInfo>
 
   // Sidebar UI
@@ -255,7 +255,7 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
     const { workspace, pane } = makeWorkspace(undefined, cwd)
     const newPanes = new Map(panes)
     newPanes.set(pane.id, pane)
-    pushWorkspaceHistory(activeWorkspaceId)
+    if (activeWorkspaceId) pushWorkspaceHistory(activeWorkspaceId)
     set({
       workspaces: [...workspaces, workspace],
       activeWorkspaceId: workspace.id,
@@ -278,24 +278,18 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
     }
 
     const remaining = workspaces.filter((w) => w.id !== id)
-    const unpinnedRemaining = remaining.filter((w) => !w.pinned)
     purgeFromHistory(id)
 
-    if (unpinnedRemaining.length === 0) {
-      const { workspace: newWs, pane: newPane } = makeWorkspace()
-      newPanes.set(newPane.id, newPane)
-      set({
-        workspaces: [...remaining, newWs],
-        activeWorkspaceId: newWs.id,
-        panes: newPanes
-      })
-      if (ws.pinned) get().persistPinned()
-      return
+    let newActive: string | null = activeWorkspaceId
+    if (id === activeWorkspaceId) {
+      const fromHistory = popWorkspaceHistory(remaining)
+      if (fromHistory) {
+        newActive = fromHistory
+      } else {
+        const liveWs = remaining.find((w) => !w.dormant)
+        newActive = liveWs?.id ?? null
+      }
     }
-
-    const newActive = id === activeWorkspaceId
-      ? (popWorkspaceHistory(remaining) ?? (remaining.find((w) => !w.dormant) || remaining[0]).id)
-      : activeWorkspaceId
 
     set({ workspaces: remaining, activeWorkspaceId: newActive, panes: newPanes })
     if (ws.pinned) get().persistPinned()
@@ -303,8 +297,10 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
 
   switchWorkspace: (id) => {
     const { activeWorkspaceId } = get()
-    if (id !== activeWorkspaceId) pushWorkspaceHistory(activeWorkspaceId)
-    set({ activeWorkspaceId: id })
+    if (id !== activeWorkspaceId) {
+      if (activeWorkspaceId) pushWorkspaceHistory(activeWorkspaceId)
+      set({ activeWorkspaceId: id })
+    }
   },
 
   mergeWorkspaces: (targetId, sourceId, direction) => {
@@ -331,7 +327,7 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
 
     purgeFromHistory(sourceId)
     const { activeWorkspaceId } = get()
-    if (targetId !== activeWorkspaceId) pushWorkspaceHistory(activeWorkspaceId)
+    if (targetId !== activeWorkspaceId && activeWorkspaceId) pushWorkspaceHistory(activeWorkspaceId)
     set({
       workspaces: workspaces
         .map((w) => (w.id === targetId ? updatedTarget : w))
@@ -452,7 +448,9 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
   },
 
   closePane: (id) => {
-    closePaneInWs(get, set, get().activeWorkspaceId, id)
+    const { activeWorkspaceId } = get()
+    if (!activeWorkspaceId) return
+    closePaneInWs(get, set, activeWorkspaceId, id)
   },
 
   setActivePaneInWorkspace: (paneId) => {
@@ -485,6 +483,7 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
 
   navigateDir: (dir) => {
     const { workspaces, activeWorkspaceId, sidebarGrouped, panes } = get()
+    if (!activeWorkspaceId) return
     const ws = workspaces.find((w) => w.id === activeWorkspaceId)
     if (!ws) return
 
@@ -584,7 +583,7 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
     }
     const newPanes = new Map(panes)
     newPanes.set(pane.id, pane)
-    pushWorkspaceHistory(activeWorkspaceId)
+    if (activeWorkspaceId) pushWorkspaceHistory(activeWorkspaceId)
     set({
       workspaces: [...workspaces, workspace],
       activeWorkspaceId: workspace.id,
@@ -708,7 +707,7 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
 
     const updated = { ...ws, dormant: true }
 
-    let newActive = activeWorkspaceId
+    let newActive: string | null = activeWorkspaceId
     if (activeWorkspaceId === id) {
       const remaining = workspaces.filter((w) => w.id !== id)
       const fromHistory = popWorkspaceHistory(remaining)
@@ -716,7 +715,7 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
         newActive = fromHistory
       } else {
         const liveWs = workspaces.find((w) => w.id !== id && !w.dormant)
-        if (liveWs) newActive = liveWs.id
+        newActive = liveWs?.id ?? null
       }
     }
 
@@ -910,13 +909,14 @@ export function flushPersistPinned(): void {
 let _prevWsId = ''
 let _prevPaneId = ''
 usePaneStore.subscribe((state) => {
-  const ws = state.workspaces.find((w) => w.id === state.activeWorkspaceId)
-  const wsId = state.activeWorkspaceId
+  const ws = state.activeWorkspaceId ? state.workspaces.find((w) => w.id === state.activeWorkspaceId) : undefined
+  const wsId = state.activeWorkspaceId ?? ''
   const paneId = ws?.activePaneId ?? ''
   if (wsId === _prevWsId && paneId === _prevPaneId) return
   _prevWsId = wsId
   _prevPaneId = paneId
-  const pane = ws ? state.panes.get(paneId) : null
+  if (!ws) return
+  const pane = state.panes.get(paneId)
   const expected: 'terminal' | 'browser' = pane?.type === 'browser' ? 'browser' : 'terminal'
   if (state.focusState !== expected) {
     usePaneStore.setState({ focusState: expected })

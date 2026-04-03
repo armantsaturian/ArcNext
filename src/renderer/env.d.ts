@@ -8,6 +8,9 @@ interface ArcNextAPI {
   sidebar: {
     setTrafficLightsVisible(visible: boolean): void
   }
+  window: {
+    hide(): void
+  }
   dirHistory: {
     visit(path: string): Promise<void>
     query(): Promise<DirEntry[]>

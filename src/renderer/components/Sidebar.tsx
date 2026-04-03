@@ -92,7 +92,9 @@ export default function Sidebar() {
   const activeWorkspaceId = usePaneStore((s) => s.activeWorkspaceId)
   const panes = usePaneStore((s) => s.panes)
   const switchWorkspace = usePaneStore((s) => s.switchWorkspace)
-  const addWorkspace = usePaneStore((s) => s.addWorkspace)
+  const openPicker = useCallback(() => {
+    window.dispatchEvent(new CustomEvent('open-picker'))
+  }, [])
   const removeWorkspace = usePaneStore((s) => s.removeWorkspace)
   const closePaneInWorkspace = usePaneStore((s) => s.closePaneInWorkspace)
   const mergeWorkspaces = usePaneStore((s) => s.mergeWorkspaces)
@@ -374,7 +376,7 @@ export default function Sidebar() {
         })()}
         <button
           className={`sidebar-add${dragSourceId && dragOverState?.targetId === '__add' ? ' sidebar-add-drop' : ''}`}
-          onClick={() => addWorkspace()}
+          onClick={() => openPicker()}
           onDragOver={(e) => { if (dragSourceId) { e.preventDefault(); setDragOverState({ targetId: '__add', position: 'before' }) } }}
           onDragLeave={() => setDragOverState(null)}
           onDrop={(e) => {

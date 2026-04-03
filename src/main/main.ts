@@ -24,7 +24,9 @@ function createWindow(): void {
     minHeight: 400,
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 16, y: 16 },
-    backgroundColor: '#121212',
+    transparent: true,
+    vibrancy: 'under-window',
+    backgroundColor: '#00000000',
     webPreferences: {
       preload: join(__dirname, '../preload/preload.js'),
       nodeIntegration: false,
@@ -61,6 +63,10 @@ function createWindow(): void {
 
   ipcMain.on('sidebar:traffic-lights', (_e, visible: boolean) => {
     mainWindow?.setWindowButtonVisibility(visible)
+  })
+
+  ipcMain.on('window:hide', () => {
+    mainWindow?.hide()
   })
 
   if (process.env.ELECTRON_RENDERER_URL) {
@@ -167,6 +173,12 @@ app.on('before-quit', () => {
   flushDirHistorySync()
   flushWebHistorySync()
   flushPinnedWorkspacesSync()
+})
+
+app.on('activate', () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.show()
+  }
 })
 
 app.on('window-all-closed', () => {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import GridView from './components/GridView'
 import Sidebar from './components/Sidebar'
 import UnifiedPicker from './components/UnifiedPicker'
@@ -53,9 +53,9 @@ export default function App() {
   const wakeWorkspace = usePaneStore((s) => s.wakeWorkspace)
   const [pickerOpen, setPickerOpen] = useState(false)
 
-  const openPicker = () => { window.arcnext.browser.focusRenderer(); setPickerOpen(true); setOverlay('picker', true) }
-  const closePicker = () => { setPickerOpen(false); setOverlay('picker', false) }
-  const togglePicker = () => { pickerOpen ? closePicker() : openPicker() }
+  const openPicker = useCallback(() => { window.arcnext.browser.focusRenderer(); setPickerOpen(true); setOverlay('picker', true) }, [setOverlay])
+  const closePicker = useCallback(() => { setPickerOpen(false); setOverlay('picker', false) }, [setOverlay])
+  const togglePicker = useCallback(() => { setPickerOpen((prev) => { if (prev) { setOverlay('picker', false); return false } else { window.arcnext.browser.focusRenderer(); setOverlay('picker', true); return true } }) }, [setOverlay])
 
   // Prevent Electron's default file-drop navigation so per-component drop handlers work
   useEffect(() => {
@@ -67,6 +67,13 @@ export default function App() {
       document.removeEventListener('drop', prevent)
     }
   }, [])
+
+  // Listen for open-picker events from Sidebar's +New Workspace button
+  useEffect(() => {
+    const handler = () => openPicker()
+    window.addEventListener('open-picker', handler)
+    return () => window.removeEventListener('open-picker', handler)
+  }, [openPicker])
 
   // Load pinned workspaces from disk on startup
   useEffect(() => {
@@ -348,7 +355,7 @@ export default function App() {
         splitActive('vertical')
         return
       }
-      // Cmd+W — close pane (sleep if pinned)
+      // Cmd+W — close pane (sleep if pinned), hide window if no active workspace
       if (meta && !e.shiftKey && !alt && key === 'w') {
         e.preventDefault()
         if (ws) {
@@ -357,6 +364,8 @@ export default function App() {
           } else {
             closePane(ws.activePaneId)
           }
+        } else {
+          window.arcnext.window.hide()
         }
         return
       }
@@ -383,8 +392,10 @@ export default function App() {
     return () => window.removeEventListener('keydown', handler, true)
   }, [splitActive, closePane, switchWorkspace, navigateDir, toggleSidebar, wakeWorkspace, ws, workspaces, pickerOpen, activePaneType, focusState, setFocusState])
 
+  const hasActiveWorkspace = workspaces.some((w) => !w.dormant)
+
   return (
-    <div id="app">
+    <div id="app" className={!hasActiveWorkspace ? 'ws-empty' : ''}>
       <Sidebar />
       <div id="workspace">
         {workspaces.filter((w) => !w.dormant).map((w) => (
