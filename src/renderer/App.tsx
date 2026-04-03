@@ -43,6 +43,7 @@ export default function App() {
   const setBrowserPaneLoading = usePaneStore((s) => s.setBrowserPaneLoading)
   const setBrowserPaneFavicon = usePaneStore((s) => s.setBrowserPaneFavicon)
   const setAudioState = usePaneStore((s) => s.setAudioState)
+  const summarizeUrl = usePaneStore((s) => s.summarizeUrl)
   const setActivePaneInWorkspace = usePaneStore((s) => s.setActivePaneInWorkspace)
   const switchWorkspace = usePaneStore((s) => s.switchWorkspace)
   const navigateDir = usePaneStore((s) => s.navigateDir)
@@ -158,6 +159,9 @@ export default function App() {
       }),
       window.arcnext.browser.onOpenInNewWorkspace((url) => {
         addBrowserWorkspace(url)
+      }),
+      window.arcnext.browser.onSummarize((paneId, url) => {
+        summarizeUrl(paneId, url)
       })
     ]
     return () => unsubs.forEach((unsub) => unsub())
@@ -169,7 +173,8 @@ export default function App() {
     setBrowserPaneNavState,
     setActivePaneInWorkspace,
     setBrowserPaneFavicon,
-    setAudioState
+    setAudioState,
+    summarizeUrl
   ])
 
   // Receive forwarded app shortcuts from WebContentsView and re-dispatch as synthetic keydown events

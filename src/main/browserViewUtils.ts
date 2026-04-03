@@ -32,6 +32,7 @@ interface BrowserWebContentsCallbacks {
   onFocus?: () => void
   onFavicon?: (faviconUrl: string) => void
   onOpenInNewWorkspace?: (url: string) => void
+  onSummarize?: (url: string) => void
   onFoundInPage?: (activeMatch: number, totalMatches: number) => void
   onAudioStateChanged?: (playing: boolean, muted: boolean) => void
   onBeforeInput?: (input: Electron.Input) => boolean
@@ -72,6 +73,10 @@ function buildContextMenu(
     menu.append(new MenuItem({
       label: 'Open Link in New Workspace',
       click: () => callbacks.onOpenInNewWorkspace?.(linkURL)
+    }))
+    menu.append(new MenuItem({
+      label: 'Summarize Link',
+      click: () => callbacks.onSummarize?.(linkURL)
     }))
     menu.append(new MenuItem({
       label: 'Copy Link Address',
@@ -135,6 +140,19 @@ function buildContextMenu(
     }))
   }
 
+  // Selected text that looks like a URL — offer to summarize it
+  if (selectionText && !linkURL) {
+    const trimmed = selectionText.trim()
+    if (/^https?:\/\/\S+$/i.test(trimmed) || (/\.\S+/.test(trimmed) && !trimmed.includes(' '))) {
+      const url = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
+      menu.append(new MenuItem({ type: 'separator' }))
+      menu.append(new MenuItem({
+        label: 'Summarize',
+        click: () => callbacks.onSummarize?.(url)
+      }))
+    }
+  }
+
   if (!isEditable && !selectionText && !linkURL && mediaType === 'none') {
     menu.append(new MenuItem({
       label: 'Back', enabled: wc.canGoBack(),
@@ -147,6 +165,11 @@ function buildContextMenu(
     menu.append(new MenuItem({
       label: 'Reload', accelerator: 'CmdOrCtrl+R', registerAccelerator: false,
       click: () => wc.reload()
+    }))
+    menu.append(new MenuItem({ type: 'separator' }))
+    menu.append(new MenuItem({
+      label: 'Summarize Page',
+      click: () => callbacks.onSummarize?.(wc.getURL())
     }))
     menu.append(new MenuItem({ type: 'separator' }))
     menu.append(new MenuItem({

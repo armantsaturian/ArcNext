@@ -110,6 +110,11 @@ const api = {
       ipcRenderer.on('browser:openInNewWorkspace', handler)
       return () => { ipcRenderer.removeListener('browser:openInNewWorkspace', handler) }
     },
+    onSummarize: (cb: (paneId: string, url: string) => void) => {
+      const handler = (_event: IpcRendererEvent, paneId: string, url: string) => cb(paneId, url)
+      ipcRenderer.on('browser:summarize', handler)
+      return () => { ipcRenderer.removeListener('browser:summarize', handler) }
+    },
     findInPage: (paneId: string, text: string, forward?: boolean) =>
       ipcRenderer.send('browser:findInPage', paneId, text, forward),
     stopFindInPage: (paneId: string) =>

@@ -32,8 +32,8 @@ export function addColumn(grid: GridLayout, paneId: string): GridLayout {
   }
 }
 
-/** Add a new row below the given pane in its column, equalizing heights in that column */
-export function addRowBelow(grid: GridLayout, targetPaneId: string, newPaneId: string): GridLayout {
+/** Add a new row below the given pane in its column. Ratio controls how much of the split the top pane keeps (default 0.5). */
+export function addRowBelow(grid: GridLayout, targetPaneId: string, newPaneId: string, ratio = 0.5): GridLayout {
   const colIdx = grid.columns.findIndex((c) => c.rows.some((r) => r.paneId === targetPaneId))
   if (colIdx === -1) return grid
 
@@ -42,10 +42,9 @@ export function addRowBelow(grid: GridLayout, targetPaneId: string, newPaneId: s
   if (rowIdx === -1) return grid
 
   const newRows = [...col.rows]
-  // Split the target row's height in half
   const targetHeight = newRows[rowIdx].height
-  newRows[rowIdx] = { ...newRows[rowIdx], height: targetHeight / 2 }
-  newRows.splice(rowIdx + 1, 0, { height: targetHeight / 2, paneId: newPaneId })
+  newRows[rowIdx] = { ...newRows[rowIdx], height: targetHeight * ratio }
+  newRows.splice(rowIdx + 1, 0, { height: targetHeight * (1 - ratio), paneId: newPaneId })
 
   return {
     columns: grid.columns.map((c, i) => i === colIdx ? { ...c, rows: newRows } : c)

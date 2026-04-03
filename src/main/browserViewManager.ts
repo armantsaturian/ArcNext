@@ -29,6 +29,7 @@ function wireViewEvents(view: WebContentsView, paneId: string): () => void {
     onFocus: () => send('browser:focused', paneId),
     onFavicon: (faviconUrl) => send('browser:faviconChanged', paneId, faviconUrl),
     onOpenInNewWorkspace: (url) => send('browser:openInNewWorkspace', url),
+    onSummarize: (url) => send('browser:summarize', paneId, url),
     onFoundInPage: (activeMatch, totalMatches) => send('browser:foundInPage', paneId, activeMatch, totalMatches),
     onAudioStateChanged: (playing, muted) => {
       const managed = views.get(paneId)

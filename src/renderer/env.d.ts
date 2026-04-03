@@ -52,6 +52,7 @@ interface ArcNextAPI {
     onFocused(cb: (paneId: string) => void): () => void
     onFaviconChanged(cb: (paneId: string, faviconUrl: string) => void): () => void
     onOpenInNewWorkspace(cb: (url: string) => void): () => void
+    onSummarize(cb: (paneId: string, url: string) => void): () => void
     findInPage(paneId: string, text: string, forward?: boolean): void
     stopFindInPage(paneId: string): void
     onFoundInPage(cb: (paneId: string, activeMatch: number, totalMatches: number) => void): () => void

@@ -103,4 +103,6 @@ export interface IPCChannels {
   'browser:appShortcut': (key: string, meta: boolean, ctrl: boolean, shift: boolean, alt: boolean) => void
   'browser:audioStateChanged': (paneId: string, playing: boolean, muted: boolean) => void
   'browser:toggleMute': (paneId: string) => void
+  // Summarize a URL in a terminal split below the browser pane
+  'browser:summarize': (paneId: string, url: string) => void
 }

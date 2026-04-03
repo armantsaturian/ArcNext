@@ -113,6 +113,9 @@ interface PaneStore {
   setPaneUserMessage: (id: string, message: string) => void
   setGrid: (grid: GridLayout) => void
 
+  // Summarize
+  summarizeUrl: (browserPaneId: string, url: string) => void
+
   // Browser pane actions
   addBrowserWorkspace: (url: string, options?: BrowserPaneOptions) => void
   splitActiveBrowser: (direction: Direction, url: string) => void
@@ -420,6 +423,32 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
       panes: newPanes
     })
     if (ws.pinned) get().persistPinned()
+  },
+
+  summarizeUrl: (browserPaneId, url) => {
+    const { workspaces, panes } = get()
+    const ws = workspaces.find((w) => allPaneIds(w.grid).includes(browserPaneId))
+    if (!ws) return
+
+    const newPane = makeTerminalPane()
+    const newPanes = new Map(panes)
+    newPanes.set(newPane.id, newPane)
+
+    // 70% browser, 30% terminal
+    const newGrid = addRowBelow(ws.grid, browserPaneId, newPane.id, 0.7)
+
+    set({
+      workspaces: workspaces.map((w) => w.id === ws.id ? { ...ws, grid: newGrid, activePaneId: newPane.id } : w),
+      panes: newPanes
+    })
+    if (ws.pinned) get().persistPinned()
+
+    // Write the summarize command once the shell is ready
+    const escaped = url.replace(/'/g, "'\\''")
+    const cmd = `summarize --length medium '${escaped}'\r`
+    setTimeout(() => {
+      window.arcnext.pty.write(newPane.id, cmd)
+    }, 150)
   },
 
   closePane: (id) => {
