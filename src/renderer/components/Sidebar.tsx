@@ -92,9 +92,7 @@ export default function Sidebar() {
   const activeWorkspaceId = usePaneStore((s) => s.activeWorkspaceId)
   const panes = usePaneStore((s) => s.panes)
   const switchWorkspace = usePaneStore((s) => s.switchWorkspace)
-  const openPicker = useCallback(() => {
-    window.dispatchEvent(new CustomEvent('open-picker'))
-  }, [])
+  const openPicker = usePaneStore((s) => s.openPicker)
   const removeWorkspace = usePaneStore((s) => s.removeWorkspace)
   const closePaneInWorkspace = usePaneStore((s) => s.closePaneInWorkspace)
   const mergeWorkspaces = usePaneStore((s) => s.mergeWorkspaces)

@@ -65,7 +65,7 @@ function createWindow(): void {
     mainWindow?.setWindowButtonVisibility(visible)
   })
 
-  ipcMain.on('window:hide', () => {
+  ipcMain.on('app:hide', () => {
     mainWindow?.hide()
   })
 

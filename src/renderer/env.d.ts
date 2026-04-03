@@ -8,7 +8,7 @@ interface ArcNextAPI {
   sidebar: {
     setTrafficLightsVisible(visible: boolean): void
   }
-  window: {
+  app: {
     hide(): void
   }
   dirHistory: {

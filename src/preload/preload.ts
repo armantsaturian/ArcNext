@@ -7,8 +7,8 @@ const api = {
     setTrafficLightsVisible: (visible: boolean) =>
       ipcRenderer.send('sidebar:traffic-lights', visible)
   },
-  window: {
-    hide: () => ipcRenderer.send('window:hide')
+  app: {
+    hide: () => ipcRenderer.send('app:hide')
   },
   dirHistory: {
     visit: (path: string) => ipcRenderer.invoke('dirHistory:visit', path),

@@ -137,6 +137,12 @@ interface PaneStore {
   focusState: 'terminal' | 'browser' | 'ui'
   setFocusState: (state: 'terminal' | 'browser' | 'ui') => void
 
+  // Picker (Cmd+T / +New Workspace)
+  pickerOpen: boolean
+  openPicker: () => void
+  closePicker: () => void
+  togglePicker: () => void
+
   // Overlay state (hides native browser views so DOM modals are visible)
   activeOverlays: Set<string>
   setOverlay: (id: string, active: boolean) => void
@@ -843,6 +849,25 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
     }, 2000)
   },
 
+  pickerOpen: false,
+  openPicker: () => {
+    window.arcnext.browser.focusRenderer()
+    set({ pickerOpen: true })
+    get().setOverlay('picker', true)
+  },
+  closePicker: () => {
+    set({ pickerOpen: false })
+    get().setOverlay('picker', false)
+  },
+  togglePicker: () => {
+    const { pickerOpen } = get()
+    if (pickerOpen) {
+      get().closePicker()
+    } else {
+      get().openPicker()
+    }
+  },
+
   focusState: 'terminal',
   setFocusState: (state) => set({ focusState: state }),
 
@@ -923,7 +948,3 @@ usePaneStore.subscribe((state) => {
   }
 })
 
-/** Helper: get the active workspace from the store */
-export function useActiveWorkspace(): Workspace | undefined {
-  return usePaneStore((s) => s.workspaces.find((w) => w.id === s.activeWorkspaceId))
-}
