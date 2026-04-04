@@ -25,6 +25,7 @@ function getFilePath(file: File): string {
 
 export default function TerminalPane({ paneId }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const terminalRef = useRef<HTMLDivElement>(null)
   const ws = usePaneStore((s) => s.workspaces.find((w) => w.id === s.activeWorkspaceId))
   const setActive = usePaneStore((s) => s.setActivePaneInWorkspace)
   const isActive = ws?.activePaneId === paneId
@@ -68,10 +69,12 @@ export default function TerminalPane({ paneId }: Props) {
     }
   }, [isActive, handler])
 
-  // Attach terminal DOM to this container on mount, park on unmount
+  // Attach terminal DOM to the inner container on mount, park on unmount.
+  // Using a dedicated inner div prevents attachTerminal's DOM clearing from
+  // removing React-rendered siblings (DictationButton, FindBar).
   useEffect(() => {
-    if (!containerRef.current) return
-    attachTerminal(paneId, containerRef.current)
+    if (!terminalRef.current) return
+    attachTerminal(paneId, terminalRef.current)
     return () => detachTerminal(paneId)
   }, [paneId])
 
@@ -168,6 +171,7 @@ export default function TerminalPane({ paneId }: Props) {
       onMouseDown={() => setActive(paneId)}
       ref={containerRef}
     >
+      <div ref={terminalRef} className="terminal-container" />
       {findOpen && (
         <FindBar
           searchTerm={searchTerm}

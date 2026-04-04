@@ -25,6 +25,19 @@ export default function DictationButton({ paneId }: Props) {
       return
     }
 
+    // Stop any other pane that's currently recording
+    const allStates = usePaneStore.getState().dictationStates
+    for (const [otherPaneId, otherState] of allStates) {
+      if (otherPaneId !== paneId && otherState.status === 'recording') {
+        await stopAudioCapture()
+        usePaneStore.getState().setDictationState(otherPaneId, { status: 'transcribing' })
+        window.arcnext.dictation.stop(otherPaneId).then(() => {
+          usePaneStore.getState().setDictationState(otherPaneId, null)
+        })
+        break
+      }
+    }
+
     // Request macOS mic permission (triggers OS dialog if not yet determined)
     const micStatus = await window.arcnext.dictation.checkMicPermission()
     if (micStatus === 'denied' || micStatus === 'restricted') {
