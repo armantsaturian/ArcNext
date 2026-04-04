@@ -232,6 +232,10 @@ export default function App() {
       }),
       window.arcnext.browser.onSummarize((paneId, url) => {
         usePaneStore.getState().summarizeUrl(paneId, url)
+      }),
+      // Dictation: write transcribed text straight to PTY
+      window.arcnext.dictation.onText((paneId, text) => {
+        window.arcnext.pty.write(paneId, text)
       })
     ]
 

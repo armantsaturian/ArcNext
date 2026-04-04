@@ -143,7 +143,24 @@ const api = {
   }
 }
 
+const dictation = {
+  ensureModel: () => ipcRenderer.invoke('dictation:ensureModel'),
+  start: (paneId: string) => ipcRenderer.send('dictation:start', paneId),
+  stop: (paneId: string) => ipcRenderer.send('dictation:stop', paneId),
+  sendAudio: (paneId: string, pcmData: ArrayBuffer) =>
+    ipcRenderer.send('dictation:audioChunk', paneId, pcmData),
+  onText: (cb: (paneId: string, text: string) => void) => {
+    const handler = (_event: IpcRendererEvent, paneId: string, text: string) => cb(paneId, text)
+    ipcRenderer.on('dictation:text', handler)
+    return () => { ipcRenderer.removeListener('dictation:text', handler) }
+  },
+  checkMicPermission: () => ipcRenderer.invoke('dictation:checkMicPermission'),
+  requestMicPermission: () => ipcRenderer.invoke('dictation:requestMicPermission'),
+  openMicSettings: () => ipcRenderer.invoke('dictation:openMicSettings')
+}
+
 contextBridge.exposeInMainWorld('arcnext', {
   ...api,
+  dictation,
   getPathForFile: (file: File) => webUtils.getPathForFile(file)
 })

@@ -7,7 +7,7 @@ import {
 import { getVisualWorkspaceOrder } from '../model/workspaceGrouping'
 import { createTerminal, destroyTerminal, serializeTerminal } from '../model/terminalManager'
 import { destroyBrowserView } from '../model/browserManager'
-import type { PaneInfo, TerminalPaneInfo, BrowserPaneInfo, SerializedPane, PinnedWorkspaceEntry, AgentState } from '../../shared/types'
+import type { PaneInfo, TerminalPaneInfo, BrowserPaneInfo, SerializedPane, PinnedWorkspaceEntry, AgentState, DictationState } from '../../shared/types'
 
 let nextPaneId = 1
 let nextWorkspaceId = 1
@@ -158,6 +158,10 @@ interface PaneStore {
   // Audio state
   audioStates: Map<string, { playing: boolean; muted: boolean }>
   setAudioState: (paneId: string, playing: boolean, muted: boolean) => void
+
+  // Dictation state
+  dictationStates: Map<string, DictationState>
+  setDictationState: (paneId: string, state: DictationState | null) => void
 }
 
 function makeTerminalPane(cwd?: string): TerminalPaneInfo {
@@ -900,6 +904,19 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
       newStates.delete(paneId)
     }
     set({ agentStates: newStates })
+  },
+
+  dictationStates: new Map<string, DictationState>(),
+  setDictationState: (paneId, state) => {
+    const { dictationStates } = get()
+    const newStates = new Map(dictationStates)
+    if (state) {
+      newStates.set(paneId, state)
+    } else {
+      if (!dictationStates.has(paneId)) return
+      newStates.delete(paneId)
+    }
+    set({ dictationStates: newStates })
   },
 
   audioStates: new Map<string, { playing: boolean; muted: boolean }>(),

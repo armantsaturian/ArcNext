@@ -64,6 +64,16 @@ interface ArcNextAPI {
     toggleMute(paneId: string): void
     focusRenderer(): void
   }
+  dictation: {
+    ensureModel(): Promise<{ ready: boolean; error?: string }>
+    start(paneId: string): void
+    stop(paneId: string): void
+    sendAudio(paneId: string, pcmData: ArrayBuffer): void
+    onText(cb: (paneId: string, text: string) => void): () => void
+    checkMicPermission(): Promise<string>
+    requestMicPermission(): Promise<boolean>
+    openMicSettings(): Promise<void>
+  }
   getPathForFile(file: File): string
 }
 

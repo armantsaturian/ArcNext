@@ -4,6 +4,7 @@
   "description": "Terminal emulator with Arc browser-style UX, built for developers who live in the terminal with AI agents.",
   "main": "./out/main/main.js",
   "scripts": {
+    "postinstall": "bash scripts/sign-dev-electron.sh",
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
@@ -51,7 +52,10 @@
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
-      "notarize": true
+      "notarize": true,
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "ArcNext needs microphone access for voice dictation to AI agents."
+      }
     },
     "publish": {
       "provider": "github",

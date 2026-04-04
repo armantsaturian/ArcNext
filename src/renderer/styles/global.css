@@ -861,6 +861,117 @@ body,
     background-color: #161616;
 }
 
+/* ── Dictation button ── */
+
+.dictation-btn {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    transition: background 0.15s, transform 0.15s;
+    -webkit-app-region: no-drag;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.terminal-pane:hover .dictation-btn,
+.dictation-btn.recording {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.dictation-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    transform: scale(1.1);
+}
+
+.dictation-btn.recording {
+    background: rgba(255, 68, 68, 0.15);
+    animation: dictation-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes dictation-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.3); }
+    50% { box-shadow: 0 0 0 5px rgba(255, 68, 68, 0); }
+}
+
+.dictation-spinner {
+    animation: dictation-spin 1s linear infinite;
+}
+
+@keyframes dictation-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.dictation-downloading {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: #1e1e1e;
+    border: 1px solid #3a3a3a;
+    border-radius: 8px;
+    font-size: 11px;
+    color: #888;
+    -webkit-app-region: no-drag;
+    pointer-events: none;
+}
+
+.dictation-downloading .dictation-spinner {
+    flex-shrink: 0;
+}
+
+.dictation-denied {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    background: #1e1e1e;
+    border: 1px solid #3a3a3a;
+    border-radius: 8px;
+    font-size: 11px;
+    color: #ff6b6b;
+    -webkit-app-region: no-drag;
+}
+
+.dictation-denied button {
+    padding: 2px 8px;
+    border: 1px solid #3a3a3a;
+    border-radius: 4px;
+    background: #2a2a2a;
+    color: #e0e0e0;
+    font-size: 11px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.dictation-denied button:hover {
+    background: #3a3a3a;
+}
+
+.dictation-denied button:first-of-type {
+    color: #74c0fc;
+    border-color: #74c0fc44;
+}
+
 /* ── Unified Picker (Quick Go) ── */
 
 .picker-overlay {

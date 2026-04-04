@@ -3,6 +3,7 @@ import { usePaneStore } from '../store/paneStore'
 import { attachTerminal, detachTerminal, fitTerminal, focusTerminal, blurTerminal, writeToTerminalPTY, terminalFindNext, terminalFindPrevious, terminalClearSearch } from '../model/terminalManager'
 import { findController } from '../model/findController'
 import FindBar from './FindBar'
+import DictationButton from './DictationButton'
 
 interface Props {
   paneId: string
@@ -176,6 +177,7 @@ export default function TerminalPane({ paneId }: Props) {
           onClose={handleClose}
         />
       )}
+      <DictationButton paneId={paneId} />
     </div>
   )
 }

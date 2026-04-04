@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, session } from 'electron'
 import { autoUpdater } from 'electron-updater'
 import { join } from 'path'
 import { setupPTY, killAllPTY } from './pty'
@@ -9,6 +9,7 @@ import { setupWebHistory, flushWebHistorySync } from './webHistory'
 import { setupPinnedWorkspaces, flushPinnedWorkspacesSync } from './pinnedWorkspaces'
 import { hasFullDiskAccess, showFDADialog } from './fullDiskAccess'
 import { setupBrowserViewManager, destroyAllBrowserViews } from './browserViewManager'
+import { setupDictation, stopAllDictation } from './whisper/dictation'
 
 // Prevent sites from detecting Electron as an automated browser
 app.commandLine.appendSwitch('disable-blink-features', 'AutomationControlled')
@@ -35,6 +36,11 @@ function createWindow(): void {
     }
   })
 
+  // Only allow media (microphone) permission requests from the renderer
+  session.defaultSession.setPermissionRequestHandler((_wc, permission, cb) => {
+    cb(permission === 'media')
+  })
+
   mainWindow.on('close', (e) => {
     if (forceQuit) return
 
@@ -53,6 +59,7 @@ function createWindow(): void {
   setupWebHistory()
   setupPinnedWorkspaces()
   setupBrowserViewManager(mainWindow)
+  setupDictation(mainWindow)
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
@@ -169,6 +176,7 @@ autoUpdater.on('update-downloaded', (info) => {
 app.on('before-quit', () => {
   if (!forceQuit) return
   killAllPTY()
+  stopAllDictation()
   destroyAllBrowserViews()
   flushDirHistorySync()
   flushWebHistorySync()

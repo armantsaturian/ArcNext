@@ -55,6 +55,13 @@ export interface PinnedWorkspaceEntry {
 }
 
 
+export type DictationStatus = 'downloading' | 'recording' | 'error' | 'denied'
+
+export interface DictationState {
+  status: DictationStatus
+  error?: string
+}
+
 export type AgentType = 'claude' | 'codex' | 'opencode'
 export type AgentStatus = 'thinking' | 'idle'
 
