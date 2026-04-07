@@ -1239,8 +1239,14 @@ body,
     cursor: default;
 }
 
-.browser-url-form {
+.browser-url-wrapper {
     flex: 1;
+    position: relative;
+    min-width: 0;
+    margin-left: 4px;
+}
+
+.browser-url-form {
     display: flex;
     align-items: center;
     min-width: 0;
@@ -1248,7 +1254,6 @@ body,
     background: #161616;
     border: 1px solid #2a2a2a;
     border-radius: 6px;
-    margin-left: 4px;
     padding: 0 8px;
     transition: border-color 0.15s;
 }
@@ -1263,6 +1268,39 @@ body,
     flex-shrink: 0;
 }
 
+.browser-url-input-area {
+    flex: 1;
+    position: relative;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+}
+
+.browser-url-ghost {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    pointer-events: none;
+    white-space: nowrap;
+    overflow: hidden;
+    z-index: 0;
+    font-size: 12px;
+    font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+}
+
+.browser-url-ghost-hidden {
+    visibility: hidden;
+    white-space: pre;
+}
+
+.browser-url-ghost-completion {
+    color: #555;
+}
+
 .browser-url-input {
     flex: 1;
     min-width: 0;
@@ -1272,10 +1310,83 @@ body,
     color: #ccc;
     font-size: 12px;
     font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+    position: relative;
+    z-index: 1;
 }
 
 .browser-url-input::selection {
     background: #74c0fc44;
+}
+
+/* URL bar autocomplete dropdown */
+.browser-url-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: #1e1e1e;
+    border: 1px solid #3a3a3a;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 300;
+    padding: 4px;
+}
+
+.browser-url-dropdown-item {
+    padding: 6px 8px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.browser-url-dropdown-item.selected {
+    background: rgba(116, 192, 252, 0.1);
+}
+
+.browser-url-dropdown-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.browser-url-dropdown-favicon {
+    width: 14px;
+    height: 14px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.browser-url-dropdown-favicon-icon {
+    font-size: 12px;
+    flex-shrink: 0;
+    width: 14px;
+    text-align: center;
+}
+
+.browser-url-dropdown-name {
+    font-size: 12px;
+    color: #e0e0e0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+    font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+}
+
+.browser-url-dropdown-name mark {
+    background: none;
+    color: #74c0fc;
+    font-weight: 600;
+}
+
+.browser-url-dropdown-url {
+    font-size: 11px;
+    color: #666;
+    margin-left: auto;
+    flex-shrink: 0;
+    white-space: nowrap;
+    font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
 }
 
 /* Transparent placeholder — WebContentsView is overlaid on top by the main process */

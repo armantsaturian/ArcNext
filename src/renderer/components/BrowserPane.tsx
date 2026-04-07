@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { usePaneStore, type BrowserPaneInfo } from '../store/paneStore'
 import { findController } from '../model/findController'
 import FindBar from './FindBar'
+import UrlBar from './UrlBar'
 
 interface Props {
   paneId: string
@@ -10,9 +11,8 @@ interface Props {
 
 export default function BrowserPane({ paneId, workspaceId }: Props) {
   const placeholderRef = useRef<HTMLDivElement>(null)
-  const urlInputRef = useRef<HTMLInputElement>(null)
-  const [urlInput, setUrlInput] = useState('')
   const [error, setError] = useState<{ code: number; desc: string } | null>(null)
+  const [urlDropdownOpen, setUrlDropdownOpen] = useState(false)
 
   const pane = usePaneStore((s) => {
     const p = s.panes.get(paneId)
@@ -85,13 +85,6 @@ export default function BrowserPane({ paneId, workspaceId }: Props) {
     })
   }, [paneId])
 
-  // Sync URL input with store URL when not editing
-  useEffect(() => {
-    if (document.activeElement !== urlInputRef.current) {
-      setUrlInput(url)
-    }
-  }, [url])
-
   // Clear error on navigation
   useEffect(() => {
     setError(null)
@@ -108,7 +101,7 @@ export default function BrowserPane({ paneId, workspaceId }: Props) {
 
   // Show/hide based on workspace activity and error state
   useEffect(() => {
-    if (isWorkspaceActive && !error && !overlayActive) {
+    if (isWorkspaceActive && !error && !overlayActive && !urlDropdownOpen) {
       window.arcnext.browser.show(paneId)
       // Report bounds immediately on show
       if (placeholderRef.current) {
@@ -120,7 +113,7 @@ export default function BrowserPane({ paneId, workspaceId }: Props) {
     } else {
       window.arcnext.browser.hide(paneId)
     }
-  }, [isWorkspaceActive, error, overlayActive, paneId])
+  }, [isWorkspaceActive, error, overlayActive, urlDropdownOpen, paneId])
 
   // Report bounds on resize
   useEffect(() => {
@@ -128,7 +121,7 @@ export default function BrowserPane({ paneId, workspaceId }: Props) {
     if (!el) return
     let rafId = 0
     const report = () => {
-      if (!isWorkspaceActive || error || overlayActive) return
+      if (!isWorkspaceActive || error || overlayActive || urlDropdownOpen) return
       const rect = el.getBoundingClientRect()
       window.arcnext.browser.setBounds(paneId, {
         x: rect.x, y: rect.y, width: rect.width, height: rect.height
@@ -143,21 +136,7 @@ export default function BrowserPane({ paneId, workspaceId }: Props) {
       cancelAnimationFrame(rafId)
       observer.disconnect()
     }
-  }, [paneId, isWorkspaceActive, error, overlayActive])
-
-  // Listen for Cmd+L URL focus event from App.tsx
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail
-      if (detail?.paneId === paneId && isActivePane) {
-        window.arcnext.browser.focusRenderer()
-        urlInputRef.current?.focus()
-        urlInputRef.current?.select()
-      }
-    }
-    window.addEventListener('browser-focus-url', handler)
-    return () => window.removeEventListener('browser-focus-url', handler)
-  }, [paneId, isActivePane])
+  }, [paneId, isWorkspaceActive, error, overlayActive, urlDropdownOpen])
 
   // Listen for load failures
   useEffect(() => {
@@ -166,24 +145,10 @@ export default function BrowserPane({ paneId, workspaceId }: Props) {
     })
   }, [paneId])
 
-  const handleUrlSubmit = useCallback((e: React.FormEvent) => {
-    e.preventDefault()
-    const val = urlInput.trim()
-    if (val) {
-      window.arcnext.browser.navigate(paneId, val)
-      setError(null)
-      urlInputRef.current?.blur()
-    }
-  }, [paneId, urlInput])
-
-  const handleUrlKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      setUrlInput(url)
-      urlInputRef.current?.blur()
-    }
-    // Stop propagation for text editing keys so global shortcuts don't interfere
-    e.stopPropagation()
-  }, [url])
+  const handleNavigate = useCallback((targetUrl: string) => {
+    window.arcnext.browser.navigate(paneId, targetUrl)
+    setError(null)
+  }, [paneId])
 
   if (!pane) return null
 
@@ -222,21 +187,14 @@ export default function BrowserPane({ paneId, workspaceId }: Props) {
         >
           {isLoading ? '✕' : '↻'}
         </button>
-        <form className="browser-url-form" onSubmit={handleUrlSubmit}>
-          {isHttps && <span className="browser-url-lock">🔒</span>}
-          <input
-            data-suppress-shortcuts
-            ref={urlInputRef}
-            className="browser-url-input"
-            type="text"
-            value={urlInput}
-            onChange={(e) => setUrlInput(e.target.value)}
-            onFocus={(e) => e.target.select()}
-            onBlur={() => setUrlInput(url)}
-            onKeyDown={handleUrlKeyDown}
-            spellCheck={false}
-          />
-        </form>
+        <UrlBar
+          paneId={paneId}
+          url={url}
+          isHttps={isHttps}
+          isActivePane={!!isActivePane}
+          onNavigate={handleNavigate}
+          onDropdownChange={setUrlDropdownOpen}
+        />
       </div>
       {findOpen && (
         <FindBar
@@ -250,7 +208,7 @@ export default function BrowserPane({ paneId, workspaceId }: Props) {
         />
       )}
       <div className="browser-content" ref={placeholderRef}>
-        {overlayActive && !error && (
+        {(overlayActive || urlDropdownOpen) && !error && (
           <div className="browser-placeholder">
             <div className="browser-placeholder-title">{pane.title || 'Untitled'}</div>
             <div className="browser-placeholder-url">{url}</div>
