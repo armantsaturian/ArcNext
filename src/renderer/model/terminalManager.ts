@@ -126,6 +126,18 @@ export function createTerminal(paneId: string, cwd?: string, scrollback?: string
     if (e.type !== 'keydown') return true
     if (e.metaKey && !e.altKey) {
       const k = e.key.length === 1 ? e.key.toLowerCase() : e.key
+
+      // Cmd+=/Cmd+-/Cmd+0 — zoom terminal font size
+      if (!e.shiftKey && (k === '=' || k === '-' || k === '0')) {
+        const current = term.options.fontSize ?? 14
+        if (k === '=') term.options.fontSize = Math.min(current + 1, 32)
+        else if (k === '-') term.options.fontSize = Math.max(current - 1, 8)
+        else term.options.fontSize = 14
+        const host = term.element?.parentElement
+        if (host && host.clientWidth >= 20 && host.clientHeight >= 20) fit.fit()
+        return false
+      }
+
       if (['g', 'b', 'd', 'w', 't', 'f'].includes(k)) return false
       if (k >= '1' && k <= '9') return false
       if (e.shiftKey && (k === 'd' || e.key === 'Enter')) return false

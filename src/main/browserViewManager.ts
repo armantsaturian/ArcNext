@@ -41,6 +41,15 @@ function wireViewEvents(view: WebContentsView, paneId: string): () => void {
       if (!meta || input.type !== 'keyDown') return false
       const key = input.key.toLowerCase()
 
+      // Cmd+=/Cmd+-/Cmd+0 — zoom webview content (menu roles removed to prevent UI zoom)
+      if (!input.shift && !input.alt && (key === '=' || key === '-' || key === '0')) {
+        const wc = view.webContents
+        if (key === '=') wc.setZoomLevel(Math.min(wc.getZoomLevel() + 0.5, 5))
+        else if (key === '-') wc.setZoomLevel(Math.max(wc.getZoomLevel() - 0.5, -3))
+        else wc.setZoomLevel(0)
+        return true
+      }
+
       // Cmd+R / Cmd+Shift+R — handle directly in main process
       if (!input.shift && !input.alt && key === 'r') {
         view.webContents.reload()
