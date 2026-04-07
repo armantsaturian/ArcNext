@@ -622,7 +622,7 @@ function WorkspaceRow({
         </div>
       )}
       {(!isActive || isSinglePane || workspace.pinned) && !isEditing && (() => {
-        const isSleepAction = workspace.pinned && isActive
+        const isSleepAction = workspace.pinned && !workspace.dormant
         return (
           <button
             className={`ws-close${isSleepAction ? ' ws-close-sleep' : ''}`}
