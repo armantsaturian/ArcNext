@@ -62,6 +62,10 @@ interface ArcNextAPI {
     onAppShortcut(cb: (key: string, meta: boolean, ctrl: boolean, shift: boolean, alt: boolean) => void): () => void
     onAudioStateChanged(cb: (paneId: string, playing: boolean, muted: boolean) => void): () => void
     toggleMute(paneId: string): void
+    enterPip(paneId: string): void
+    exitPip(paneId: string): void
+    dismissPip(paneId: string): void
+    onPipExited(cb: (paneId: string) => void): () => void
     focusRenderer(): void
   }
   dictation: {

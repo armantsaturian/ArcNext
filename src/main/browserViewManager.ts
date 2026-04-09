@@ -163,6 +163,55 @@ export function setupBrowserViewManager(mainWindow: BrowserWindow): void {
     views.get(paneId)?.view.webContents.stopFindInPage('clearSelection')
   })
 
+  ipcMain.on('browser:enterPip', (_e, paneId: string) => {
+    const managed = views.get(paneId)
+    if (!managed || !win || win.isDestroyed()) return
+    const mainWin = win
+    const wc = managed.view.webContents
+    // Find the first playing video, enter PiP, and wait for it to exit.
+    // When the user closes PiP natively (X button), the promise resolves
+    // and we notify the renderer so it can clear pipPaneId.
+    const sendPipExited = (): void => {
+      if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send('browser:pipExited', paneId)
+    }
+    wc.executeJavaScript(`
+      (async function() {
+        for (const v of document.querySelectorAll('video')) {
+          if (!v.paused && v.readyState > 0) {
+            await v.requestPictureInPicture();
+            await new Promise(r => v.addEventListener('leavepictureinpicture', r, { once: true }));
+            return true;
+          }
+        }
+        return false;
+      })()
+    `, true).then(sendPipExited).catch(sendPipExited)
+  })
+
+  ipcMain.on('browser:exitPip', (_e, paneId: string) => {
+    const managed = views.get(paneId)
+    if (!managed) return
+    managed.view.webContents.executeJavaScript(`
+      document.pictureInPictureElement
+        ? document.exitPictureInPicture().catch(() => {})
+        : Promise.resolve()
+    `, true).catch(() => {})
+  })
+
+  ipcMain.on('browser:dismissPip', (_e, paneId: string) => {
+    const managed = views.get(paneId)
+    if (!managed) return
+    // Exit PiP but re-play the video in case the site pauses it on leavepictureinpicture
+    managed.view.webContents.executeJavaScript(`
+      (async function() {
+        const el = document.pictureInPictureElement;
+        if (!el) return;
+        await document.exitPictureInPicture().catch(() => {});
+        if (el.paused) el.play().catch(() => {});
+      })()
+    `, true).catch(() => {})
+  })
+
   ipcMain.on('browser:toggleMute', (_e, paneId: string) => {
     const managed = views.get(paneId)
     if (!managed || !win || win.isDestroyed()) return

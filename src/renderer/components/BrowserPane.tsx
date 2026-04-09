@@ -20,6 +20,7 @@ export default function BrowserPane({ paneId, workspaceId }: Props) {
   })
   const isWorkspaceActive = usePaneStore((s) => s.activeWorkspaceId === workspaceId)
   const overlayActive = usePaneStore((s) => s.activeOverlays.size > 0)
+  const isInPip = usePaneStore((s) => s.pipPaneId === paneId)
   const isActivePane = usePaneStore((s) => {
     const ws = s.workspaces.find((w) => w.id === workspaceId)
     return ws?.activePaneId === paneId
@@ -208,7 +209,13 @@ export default function BrowserPane({ paneId, workspaceId }: Props) {
         />
       )}
       <div className="browser-content" ref={placeholderRef}>
-        {(overlayActive || urlDropdownOpen) && !error && (
+        {isInPip && (
+          <div className="browser-pip-placeholder">
+            <div className="browser-pip-placeholder-icon">▶</div>
+            <div className="browser-pip-placeholder-text">Playing in Picture-in-Picture</div>
+          </div>
+        )}
+        {(overlayActive || urlDropdownOpen) && !error && !isInPip && (
           <div className="browser-placeholder">
             <div className="browser-placeholder-title">{pane.title || 'Untitled'}</div>
             <div className="browser-placeholder-url">{url}</div>

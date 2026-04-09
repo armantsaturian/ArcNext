@@ -139,6 +139,17 @@ const api = {
     },
     toggleMute: (paneId: string) =>
       ipcRenderer.send('browser:toggleMute', paneId),
+    enterPip: (paneId: string) =>
+      ipcRenderer.send('browser:enterPip', paneId),
+    exitPip: (paneId: string) =>
+      ipcRenderer.send('browser:exitPip', paneId),
+    dismissPip: (paneId: string) =>
+      ipcRenderer.send('browser:dismissPip', paneId),
+    onPipExited: (cb: (paneId: string) => void) => {
+      const handler = (_event: IpcRendererEvent, paneId: string) => cb(paneId)
+      ipcRenderer.on('browser:pipExited', handler)
+      return () => { ipcRenderer.removeListener('browser:pipExited', handler) }
+    },
     focusRenderer: () => ipcRenderer.send('browser:focusRenderer')
   }
 }

@@ -159,6 +159,13 @@ interface PaneStore {
   audioStates: Map<string, { playing: boolean; muted: boolean }>
   setAudioState: (paneId: string, playing: boolean, muted: boolean) => void
 
+  // Picture-in-Picture
+  pipPaneId: string | null
+  pipEnabled: boolean
+  setPipEnabled: (enabled: boolean) => void
+  clearPip: () => void
+  dismissPip: () => void
+
   // Dictation state
   dictationStates: Map<string, DictationState>
   setDictationState: (paneId: string, state: DictationState | null) => void
@@ -218,9 +225,14 @@ function closePaneInWs(
   workspaceId: string,
   paneId: string
 ): void {
-  const { workspaces, panes } = get()
+  const { workspaces, panes, pipPaneId } = get()
   const ws = workspaces.find((w) => w.id === workspaceId)
   if (!ws) return
+
+  // Clean up PiP if the closed pane is in PiP
+  if (pipPaneId === paneId) {
+    set({ pipPaneId: null })
+  }
 
   const ids = allPaneIds(ws.grid)
   if (ids.length <= 1) {
@@ -274,11 +286,17 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
   },
 
   removeWorkspace: (id) => {
-    const { workspaces, activeWorkspaceId, panes } = get()
+    const { workspaces, activeWorkspaceId, panes, pipPaneId } = get()
     const ws = workspaces.find((w) => w.id === id)
     if (!ws) return
 
     const paneIds = allPaneIds(ws.grid)
+
+    // Clean up PiP if the destroyed workspace owns the PiP pane
+    if (pipPaneId && paneIds.includes(pipPaneId)) {
+      set({ pipPaneId: null })
+    }
+
     const newPanes = new Map(panes)
     for (const pid of paneIds) {
       const pane = panes.get(pid)
@@ -306,11 +324,41 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
   },
 
   switchWorkspace: (id) => {
-    const { activeWorkspaceId } = get()
-    if (id !== activeWorkspaceId) {
-      if (activeWorkspaceId) pushWorkspaceHistory(activeWorkspaceId)
-      set({ activeWorkspaceId: id })
+    const { activeWorkspaceId, pipEnabled, pipPaneId, workspaces, panes, audioStates } = get()
+    if (id === activeWorkspaceId) return
+
+    // Exit PiP if switching to the workspace that owns the PiP pane
+    if (pipPaneId) {
+      const targetWs = workspaces.find((w) => w.id === id)
+      if (targetWs && allPaneIds(targetWs.grid).includes(pipPaneId)) {
+        window.arcnext.browser.exitPip(pipPaneId)
+        set({ pipPaneId: null })
+      }
     }
+
+    // Enter PiP for the most recent playing browser pane in the workspace we're leaving
+    if (pipEnabled && activeWorkspaceId) {
+      const currentWs = workspaces.find((w) => w.id === activeWorkspaceId)
+      if (currentWs) {
+        const playingBrowserPaneId = allPaneIds(currentWs.grid).find((pid) => {
+          const pane = panes.get(pid)
+          const audio = audioStates.get(pid)
+          return pane?.type === 'browser' && audio?.playing
+        })
+        if (playingBrowserPaneId) {
+          // Exit any existing PiP from a different pane before entering new one (multi-hop)
+          const currentPip = get().pipPaneId
+          if (currentPip && currentPip !== playingBrowserPaneId) {
+            window.arcnext.browser.exitPip(currentPip)
+          }
+          window.arcnext.browser.enterPip(playingBrowserPaneId)
+          set({ pipPaneId: playingBrowserPaneId })
+        }
+      }
+    }
+
+    if (activeWorkspaceId) pushWorkspaceHistory(activeWorkspaceId)
+    set({ activeWorkspaceId: id })
   },
 
   mergeWorkspaces: (targetId, sourceId, direction) => {
@@ -513,16 +561,14 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
     if (dir === 'left' || dir === 'up') {
       for (let i = idx - 1; i >= 0; i--) {
         if (!ordered[i].dormant) {
-          pushWorkspaceHistory(activeWorkspaceId)
-          set({ activeWorkspaceId: ordered[i].id })
+          get().switchWorkspace(ordered[i].id)
           break
         }
       }
     } else {
       for (let i = idx + 1; i < ordered.length; i++) {
         if (!ordered[i].dormant) {
-          pushWorkspaceHistory(activeWorkspaceId)
-          set({ activeWorkspaceId: ordered[i].id })
+          get().switchWorkspace(ordered[i].id)
           break
         }
       }
@@ -699,12 +745,17 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
   },
 
   sleepWorkspace: (id) => {
-    const { workspaces, panes, activeWorkspaceId } = get()
+    const { workspaces, panes, activeWorkspaceId, pipPaneId } = get()
     const ws = workspaces.find((w) => w.id === id)
     if (!ws || !ws.pinned || ws.dormant) return
 
-    // Capture scrollback into side-channel before destroying
+    // Clean up PiP if the sleeping workspace owns the PiP pane
     const paneIds = allPaneIds(ws.grid)
+    if (pipPaneId && paneIds.includes(pipPaneId)) {
+      set({ pipPaneId: null })
+    }
+
+    // Capture scrollback into side-channel before destroying
     for (const pid of paneIds) {
       const pane = panes.get(pid)
       if (!pane) continue
@@ -932,6 +983,27 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
       newStates.delete(paneId)
     }
     set({ audioStates: newStates })
+  },
+
+  pipPaneId: null,
+  pipEnabled: (() => {
+    try { return localStorage.getItem('arcnext:pipEnabled') !== '0' } catch { return true }
+  })(),
+  setPipEnabled: (enabled) => {
+    set({ pipEnabled: enabled })
+    try { localStorage.setItem('arcnext:pipEnabled', enabled ? '1' : '0') } catch {}
+  },
+  clearPip: () => {
+    const { pipPaneId } = get()
+    if (!pipPaneId) return
+    window.arcnext.browser.exitPip(pipPaneId)
+    set({ pipPaneId: null })
+  },
+  dismissPip: () => {
+    const { pipPaneId } = get()
+    if (!pipPaneId) return
+    window.arcnext.browser.dismissPip(pipPaneId)
+    set({ pipPaneId: null })
   }
 }))
 

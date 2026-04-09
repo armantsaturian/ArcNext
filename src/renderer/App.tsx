@@ -227,6 +227,11 @@ export default function App() {
       window.arcnext.browser.onAudioStateChanged((paneId, playing, muted) => {
         usePaneStore.getState().setAudioState(paneId, playing, muted)
       }),
+      window.arcnext.browser.onPipExited((paneId) => {
+        if (usePaneStore.getState().pipPaneId === paneId) {
+          usePaneStore.setState({ pipPaneId: null })
+        }
+      }),
       window.arcnext.browser.onOpenInNewWorkspace((url) => {
         usePaneStore.getState().addBrowserWorkspace(url)
       }),

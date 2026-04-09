@@ -1471,6 +1471,27 @@ body,
     white-space: nowrap;
 }
 
+.browser-pip-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: #1a1a1a;
+}
+
+.browser-pip-placeholder-icon {
+    font-size: 24px;
+    color: #555;
+}
+
+.browser-pip-placeholder-text {
+    font-size: 13px;
+    color: #666;
+}
+
 /* ── Find Bar ── */
 .find-bar {
     position: absolute;
