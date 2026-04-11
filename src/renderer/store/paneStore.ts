@@ -522,7 +522,7 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
 
     // Write the summarize command once the shell is ready
     const escaped = url.replace(/'/g, "'\\''")
-    const cmd = `summarize --length medium --format md --prompt 'Summarize as a bullet list of concise, tweet-sized facts (2-3 sentences each). No headers, no paragraphs, no intro — just bullet points.' '${escaped}'\r`
+    const cmd = `summarize --length medium --format md --model openai/gpt-5.4-mini --prompt 'Summarize as a bullet list of concise, tweet-sized facts (2-3 sentences each). No headers, no paragraphs, no intro — just bullet points.' '${escaped}'\r`
     setTimeout(() => {
       window.arcnext.pty.write(newPane.id, cmd)
     }, 150)
