@@ -46,7 +46,6 @@ export function groupUnpinnedWorkspaces<T extends GroupableWorkspace>(
   panes: Map<string, PaneInfo>
 ): WorkspaceGroup<T>[] {
   const groups = new Map<string, T[]>()
-  const order: string[] = []
 
   for (const ws of workspaces) {
     const paneIds = allPaneIds(ws.grid)
@@ -55,12 +54,16 @@ export function groupUnpinnedWorkspaces<T extends GroupableWorkspace>(
 
     if (!groups.has(key)) {
       groups.set(key, [])
-      order.push(key)
     }
     groups.get(key)!.push(ws)
   }
 
-  return order.map((key) => ({
+  return [...groups.keys()].sort((a, b) => {
+    const labelA = groupLabel(a)
+    const labelB = groupLabel(b)
+    const byLabel = labelA.localeCompare(labelB, undefined, { sensitivity: 'base' })
+    return byLabel || a.localeCompare(b, undefined, { sensitivity: 'base' })
+  }).map((key) => ({
     key,
     label: groupLabel(key),
     workspaces: groups.get(key)!
