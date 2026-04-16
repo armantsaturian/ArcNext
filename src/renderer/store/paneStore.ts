@@ -5,6 +5,7 @@ import {
   NavDirection
 } from '../model/gridLayout'
 import { getVisualWorkspaceOrder } from '../model/workspaceGrouping'
+import { stripAndTruncate } from '../model/titleFormatter'
 import { createTerminal, destroyTerminal, serializeTerminal } from '../model/terminalManager'
 import { destroyBrowserView } from '../model/browserManager'
 import type { PaneInfo, TerminalPaneInfo, BrowserPaneInfo, SerializedPane, PinnedWorkspaceEntry, AgentState, DictationState } from '../../shared/types'
@@ -98,6 +99,7 @@ interface PaneStore {
   separateWorkspace: (workspaceId: string) => void
   setWorkspaceColor: (id: string, color: string | undefined) => void
   setWorkspaceName: (id: string, name: string) => void
+  aiRenameWorkspace: (workspaceId: string) => void
   moveWorkspace: (fromIndex: number, toIndex: number) => void
 
   // Pane actions
@@ -432,6 +434,50 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
       workspaces: workspaces.map((w) => w.id === id ? { ...w, name } : w)
     })
     if (workspaces.find((w) => w.id === id)?.pinned) get().persistPinned()
+  },
+
+  aiRenameWorkspace: async (workspaceId) => {
+    const { workspaces, panes } = get()
+    const ws = workspaces.find((w) => w.id === workspaceId)
+    if (!ws) return
+
+    const paneIds = allPaneIds(ws.grid)
+    const paneInfos = paneIds.map((id) => panes.get(id)).filter(Boolean) as PaneInfo[]
+
+    const agentCommands = new Set(['claude', 'codex', 'opencode'])
+    const parts: string[] = []
+    for (const pane of paneInfos) {
+      if (pane.type === 'terminal') {
+        const tp = pane as TerminalPaneInfo
+        if (tp.userMessage) parts.push(`User task: ${tp.userMessage}`)
+        if (tp.command && !agentCommands.has(tp.command)) parts.push(`Running: ${tp.command}`)
+        if (tp.cwd) parts.push(`Project: ${tp.cwd.split('/').pop()}`)
+      } else if (pane.type === 'browser') {
+        const bp = pane as BrowserPaneInfo
+        if (bp.title) parts.push(`Page: ${bp.title}`)
+        if (bp.url) parts.push(`URL: ${bp.url}`)
+      }
+    }
+
+    if (parts.length === 0) return
+
+    const context = parts.join('\n')
+
+    try {
+      const result = await window.arcnext.aiRename.generate(context)
+      if (result.name) {
+        get().setWorkspaceName(workspaceId, result.name)
+        return
+      }
+    } catch {
+      // fall through to fallback
+    }
+
+    const primary = paneInfos.find((p) => p.type === 'terminal' && (p as TerminalPaneInfo).userMessage)
+    if (primary && primary.type === 'terminal') {
+      const fallback = stripAndTruncate((primary as TerminalPaneInfo).userMessage!)
+      if (fallback) get().setWorkspaceName(workspaceId, fallback)
+    }
   },
 
   moveWorkspace: (fromIndex, toIndex) => {

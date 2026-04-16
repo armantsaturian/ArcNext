@@ -17,6 +17,9 @@ const api = {
   dirDiscovery: {
     query: () => ipcRenderer.invoke('dirDiscovery:query')
   },
+  aiRename: {
+    generate: (context: string) => ipcRenderer.invoke('aiRename:generate', context)
+  },
   webHistory: {
     visit: (url: string, title?: string, faviconUrl?: string) =>
       ipcRenderer.invoke('webHistory:visit', url, title, faviconUrl),

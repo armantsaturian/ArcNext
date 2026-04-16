@@ -99,6 +99,7 @@ export default function Sidebar() {
   const separateWorkspace = usePaneStore((s) => s.separateWorkspace)
   const setWorkspaceColor = usePaneStore((s) => s.setWorkspaceColor)
   const setWorkspaceName = usePaneStore((s) => s.setWorkspaceName)
+  const aiRenameWorkspace = usePaneStore((s) => s.aiRenameWorkspace)
   const sidebarWidth = usePaneStore((s) => s.sidebarWidth)
   const sidebarCollapsed = usePaneStore((s) => s.sidebarCollapsed)
   const toggleSidebar = usePaneStore((s) => s.toggleSidebar)
@@ -408,6 +409,15 @@ export default function Sidebar() {
               }}
             >
               Rename
+            </button>
+            <button
+              className="ctx-menu-item"
+              onClick={() => {
+                aiRenameWorkspace(contextMenu.workspaceId)
+                setContextMenu(null)
+              }}
+            >
+              AI Rename
             </button>
             <button
               className="ctx-menu-item"

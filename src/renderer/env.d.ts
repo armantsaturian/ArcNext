@@ -18,6 +18,9 @@ interface ArcNextAPI {
   dirDiscovery: {
     query(): Promise<DirEntry[]>
   }
+  aiRename: {
+    generate(context: string): Promise<{ name: string | null }>
+  }
   webHistory: {
     visit(url: string, title?: string, faviconUrl?: string): Promise<void>
     query(): Promise<Array<WebEntry>>

@@ -10,6 +10,7 @@ import { setupPinnedWorkspaces, flushPinnedWorkspacesSync } from './pinnedWorksp
 import { hasFullDiskAccess, showFDADialog } from './fullDiskAccess'
 import { setupBrowserViewManager, destroyAllBrowserViews } from './browserViewManager'
 import { setupDictation, stopAllDictation } from './whisper/dictation'
+import { setupAiRename } from './aiRename'
 
 // Prevent sites from detecting Electron as an automated browser
 app.commandLine.appendSwitch('disable-blink-features', 'AutomationControlled')
@@ -60,6 +61,7 @@ function createWindow(): void {
   setupPinnedWorkspaces()
   setupBrowserViewManager(mainWindow)
   setupDictation(mainWindow)
+  setupAiRename()
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
