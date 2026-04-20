@@ -20,6 +20,7 @@ See the [original motivation](https://x.com/armantsaturian/status/20323926697631
 
 ### Workspaces
 Vertical sidebar with Arc-style tabs. Drag to merge, color-code, pin, sleep.
+Right-click any workspace to rename it manually or generate a contextual AI name from the current session.
 
 ![Workspaces demo](assets/demo-workspaces.gif)
 
