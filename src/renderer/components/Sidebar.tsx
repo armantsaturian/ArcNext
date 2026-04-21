@@ -5,6 +5,7 @@ import { groupUnpinnedWorkspaces } from '../model/workspaceGrouping'
 import { paneDisplayTitle, formatTitle } from '../model/titleFormatter'
 import type { AgentState } from '../../shared/types'
 import AgentIndicator from './AgentIndicator'
+import XNextFeed from './XNextFeed'
 
 function SpeakerIcon({ muted }: { muted: boolean }) {
   if (muted) {
@@ -454,6 +455,7 @@ export default function Sidebar() {
           }}
         />
       )}
+      <XNextFeed />
       {!sidebarCollapsed && (
         <div className="sidebar-resize-handle" onMouseDown={handleResizeStart} />
       )}

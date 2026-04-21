@@ -82,6 +82,11 @@ interface ArcNextAPI {
     requestMicPermission(): Promise<boolean>
     openMicSettings(): Promise<void>
   }
+  xnext: {
+    getState(): Promise<{ enabled: boolean }>
+    setEnabled(enabled: boolean): Promise<void>
+    onChanged(cb: () => void): () => void
+  }
   getPathForFile(file: File): string
 }
 

@@ -12,6 +12,7 @@ import { setupBrowserViewManager, destroyAllBrowserViews } from './browserViewMa
 import { setupDictation, stopAllDictation } from './whisper/dictation'
 import { setupAiRename } from './aiRename'
 import { registerTrashblockScheme, setupTrashblock, flushTrashblockSync } from '../extensions/trashblock/main'
+import { setupXNext, flushXNextSync, onXNextChanged } from '../extensions/xnext/main'
 import { openSettingsWindow } from './settingsWindow'
 
 // Prevent sites from detecting Electron as an automated browser
@@ -66,6 +67,11 @@ function createWindow(): void {
   setupBrowserViewManager(mainWindow)
   setupDictation(mainWindow)
   setupAiRename()
+  setupXNext()
+
+  onXNextChanged(() => {
+    mainWindow!.webContents.send('xnext:changed')
+  })
 
   const browserSession = session.fromPartition('persist:browser')
   setupTrashblock(browserSession, (url: string) => {
@@ -195,6 +201,7 @@ app.on('before-quit', () => {
   flushWebHistorySync()
   flushPinnedWorkspacesSync()
   flushTrashblockSync()
+  flushXNextSync()
 })
 
 app.on('activate', () => {

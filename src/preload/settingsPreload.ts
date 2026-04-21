@@ -13,5 +13,14 @@ contextBridge.exposeInMainWorld('settings', {
       ipcRenderer.on('trashblock:changed', handler)
       return () => { ipcRenderer.removeListener('trashblock:changed', handler) }
     }
+  },
+  xnext: {
+    getState: () => ipcRenderer.invoke('xnext:getState'),
+    setEnabled: (enabled: boolean) => ipcRenderer.invoke('xnext:setEnabled', enabled),
+    onChanged: (cb: () => void) => {
+      const handler = (_event: IpcRendererEvent) => cb()
+      ipcRenderer.on('xnext:changed', handler)
+      return () => { ipcRenderer.removeListener('xnext:changed', handler) }
+    }
   }
 })

@@ -13,6 +13,11 @@ declare global {
         saveDays: (days: number[]) => Promise<{ saved?: boolean; needsChallenge?: boolean }>
         onChanged: (cb: () => void) => () => void
       }
+      xnext: {
+        getState: () => Promise<{ enabled: boolean }>
+        setEnabled: (enabled: boolean) => Promise<void>
+        onChanged: (cb: () => void) => () => void
+      }
     }
   }
 }

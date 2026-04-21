@@ -175,8 +175,19 @@ const dictation = {
   openMicSettings: () => ipcRenderer.invoke('dictation:openMicSettings')
 }
 
+const xnext = {
+  getState: () => ipcRenderer.invoke('xnext:getState'),
+  setEnabled: (enabled: boolean) => ipcRenderer.invoke('xnext:setEnabled', enabled),
+  onChanged: (cb: () => void) => {
+    const handler = (_event: IpcRendererEvent) => cb()
+    ipcRenderer.on('xnext:changed', handler)
+    return () => { ipcRenderer.removeListener('xnext:changed', handler) }
+  }
+}
+
 contextBridge.exposeInMainWorld('arcnext', {
   ...api,
   dictation,
+  xnext,
   getPathForFile: (file: File) => webUtils.getPathForFile(file)
 })

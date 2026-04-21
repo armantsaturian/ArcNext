@@ -1,6 +1,7 @@
 import { BrowserWindow } from 'electron'
 import { join } from 'path'
 import { onTrashblockChanged } from '../extensions/trashblock/main'
+import { onXNextChanged } from '../extensions/xnext/main'
 
 let settingsWindow: BrowserWindow | null = null
 
@@ -35,14 +36,21 @@ export function openSettingsWindow(): void {
     }
   })
 
-  const unsubscribe = onTrashblockChanged(() => {
+  const unsubTrashblock = onTrashblockChanged(() => {
     if (settingsWindow && !settingsWindow.isDestroyed()) {
       settingsWindow.webContents.send('trashblock:changed')
     }
   })
 
+  const unsubXNext = onXNextChanged(() => {
+    if (settingsWindow && !settingsWindow.isDestroyed()) {
+      settingsWindow.webContents.send('xnext:changed')
+    }
+  })
+
   settingsWindow.on('closed', () => {
-    unsubscribe()
+    unsubTrashblock()
+    unsubXNext()
     settingsWindow = null
   })
 

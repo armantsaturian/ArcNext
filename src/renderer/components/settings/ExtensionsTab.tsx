@@ -1,26 +1,39 @@
 import { useState, useEffect, useCallback } from 'react'
 import { TrashblockSettings } from './TrashblockSettings'
 import trashblockIcon from '../../../extensions/trashblock/icon.png'
+import xnextIcon from '../../../extensions/xnext/icon.svg'
 import type { TrashblockData } from '../../../extensions/trashblock/types'
+import type { XNextData } from '../../../extensions/xnext/types'
 
 export function ExtensionsTab(): JSX.Element {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [trashblockEnabled, setTrashblockEnabled] = useState(true)
+  const [xnextEnabled, setXnextEnabled] = useState(true)
 
   const load = useCallback(() => {
     window.settings.trashblock.getState().then((s: TrashblockData) => {
       setTrashblockEnabled(s.enabled)
     })
+    window.settings.xnext.getState().then((s: XNextData) => {
+      setXnextEnabled(s.enabled)
+    })
   }, [])
 
   useEffect(() => {
     load()
-    return window.settings.trashblock.onChanged(load)
+    const unsub1 = window.settings.trashblock.onChanged(load)
+    const unsub2 = window.settings.xnext.onChanged(load)
+    return () => { unsub1(); unsub2() }
   }, [load])
 
   const toggleTrashblock = (enabled: boolean) => {
     setTrashblockEnabled(enabled)
     window.settings.trashblock.setEnabled(enabled)
+  }
+
+  const toggleXnext = (enabled: boolean) => {
+    setXnextEnabled(enabled)
+    window.settings.xnext.setEnabled(enabled)
   }
 
   return (
@@ -37,6 +50,15 @@ export function ExtensionsTab(): JSX.Element {
       {expandedId === 'trashblock' && (
         <div style={styles.expanded}><TrashblockSettings /></div>
       )}
+      <ExtensionRow
+        id="xnext"
+        name="XNext"
+        icon={xnextIcon}
+        enabled={xnextEnabled}
+        expanded={expandedId === 'xnext'}
+        onToggle={toggleXnext}
+        onClick={() => setExpandedId(expandedId === 'xnext' ? null : 'xnext')}
+      />
     </div>
   )
 }

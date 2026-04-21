@@ -1611,3 +1611,158 @@ body,
 .error-boundary-app button:hover {
     background: #2a2a2a;
 }
+
+/* ── XNext Feed ── */
+.xnext-panel {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    max-height: 25%;
+    min-height: 0;
+    -webkit-app-region: no-drag;
+}
+
+.xnext-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    flex-shrink: 0;
+}
+
+.xnext-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #e0e0e0;
+}
+
+.xnext-header-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.xnext-compose-btn,
+.xnext-collapse-btn {
+    width: 20px;
+    height: 20px;
+    border: none;
+    border-radius: 4px;
+    background: none;
+    color: #666;
+    font-size: 11px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s, background 0.15s;
+}
+
+.xnext-compose-btn:hover,
+.xnext-collapse-btn:hover {
+    color: #e0e0e0;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.xnext-compose {
+    padding: 0 10px 6px;
+    flex-shrink: 0;
+}
+
+.xnext-compose-input {
+    width: 100%;
+    padding: 5px 8px;
+    font-size: 11px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    color: #e0e0e0;
+    outline: none;
+    font-family: inherit;
+}
+
+.xnext-compose-input:focus {
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.xnext-feed {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0 6px 6px;
+}
+
+.xnext-feed::-webkit-scrollbar {
+    width: 3px;
+}
+
+.xnext-feed::-webkit-scrollbar-thumb {
+    background: #3a3a3a;
+    border-radius: 2px;
+}
+
+.xnext-tweet {
+    padding: 3px 4px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    line-height: 1.35;
+    color: #bbb;
+    transition: background 0.1s;
+}
+
+.xnext-tweet:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.xnext-handle {
+    color: #74c0fc;
+    font-weight: 600;
+    margin-right: 4px;
+    white-space: nowrap;
+}
+
+.xnext-text {
+    color: #ccc;
+}
+
+.xnext-link {
+    color: #4ecca3;
+    text-decoration: none;
+    margin-left: 3px;
+    font-size: 10px;
+}
+
+.xnext-link:hover {
+    text-decoration: underline;
+}
+
+/* XNext collapsed state */
+.xnext-collapsed {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: center;
+    padding: 6px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    -webkit-app-region: no-drag;
+}
+
+.xnext-collapsed-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    color: #e0e0e0;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+}
+
+.xnext-collapsed-icon:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
