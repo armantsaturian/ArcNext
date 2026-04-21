@@ -1,7 +1,7 @@
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import react from '@vitejs/plugin-react'
-import { copyFileSync, mkdirSync } from 'fs'
-import { resolve } from 'path'
+import { copyFileSync, mkdirSync, readdirSync } from 'fs'
+import { resolve, join } from 'path'
 
 function copyShellIntegration() {
   return {
@@ -13,9 +13,23 @@ function copyShellIntegration() {
   }
 }
 
+function copyTrashblockBlockPage() {
+  return {
+    name: 'copy-trashblock-blockpage',
+    writeBundle() {
+      const src = 'src/extensions/trashblock/blockPage'
+      const dest = 'out/main/extensions/trashblock/blockPage'
+      mkdirSync(dest, { recursive: true })
+      for (const file of readdirSync(src)) {
+        copyFileSync(join(src, file), join(dest, file))
+      }
+    }
+  }
+}
+
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin(), copyShellIntegration()],
+    plugins: [externalizeDepsPlugin(), copyShellIntegration(), copyTrashblockBlockPage()],
     build: {
       outDir: 'out/main',
       rollupOptions: {
@@ -31,7 +45,8 @@ export default defineConfig({
         input: {
           preload: resolve(__dirname, 'src/preload/preload.ts'),
           quitDialogPreload: resolve(__dirname, 'src/preload/quitDialogPreload.ts'),
-          fdaDialogPreload: resolve(__dirname, 'src/preload/fdaDialogPreload.ts')
+          fdaDialogPreload: resolve(__dirname, 'src/preload/fdaDialogPreload.ts'),
+          settingsPreload: resolve(__dirname, 'src/preload/settingsPreload.ts')
         }
       }
     }
@@ -45,7 +60,8 @@ export default defineConfig({
         input: {
           index: resolve(__dirname, 'src/renderer/index.html'),
           quitDialog: resolve(__dirname, 'src/renderer/quit-dialog.html'),
-          fdaDialog: resolve(__dirname, 'src/renderer/fda-dialog.html')
+          fdaDialog: resolve(__dirname, 'src/renderer/fda-dialog.html'),
+          settings: resolve(__dirname, 'src/renderer/settings.html')
         }
       }
     }

@@ -11,9 +11,13 @@ import { hasFullDiskAccess, showFDADialog } from './fullDiskAccess'
 import { setupBrowserViewManager, destroyAllBrowserViews } from './browserViewManager'
 import { setupDictation, stopAllDictation } from './whisper/dictation'
 import { setupAiRename } from './aiRename'
+import { registerTrashblockScheme, setupTrashblock, flushTrashblockSync } from '../extensions/trashblock/main'
+import { openSettingsWindow } from './settingsWindow'
 
 // Prevent sites from detecting Electron as an automated browser
 app.commandLine.appendSwitch('disable-blink-features', 'AutomationControlled')
+
+registerTrashblockScheme()
 
 let mainWindow: BrowserWindow | null = null
 let forceQuit = false
@@ -62,6 +66,11 @@ function createWindow(): void {
   setupBrowserViewManager(mainWindow)
   setupDictation(mainWindow)
   setupAiRename()
+
+  const browserSession = session.fromPartition('persist:browser')
+  setupTrashblock(browserSession, (url: string) => {
+    mainWindow!.webContents.send('browser:openInNewWorkspace', url)
+  })
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
@@ -125,6 +134,12 @@ function buildApplicationMenu(): Menu {
           submenu: [
             { role: 'about' as const },
             { type: 'separator' as const },
+            {
+              label: 'Settings\u2026',
+              accelerator: 'CmdOrCtrl+,',
+              click: () => openSettingsWindow()
+            },
+            { type: 'separator' as const },
             { role: 'services' as const },
             { type: 'separator' as const },
             { role: 'hide' as const },
@@ -179,6 +194,7 @@ app.on('before-quit', () => {
   flushDirHistorySync()
   flushWebHistorySync()
   flushPinnedWorkspacesSync()
+  flushTrashblockSync()
 })
 
 app.on('activate', () => {

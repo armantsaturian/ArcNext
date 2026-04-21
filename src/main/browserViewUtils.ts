@@ -50,7 +50,7 @@ export function createBrowserView(): WebContentsView {
 }
 
 export function normalizeBrowserUrl(url: string): string {
-  if (/^https?:\/\//i.test(url) || url.startsWith('file://')) {
+  if (/^https?:\/\//i.test(url) || url.startsWith('file://') || url.startsWith('arcnext-block://')) {
     return url
   }
 
