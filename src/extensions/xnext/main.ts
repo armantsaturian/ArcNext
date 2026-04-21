@@ -62,7 +62,7 @@ function fetchFeed(): Promise<XNextTweet[]> {
     execFile(xcli, ['feed', '-n', String(FEED_COUNT), '--json'], {
       timeout: 20000,
       env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' }
-    }, (err, stdout, stderr) => {
+    }, (err, stdout) => {
       fetching = false
       if (err) {
         resolve(cachedFeed)
@@ -119,10 +119,6 @@ export function setupXNext(): void {
   })
 
   ipcMain.handle('xnext:getFeed', async () => {
-    return fetchFeed()
-  })
-
-  ipcMain.handle('xnext:refreshFeed', async () => {
     return fetchFeed()
   })
 

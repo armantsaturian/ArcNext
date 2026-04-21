@@ -70,7 +70,9 @@ function createWindow(): void {
   setupXNext()
 
   onXNextChanged(() => {
-    mainWindow!.webContents.send('xnext:changed')
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('xnext:changed')
+    }
   })
 
   const browserSession = session.fromPartition('persist:browser')

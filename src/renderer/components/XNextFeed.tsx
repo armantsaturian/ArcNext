@@ -13,7 +13,6 @@ export default function XNextFeed() {
   const [mediaPaths, setMediaPaths] = useState<string[]>([])
   const [posting, setPosting] = useState(false)
   const [postError, setPostError] = useState('')
-  const feedRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const loadState = useCallback(() => {
@@ -25,14 +24,6 @@ export default function XNextFeed() {
   const loadFeed = useCallback(() => {
     setLoading(true)
     window.arcnext.xnext?.getFeed().then((feed: XNextTweet[]) => {
-      if (feed.length > 0) setTweets(feed)
-      setLoading(false)
-    }).catch(() => setLoading(false))
-  }, [])
-
-  const refresh = useCallback(() => {
-    setLoading(true)
-    window.arcnext.xnext?.refreshFeed().then((feed: XNextTweet[]) => {
       if (feed.length > 0) setTweets(feed)
       setLoading(false)
     }).catch(() => setLoading(false))
@@ -89,9 +80,7 @@ export default function XNextFeed() {
   if (sidebarCollapsed) {
     return (
       <div className="xnext-collapsed">
-        <button className="xnext-collapsed-icon" onClick={() => setCollapsed(!collapsed)} title="XNext Feed">
-          𝕏
-        </button>
+        <div className="xnext-collapsed-icon" title="XNext Feed">𝕏</div>
       </div>
     )
   }
@@ -110,7 +99,7 @@ export default function XNextFeed() {
           </button>
           <button
             className={`xnext-refresh-btn${loading ? ' xnext-spinning' : ''}`}
-            onClick={refresh}
+            onClick={loadFeed}
             title="Refresh feed"
             disabled={loading}
           >

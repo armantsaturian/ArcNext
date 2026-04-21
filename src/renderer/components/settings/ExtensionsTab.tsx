@@ -39,11 +39,9 @@ export function ExtensionsTab(): JSX.Element {
   return (
     <div>
       <ExtensionRow
-        id="trashblock"
         name="TrashBlock"
         icon={trashblockIcon}
         enabled={trashblockEnabled}
-        expanded={expandedId === 'trashblock'}
         onToggle={toggleTrashblock}
         onClick={() => setExpandedId(expandedId === 'trashblock' ? null : 'trashblock')}
       />
@@ -51,11 +49,9 @@ export function ExtensionsTab(): JSX.Element {
         <div style={styles.expanded}><TrashblockSettings /></div>
       )}
       <ExtensionRow
-        id="xnext"
         name="XNext"
         icon={xnextIcon}
         enabled={xnextEnabled}
-        expanded={expandedId === 'xnext'}
         onToggle={toggleXnext}
         onClick={() => setExpandedId(expandedId === 'xnext' ? null : 'xnext')}
       />
@@ -63,12 +59,10 @@ export function ExtensionsTab(): JSX.Element {
   )
 }
 
-function ExtensionRow({ name, icon, enabled, expanded, onToggle, onClick }: {
-  id: string
+function ExtensionRow({ name, icon, enabled, onToggle, onClick }: {
   name: string
   icon: string
   enabled: boolean
-  expanded: boolean
   onToggle: (enabled: boolean) => void
   onClick: () => void
 }) {
