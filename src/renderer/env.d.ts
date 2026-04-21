@@ -85,6 +85,10 @@ interface ArcNextAPI {
   xnext: {
     getState(): Promise<{ enabled: boolean }>
     setEnabled(enabled: boolean): Promise<void>
+    getFeed(): Promise<import('../extensions/xnext/types').XNextTweet[]>
+    refreshFeed(): Promise<import('../extensions/xnext/types').XNextTweet[]>
+    post(text: string, mediaPaths: string[]): Promise<{ ok: boolean; error?: string }>
+    pickMedia(): Promise<string[]>
     onChanged(cb: () => void): () => void
   }
   getPathForFile(file: File): string

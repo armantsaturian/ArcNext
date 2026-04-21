@@ -2,50 +2,86 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { usePaneStore } from '../store/paneStore'
 import type { XNextTweet } from '../../extensions/xnext/types'
 
-const MOCK_TWEETS: XNextTweet[] = [
-  { id: '1', handle: 'collision', text: 'Encyclopaedic knowledge of the restaurant industry — DoorDash foray into autonomous delivery', url: 'https://x.com/i/status/2046575428589220256' },
-  { id: '2', handle: 'GregoryScaduto', text: 'Gender discourse has become stupid. Stupid, in the technical sense.' },
-  { id: '3', handle: 'nurijanian', text: 'DHH spent 20 years dismissing product management. Then admitted he was wrong.', url: 'https://x.com/i/status/2046273217472713086' },
-  { id: '4', handle: 'karpathy', text: 'The hottest new programming language is English' },
-  { id: '5', handle: 'elonmusk', text: 'The algorithm is the editor', url: 'https://x.com/elonmusk/status/123' },
-  { id: '6', handle: 'tobi', text: 'Before you hire, ask: can AI do this? If yes, don\'t hire.' },
-  { id: '7', handle: 'naval', text: 'Specific knowledge is found by pursuing your genuine curiosity' },
-  { id: '8', handle: 'paulg', text: 'The best founders are relentlessly resourceful' },
-  { id: '9', handle: 'sama', text: 'Intelligence too cheap to meter is coming soon' },
-  { id: '10', handle: 'levelsio', text: 'Just ship it. Perfect is the enemy of done.', url: 'https://levelsio.com' },
-  { id: '11', handle: 'george__mack', text: 'High agency people find a way. Low agency people find an excuse.' },
-  { id: '12', handle: 'waitbutwhy', text: 'The cook follows the recipe. The chef invents one.' },
-]
-
 export default function XNextFeed() {
   const sidebarCollapsed = usePaneStore((s) => s.sidebarCollapsed)
   const [enabled, setEnabled] = useState(true)
   const [collapsed, setCollapsed] = useState(false)
-  const [tweets] = useState<XNextTweet[]>(MOCK_TWEETS)
+  const [tweets, setTweets] = useState<XNextTweet[]>([])
+  const [loading, setLoading] = useState(false)
   const [composeText, setComposeText] = useState('')
   const [composing, setComposing] = useState(false)
+  const [mediaPaths, setMediaPaths] = useState<string[]>([])
+  const [posting, setPosting] = useState(false)
+  const [postError, setPostError] = useState('')
   const feedRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const load = useCallback(() => {
+  const loadState = useCallback(() => {
     window.arcnext.xnext?.getState().then((s: { enabled: boolean }) => {
       setEnabled(s.enabled)
     }).catch(() => {})
   }, [])
 
+  const loadFeed = useCallback(() => {
+    setLoading(true)
+    window.arcnext.xnext?.getFeed().then((feed: XNextTweet[]) => {
+      if (feed.length > 0) setTweets(feed)
+      setLoading(false)
+    }).catch(() => setLoading(false))
+  }, [])
+
+  const refresh = useCallback(() => {
+    setLoading(true)
+    window.arcnext.xnext?.refreshFeed().then((feed: XNextTweet[]) => {
+      if (feed.length > 0) setTweets(feed)
+      setLoading(false)
+    }).catch(() => setLoading(false))
+  }, [])
+
   useEffect(() => {
-    load()
-    const unsub = window.arcnext.xnext?.onChanged(load)
+    loadState()
+    loadFeed()
+    const unsub = window.arcnext.xnext?.onChanged(loadState)
     return () => { unsub?.() }
-  }, [load])
+  }, [loadState, loadFeed])
 
   useEffect(() => {
     if (composing && inputRef.current) inputRef.current.focus()
   }, [composing])
 
+  const submitPost = async () => {
+    if (!composeText.trim() || posting) return
+    setPosting(true)
+    setPostError('')
+    const result = await window.arcnext.xnext.post(composeText, mediaPaths)
+    setPosting(false)
+    if (result.ok) {
+      setComposeText('')
+      setMediaPaths([])
+      setComposing(false)
+    } else {
+      setPostError(result.error || 'Failed to post')
+    }
+  }
+
+  const pickMedia = async () => {
+    const paths = await window.arcnext.xnext.pickMedia()
+    if (paths.length > 0) setMediaPaths(prev => [...prev, ...paths].slice(0, 4))
+  }
+
+  const removeMedia = (index: number) => {
+    setMediaPaths(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const closeCompose = () => {
+    setComposing(false)
+    setComposeText('')
+    setMediaPaths([])
+    setPostError('')
+  }
+
   const openTweet = (tweet: XNextTweet) => {
-    const url = tweet.url || `https://x.com/${tweet.handle}/status/${tweet.id}`
-    window.arcnext.browser.openInNewWorkspace(url)
+    window.arcnext.browser.openInNewWorkspace(tweet.url)
   }
 
   if (!enabled) return null
@@ -67,10 +103,18 @@ export default function XNextFeed() {
         <div className="xnext-header-actions">
           <button
             className="xnext-compose-btn"
-            onClick={() => setComposing(!composing)}
+            onClick={() => composing ? closeCompose() : setComposing(true)}
             title="Compose"
           >
-            +
+            {composing ? '×' : '+'}
+          </button>
+          <button
+            className={`xnext-refresh-btn${loading ? ' xnext-spinning' : ''}`}
+            onClick={refresh}
+            title="Refresh feed"
+            disabled={loading}
+          >
+            ↻
           </button>
           <button
             className="xnext-collapse-btn"
@@ -94,24 +138,44 @@ export default function XNextFeed() {
                 onChange={(e) => setComposeText(e.target.value)}
                 onKeyDown={(e) => {
                   e.stopPropagation()
-                  if (e.key === 'Enter' && composeText.trim()) {
-                    setComposeText('')
-                    setComposing(false)
-                  }
-                  if (e.key === 'Escape') {
-                    setComposing(false)
-                    setComposeText('')
-                  }
+                  if (e.key === 'Enter' && !e.shiftKey) submitPost()
+                  if (e.key === 'Escape') closeCompose()
                 }}
               />
+              <div className="xnext-compose-actions">
+                <button className="xnext-media-btn" onClick={pickMedia} title="Attach media" disabled={mediaPaths.length >= 4}>
+                  📎
+                </button>
+                <button
+                  className="xnext-post-btn"
+                  onClick={submitPost}
+                  disabled={!composeText.trim() || posting}
+                >
+                  {posting ? '...' : 'Post'}
+                </button>
+              </div>
+              {mediaPaths.length > 0 && (
+                <div className="xnext-media-list">
+                  {mediaPaths.map((p, i) => (
+                    <span key={i} className="xnext-media-tag">
+                      {p.split('/').pop()}
+                      <button className="xnext-media-remove" onClick={() => removeMedia(i)}>×</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              {postError && <div className="xnext-post-error">{postError}</div>}
             </div>
           )}
           <div className="xnext-feed" ref={feedRef}>
+            {tweets.length === 0 && !loading && (
+              <div className="xnext-empty">No tweets yet. Hit ↻ to refresh.</div>
+            )}
             {tweets.map((t) => (
               <div key={t.id} className="xnext-tweet" onClick={() => openTweet(t)}>
+                {t.retweetedBy && <span className="xnext-rt">RT @{t.retweetedBy}</span>}
                 <span className="xnext-handle">@{t.handle}</span>
                 <span className="xnext-text">{t.text}</span>
-                {t.url && <a className="xnext-link" onClick={(e) => e.stopPropagation()} href="#">↗</a>}
               </div>
             ))}
           </div>

@@ -1,12 +1,16 @@
-import { app, ipcMain } from 'electron'
+import { app, dialog, ipcMain } from 'electron'
 import { readFileSync, writeFileSync, existsSync } from 'fs'
 import { join } from 'path'
-import type { XNextData } from './types'
+import { execFile } from 'child_process'
+import type { XNextData, XNextTweet } from './types'
 
 const DEFAULTS: XNextData = { enabled: true }
+const FEED_COUNT = 30
 
 let data: XNextData = { ...DEFAULTS }
 let storePath = ''
+let cachedFeed: XNextTweet[] = []
+let fetching = false
 const changeListeners = new Set<() => void>()
 
 function load(): void {
@@ -25,6 +29,84 @@ function notifyChanged(): void {
   for (const fn of changeListeners) fn()
 }
 
+function resolveXcli(): string {
+  const home = app.getPath('home')
+  const pyenvShim = join(home, '.pyenv', 'shims', 'xcli')
+  if (existsSync(pyenvShim)) return pyenvShim
+  return 'xcli'
+}
+
+function parseTweets(raw: unknown[]): XNextTweet[] {
+  return raw.map((t: Record<string, unknown>) => {
+    const author = t.author as Record<string, string> | undefined
+    const handle = author?.username || 'unknown'
+    const id = (t.id as string) || ''
+    const text = (t.text as string) || ''
+    const retweetedBy = (t.retweetedBy as string) || undefined
+    return {
+      id,
+      handle,
+      text,
+      url: `https://x.com/${handle}/status/${id}`,
+      retweetedBy
+    }
+  }).filter(t => t.text)
+}
+
+function fetchFeed(): Promise<XNextTweet[]> {
+  if (fetching) return Promise.resolve(cachedFeed)
+  fetching = true
+
+  return new Promise((resolve) => {
+    const xcli = resolveXcli()
+    execFile(xcli, ['feed', '-n', String(FEED_COUNT), '--json'], {
+      timeout: 20000,
+      env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' }
+    }, (err, stdout, stderr) => {
+      fetching = false
+      if (err) {
+        resolve(cachedFeed)
+        return
+      }
+
+      const jsonLine = stdout.split('\n').find(l => l.trim().startsWith('['))
+      if (!jsonLine) {
+        resolve(cachedFeed)
+        return
+      }
+
+      try {
+        const raw = JSON.parse(jsonLine)
+        cachedFeed = parseTweets(raw)
+        resolve(cachedFeed)
+      } catch {
+        resolve(cachedFeed)
+      }
+    })
+  })
+}
+
+function postTweet(text: string, mediaPaths: string[]): Promise<{ ok: boolean; error?: string }> {
+  return new Promise((resolve) => {
+    const xcli = resolveXcli()
+    const args = ['post', text]
+    for (const p of mediaPaths) {
+      args.push('-m', p)
+    }
+    execFile(xcli, args, {
+      timeout: 30000,
+      env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' }
+    }, (err, _stdout, stderr) => {
+      if (err) {
+        const msg = stderr?.trim() || err.message
+        resolve({ ok: false, error: msg })
+        return
+      }
+      resolve({ ok: true })
+    })
+  })
+}
+
 export function setupXNext(): void {
   load()
 
@@ -34,6 +116,29 @@ export function setupXNext(): void {
     data.enabled = enabled
     save()
     notifyChanged()
+  })
+
+  ipcMain.handle('xnext:getFeed', async () => {
+    return fetchFeed()
+  })
+
+  ipcMain.handle('xnext:refreshFeed', async () => {
+    return fetchFeed()
+  })
+
+  ipcMain.handle('xnext:post', async (_e, text: string, mediaPaths: string[]) => {
+    return postTweet(text, mediaPaths)
+  })
+
+  ipcMain.handle('xnext:pickMedia', async () => {
+    const result = await dialog.showOpenDialog({
+      properties: ['openFile', 'multiSelections'],
+      filters: [
+        { name: 'Media', extensions: ['png', 'jpg', 'jpeg', 'gif', 'mp4', 'webp'] }
+      ]
+    })
+    if (result.canceled) return []
+    return result.filePaths.slice(0, 4)
   })
 }
 

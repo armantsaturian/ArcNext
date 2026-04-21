@@ -178,6 +178,10 @@ const dictation = {
 const xnext = {
   getState: () => ipcRenderer.invoke('xnext:getState'),
   setEnabled: (enabled: boolean) => ipcRenderer.invoke('xnext:setEnabled', enabled),
+  getFeed: () => ipcRenderer.invoke('xnext:getFeed'),
+  refreshFeed: () => ipcRenderer.invoke('xnext:refreshFeed'),
+  post: (text: string, mediaPaths: string[]) => ipcRenderer.invoke('xnext:post', text, mediaPaths),
+  pickMedia: () => ipcRenderer.invoke('xnext:pickMedia'),
   onChanged: (cb: () => void) => {
     const handler = (_event: IpcRendererEvent) => cb()
     ipcRenderer.on('xnext:changed', handler)
