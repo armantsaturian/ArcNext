@@ -156,7 +156,7 @@ export default function XNextFeed() {
               {postError && <div className="xnext-post-error">{postError}</div>}
             </div>
           )}
-          <div className="xnext-feed" ref={feedRef}>
+          <div className="xnext-feed">
             {tweets.length === 0 && !loading && (
               <div className="xnext-empty">No tweets yet. Hit ↻ to refresh.</div>
             )}
