@@ -31,6 +31,7 @@ Terminals and browser views side by side in any layout.
 
 ### Integrated Browser
 Dock any web page next to your terminals. Links open in-app. Undock back to a standalone window anytime.
+ArcNext keeps its embedded Chromium current so modern sites and Cloudflare/Turnstile checks are less likely to break in-app.
 
 ![Integrated Browser demo](assets/demo-browser.gif)
 
@@ -41,7 +42,7 @@ Frecency-powered picker with ghost text autocomplete. Search your directory and 
 
 ## Tech Stack
 
-Electron 34 · React 19 · TypeScript · xterm.js 6 (WebGL) · node-pty · Zustand 5 · electron-vite
+Electron 41 · React 19 · TypeScript · xterm.js 6 (WebGL) · node-pty · Zustand 5 · electron-vite
 
 ## Setup
 

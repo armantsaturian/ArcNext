@@ -1,6 +1,29 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const setUserAgent = vi.fn()
+const electronMocks = vi.hoisted(() => {
+  const originalUserAgentFallback =
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.7680.188 Electron/41.2.1 ArcNext/0.10.0 Safari/537.36'
+  const setUserAgent = vi.fn()
+  const onBeforeSendHeaders = vi.fn()
+  const mockApp = {
+    userAgentFallback: originalUserAgentFallback,
+    getName: () => 'ArcNext'
+  }
+  const mockSession = {
+    setUserAgent,
+    webRequest: {
+      onBeforeSendHeaders
+    }
+  }
+
+  return {
+    originalUserAgentFallback,
+    setUserAgent,
+    onBeforeSendHeaders,
+    mockApp,
+    mockSession
+  }
+})
 
 vi.mock('electron', () => {
   class Menu {
@@ -20,12 +43,9 @@ vi.mock('electron', () => {
   }
 
   return {
-    app: {
-      userAgentFallback: 'Mozilla/5.0 Electron/34.0.0 ArcNext/0.6.2 Safari/537.36',
-      getName: () => 'ArcNext'
-    },
+    app: electronMocks.mockApp,
     session: {
-      fromPartition: vi.fn(() => ({ setUserAgent }))
+      fromPartition: vi.fn(() => electronMocks.mockSession)
     },
     Menu,
     MenuItem,
@@ -35,9 +55,30 @@ vi.mock('electron', () => {
   }
 })
 
-import { wireBrowserViewEvents } from '../browserViewUtils'
+import {
+  applyBrowserUserAgentOverride,
+  configureBrowserSession,
+  getChromeUserAgent,
+  wireBrowserViewEvents
+} from '../browserViewUtils'
 
 type Listener = (...args: unknown[]) => void
+
+function createMockSessionHarness() {
+  const setUserAgent = vi.fn()
+  const onBeforeSendHeaders = vi.fn()
+
+  return {
+    setUserAgent,
+    onBeforeSendHeaders,
+    mockSession: {
+      setUserAgent,
+      webRequest: {
+        onBeforeSendHeaders
+      }
+    }
+  }
+}
 
 function createMockView() {
   const listeners = new Map<string, Listener[]>()
@@ -82,9 +123,72 @@ function createMockView() {
   }
 }
 
+describe('browser user agent overrides', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    electronMocks.mockApp.userAgentFallback = electronMocks.originalUserAgentFallback
+  })
+
+  it('strips Electron and ArcNext tokens from the browser user agent', () => {
+    expect(getChromeUserAgent()).toBe(
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.7680.188 Safari/537.36'
+    )
+  })
+
+  it('overrides the app fallback user agent', () => {
+    const chromeUA = applyBrowserUserAgentOverride()
+
+    expect(electronMocks.mockApp.userAgentFallback).toBe(chromeUA)
+    expect(chromeUA).not.toContain('Electron/')
+    expect(chromeUA).not.toContain('ArcNext/')
+  })
+
+  it('forces the stripped user agent on every browser-session request', () => {
+    const sessionHarness = createMockSessionHarness()
+    const chromeUA = configureBrowserSession(sessionHarness.mockSession as unknown as Electron.Session)
+
+    expect(sessionHarness.setUserAgent).toHaveBeenCalledWith(chromeUA)
+    expect(sessionHarness.onBeforeSendHeaders).toHaveBeenCalledTimes(1)
+
+    const handler = sessionHarness.onBeforeSendHeaders.mock.calls[0][0] as (
+      details: { requestHeaders: Record<string, string> },
+      callback: (result: { requestHeaders: Record<string, string> }) => void
+    ) => void
+    const callback = vi.fn()
+
+    handler(
+      {
+        requestHeaders: {
+          Accept: '*/*',
+          'user-agent': 'Electron badness'
+        }
+      },
+      callback
+    )
+
+    expect(callback).toHaveBeenCalledWith({
+      requestHeaders: {
+        Accept: '*/*',
+        'User-Agent': chromeUA
+      }
+    })
+  })
+
+  it('does not register duplicate request interceptors for the same browser session', () => {
+    const sessionHarness = createMockSessionHarness()
+
+    configureBrowserSession(sessionHarness.mockSession as unknown as Electron.Session)
+    configureBrowserSession(sessionHarness.mockSession as unknown as Electron.Session)
+
+    expect(sessionHarness.onBeforeSendHeaders).toHaveBeenCalledTimes(1)
+    expect(sessionHarness.setUserAgent).toHaveBeenCalledTimes(2)
+  })
+})
+
 describe('wireBrowserViewEvents', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    electronMocks.mockApp.userAgentFallback = electronMocks.originalUserAgentFallback
   })
 
   it('ignores blocked subframe load failures', () => {

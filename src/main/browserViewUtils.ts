@@ -1,24 +1,63 @@
 import { app, WebContentsView, session, Menu, MenuItem, clipboard } from 'electron'
 
 export const BROWSER_PARTITION = 'persist:browser'
+const configuredBrowserSessions = new WeakSet<Electron.Session>()
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
 
 /**
  * Build a User-Agent string that matches a real Chrome browser.
  * Strips Electron and app name tokens that trip Google's bot detection.
  */
-function getChromeUserAgent(): string {
+export function getChromeUserAgent(): string {
   const defaultUA = app.userAgentFallback
   return defaultUA
     .replace(/\s*Electron\/[\w.-]+/, '')
-    .replace(new RegExp(`\\s*${app.getName()}/[\\w.-]+`), '')
+    .replace(new RegExp(`\\s*${escapeRegExp(app.getName())}/[\\w.-]+`), '')
+}
+
+/**
+ * Some challenge flows ignore Session.setUserAgent() for subframe requests and
+ * fall back to app.userAgentFallback instead, which leaks the Electron token.
+ * Override the global fallback as well so every browser-pane request presents
+ * the same Chrome-like fingerprint.
+ */
+export function applyBrowserUserAgentOverride(): string {
+  const chromeUserAgent = getChromeUserAgent()
+  app.userAgentFallback = chromeUserAgent
+  return chromeUserAgent
+}
+
+export function configureBrowserSession(browserSession: Electron.Session): string {
+  const chromeUserAgent = applyBrowserUserAgentOverride()
+  browserSession.setUserAgent(chromeUserAgent)
+  if (configuredBrowserSessions.has(browserSession)) {
+    return chromeUserAgent
+  }
+
+  browserSession.webRequest.onBeforeSendHeaders((details, callback) => {
+    const requestHeaders = { ...details.requestHeaders }
+    for (const headerName of Object.keys(requestHeaders)) {
+      if (headerName.toLowerCase() === 'user-agent' && headerName !== 'User-Agent') {
+        delete requestHeaders[headerName]
+      }
+    }
+    requestHeaders['User-Agent'] = chromeUserAgent
+    callback({ requestHeaders })
+  })
+
+  configuredBrowserSessions.add(browserSession)
+  return chromeUserAgent
 }
 
 let _browserSession: Electron.Session | null = null
 
-function getBrowserSession(): Electron.Session {
+export function getBrowserSession(): Electron.Session {
   if (!_browserSession) {
     _browserSession = session.fromPartition(BROWSER_PARTITION)
-    _browserSession.setUserAgent(getChromeUserAgent())
+    configureBrowserSession(_browserSession)
   }
   return _browserSession
 }

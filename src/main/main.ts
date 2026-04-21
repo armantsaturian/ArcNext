@@ -9,6 +9,7 @@ import { setupWebHistory, flushWebHistorySync } from './webHistory'
 import { setupPinnedWorkspaces, flushPinnedWorkspacesSync } from './pinnedWorkspaces'
 import { hasFullDiskAccess, showFDADialog } from './fullDiskAccess'
 import { setupBrowserViewManager, destroyAllBrowserViews } from './browserViewManager'
+import { getBrowserSession } from './browserViewUtils'
 import { setupDictation, stopAllDictation } from './whisper/dictation'
 import { setupAiRename } from './aiRename'
 import { registerTrashblockScheme, setupTrashblock, flushTrashblockSync } from '../extensions/trashblock/main'
@@ -75,7 +76,7 @@ function createWindow(): void {
     }
   })
 
-  const browserSession = session.fromPartition('persist:browser')
+  const browserSession = getBrowserSession()
   setupTrashblock(browserSession, (url: string) => {
     mainWindow!.webContents.send('browser:openInNewWorkspace', url)
   })
