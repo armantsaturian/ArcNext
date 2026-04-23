@@ -62,8 +62,10 @@
     "publish": {
       "provider": "github",
       "owner": "armantsaturian",
-      "repo": "arcnext"
+      "repo": "arcnext",
+      "channel": "latest"
     },
+    "generateUpdatesFilesForAllChannels": true,
     "files": [
       "out/**/*"
     ],
