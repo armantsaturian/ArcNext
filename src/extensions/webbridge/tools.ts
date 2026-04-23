@@ -317,16 +317,16 @@ export const handlers = {
 
 // Tree search for wait() — finds first node by role and/or name substring
 function findInTree(
-  node: { ref: string; role: string; name?: string; children?: Array<{ ref: string; role: string; name?: string; children?: unknown[] }> },
+  node: import('./protocol').AxNode,
   role: string | undefined,
   name: string | undefined
 ): { ref: string } | null {
   const roleOk = !role || node.role === role
-  const nameOk = !name || (node.name && node.name.toLowerCase().includes(name.toLowerCase()))
+  const nameOk = !name || (!!node.name && node.name.toLowerCase().includes(name.toLowerCase()))
   if (node.ref && roleOk && nameOk && (role || name)) return { ref: node.ref }
   if (node.children) {
-    for (const c of node.children) {
-      const found = findInTree(c as Parameters<typeof findInTree>[0], role, name)
+    for (const child of node.children) {
+      const found = findInTree(child, role, name)
       if (found) return found
     }
   }

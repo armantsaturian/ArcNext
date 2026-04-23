@@ -21,7 +21,7 @@
  */
 
 import { app } from 'electron'
-import { existsSync, lstatSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync, copyFileSync, chmodSync, unlinkSync } from 'fs'
+import { existsSync, lstatSync, mkdirSync, readFileSync, symlinkSync, writeFileSync, copyFileSync, chmodSync, unlinkSync } from 'fs'
 import { dirname, join } from 'path'
 import { homedir } from 'os'
 

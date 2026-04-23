@@ -11,6 +11,7 @@ import { hasFullDiskAccess, showFDADialog } from './fullDiskAccess'
 import { setupBrowserViewManager, destroyAllBrowserViews } from './browserViewManager'
 import { getBrowserSession } from './browserViewUtils'
 import { setupWebBridge } from '../extensions/webbridge/main'
+import { setupBetaChannel } from './betaChannel'
 import { setupDictation, stopAllDictation } from './whisper/dictation'
 import { setupAiRename } from './aiRename'
 import { registerTrashblockScheme, setupTrashblock, flushTrashblockSync } from '../extensions/trashblock/main'
@@ -178,6 +179,7 @@ app.whenReady().then(() => {
   }
 
   createWindow()
+  setupBetaChannel()
   autoUpdater.checkForUpdatesAndNotify()
 })
 

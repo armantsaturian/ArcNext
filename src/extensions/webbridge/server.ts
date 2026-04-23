@@ -28,7 +28,6 @@ import { BridgeError } from './cdp'
 
 interface Session {
   sessionId: string
-  clientName?: string
   authed: boolean
 }
 
@@ -139,7 +138,6 @@ async function dispatch(session: Session, req: JsonRpcRequest): Promise<JsonRpcR
         }
       }
       session.authed = true
-      session.clientName = params.clientName
       const result: HelloResult = {
         protocolVersion: PROTOCOL_VERSION,
         sessionId: session.sessionId

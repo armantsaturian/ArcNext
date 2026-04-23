@@ -11,9 +11,11 @@ export function ExtensionsTab(): JSX.Element {
   const [trashblockEnabled, setTrashblockEnabled] = useState(true)
   const [xnextEnabled, setXnextEnabled] = useState(true)
   const [xcliMissing, setXcliMissing] = useState(false)
+  const [bridgeEnabled, setBridgeEnabled] = useState(false)
   const [bridgeInstalled, setBridgeInstalled] = useState(false)
   const [bridgeBusy, setBridgeBusy] = useState(false)
   const [bridgeError, setBridgeError] = useState<string | null>(null)
+  const [betaChannel, setBetaChannel] = useState(false)
 
   const load = useCallback(() => {
     window.settings.trashblock.getState().then((s: TrashblockData) => {
@@ -25,8 +27,12 @@ export function ExtensionsTab(): JSX.Element {
     window.settings.xnext.checkAvailable().then(({ available }) => {
       setXcliMissing(!available)
     })
-    window.settings.webbridge.getSettings().then((s: { installed: boolean }) => {
+    window.settings.webbridge.getSettings().then((s: { enabled: boolean; installed: boolean }) => {
+      setBridgeEnabled(s.enabled)
       setBridgeInstalled(s.installed)
+    })
+    window.settings.betaChannel.getSettings().then((s: { allowPrerelease: boolean }) => {
+      setBetaChannel(s.allowPrerelease)
     })
   }, [])
 
@@ -47,7 +53,20 @@ export function ExtensionsTab(): JSX.Element {
     window.settings.xnext.setEnabled(enabled)
   }
 
-  const toggleBridge = async (on: boolean) => {
+  const toggleBridgeEnabled = async (on: boolean) => {
+    setBridgeBusy(true)
+    setBridgeError(null)
+    try {
+      await window.settings.webbridge.setEnabled(on)
+      setBridgeEnabled(on)
+    } catch (err) {
+      setBridgeError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setBridgeBusy(false)
+    }
+  }
+
+  const toggleBridgeInstalled = async (on: boolean) => {
     setBridgeBusy(true)
     setBridgeError(null)
     try {
@@ -61,13 +80,18 @@ export function ExtensionsTab(): JSX.Element {
     }
   }
 
+  const toggleBetaChannel = async (on: boolean) => {
+    setBetaChannel(on)
+    await window.settings.betaChannel.setAllowPrerelease(on)
+  }
+
   return (
     <div>
       <ExtensionRow
         name="Browser Bridge"
         icon={'🌐'}
-        enabled={bridgeInstalled}
-        onToggle={toggleBridge}
+        enabled={bridgeEnabled}
+        onToggle={toggleBridgeEnabled}
         disabled={bridgeBusy}
         onClick={() => setExpandedId(expandedId === 'webbridge' ? null : 'webbridge')}
         subtitle={bridgeError
@@ -75,7 +99,14 @@ export function ExtensionsTab(): JSX.Element {
           : <>Let AI agents see and drive browser panes via <code style={styles.code}>arcnext-bridge</code></>}
       />
       {expandedId === 'webbridge' && (
-        <div style={styles.expanded}><BrowserBridgeSettings installed={bridgeInstalled} /></div>
+        <div style={styles.expanded}>
+          <BrowserBridgeSettings
+            enabled={bridgeEnabled}
+            installed={bridgeInstalled}
+            busy={bridgeBusy}
+            onSetInstalled={toggleBridgeInstalled}
+          />
+        </div>
       )}
       <ExtensionRow
         name="TrashBlock"
@@ -107,6 +138,15 @@ export function ExtensionsTab(): JSX.Element {
             </a>
           </>
         ) : undefined}
+      />
+      <div style={styles.sectionGap} />
+      <ExtensionRow
+        name="Beta updates"
+        icon={'\u{1F9EA}'}
+        enabled={betaChannel}
+        onToggle={toggleBetaChannel}
+        onClick={() => {}}
+        subtitle={<>Receive pre-release builds (marked as pre-release on GitHub) alongside stable.</>}
       />
     </div>
   )
@@ -228,5 +268,10 @@ const styles: Record<string, React.CSSProperties> = {
   knobOff: { left: 2 },
   expanded: {
     padding: '4px 8px 12px 36px'
+  },
+  sectionGap: {
+    height: 12,
+    borderTop: '1px solid rgba(255,255,255,0.06)',
+    marginTop: 8
   }
 }

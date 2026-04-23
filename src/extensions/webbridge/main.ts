@@ -21,43 +21,21 @@ import { invalidateRefs } from './snapshot'
 import * as locks from './lockManager'
 import * as overlay from './overlay'
 import { getSocketPath, getToken, startServer, stopServer } from './server'
-import { setupWebBridgeSettings } from './settings'
+import { getSettings as getBridgeSettings, onSettingsChanged, setupWebBridgeSettings } from './settings'
 import { setMainWindow } from './tools'
 
-let ready = false
+let running = false
 
-export async function setupWebBridge(mainWindow: BrowserWindow): Promise<void> {
-  setMainWindow(mainWindow)
-  setupWebBridgeSettings()
+const discoveryDir = join(homedir(), '.arcnext')
+const discoveryPath = join(discoveryDir, 'bridge.json')
 
-  const sockPath = join(app.getPath('userData'), 'webbridge.sock')
-  try {
-    await startServer(sockPath)
-    ready = true
-    // eslint-disable-next-line no-console
-    console.log(`[webbridge] listening on ${sockPath}`)
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('[webbridge] failed to start:', err)
-    return
-  }
-
-  // Dev-only: write connection info to a side file so smoke tests can attach
-  // without having to spawn a real PTY. Only runs when ELECTRON_RENDERER_URL
-  // is set, which electron-vite sets exclusively in `npm run dev`.
-  if (process.env.ELECTRON_RENDERER_URL) {
-    const devInfoPath = join(app.getPath('userData'), 'webbridge-dev.json')
-    try {
-      writeFileSync(devInfoPath, JSON.stringify({ sock: getSocketPath(), token: getToken() }))
-    } catch { /* ignore */ }
-  }
-
+function writeDiscoveryFile(): void {
   // Token-discovery file at ~/.arcnext/bridge.json (0600).
-  // Always written while the server runs — this is how the CLI finds
+  // Written only while the server is running — this is how the CLI finds
   // ArcNext from shells where ARCNEXT_BRIDGE_SOCK/TOKEN weren't injected
-  // (e.g. Terminal.app, iTerm, VS Code terminal).
-  const discoveryDir = join(homedir(), '.arcnext')
-  const discoveryPath = join(discoveryDir, 'bridge.json')
+  // (e.g. Terminal.app, iTerm, VS Code terminal). If the file is absent and
+  // env vars aren't set, the CLI returns a clean "bridge not available"
+  // error, which is the correct signal that the toggle is off.
   try {
     mkdirSync(discoveryDir, { recursive: true })
     writeFileSync(discoveryPath, JSON.stringify({
@@ -67,10 +45,61 @@ export async function setupWebBridge(mainWindow: BrowserWindow): Promise<void> {
       writtenAt: Date.now()
     }))
     try { chmodSync(discoveryPath, 0o600) } catch { /* best effort */ }
-  } catch { /* ignore — bridge still works for in-PTY shells */ }
+  } catch { /* ignore */ }
+}
 
-  app.on('before-quit', () => {
-    if (existsSync(discoveryPath)) try { unlinkSync(discoveryPath) } catch { /* ignore */ }
+function removeDiscoveryFile(): void {
+  if (existsSync(discoveryPath)) try { unlinkSync(discoveryPath) } catch { /* ignore */ }
+}
+
+async function startBridge(): Promise<void> {
+  if (running) return
+  const sockPath = join(app.getPath('userData'), 'webbridge.sock')
+  try {
+    await startServer(sockPath)
+    running = true
+    // eslint-disable-next-line no-console
+    console.log(`[webbridge] listening on ${sockPath}`)
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('[webbridge] failed to start:', err)
+    return
+  }
+
+  writeDiscoveryFile()
+
+  // Dev-only: mirror connection info to a smoke-test helper file.
+  if (process.env.ELECTRON_RENDERER_URL) {
+    const devInfoPath = join(app.getPath('userData'), 'webbridge-dev.json')
+    try {
+      writeFileSync(devInfoPath, JSON.stringify({ sock: getSocketPath(), token: getToken() }))
+    } catch { /* ignore */ }
+  }
+}
+
+function stopBridge(): void {
+  if (!running) return
+  cdpDetachAll()
+  stopServer()
+  removeDiscoveryFile()
+  running = false
+  // eslint-disable-next-line no-console
+  console.log('[webbridge] stopped')
+}
+
+export async function setupWebBridge(mainWindow: BrowserWindow): Promise<void> {
+  setMainWindow(mainWindow)
+  setupWebBridgeSettings()
+
+  // Start only if the master toggle is on; otherwise stay dormant.
+  if (getBridgeSettings().enabled) {
+    await startBridge()
+  }
+
+  // React to toggle changes at runtime — no restart needed.
+  onSettingsChanged((next) => {
+    if (next.enabled && !running) void startBridge()
+    else if (!next.enabled && running) stopBridge()
   })
 
   // Forward lock events to the renderer (sidebar glow) AND update the in-page
@@ -123,14 +152,13 @@ export async function setupWebBridge(mainWindow: BrowserWindow): Promise<void> {
 
   app.on('before-quit', () => {
     clearInterval(sweeperInterval)
-    cdpDetachAll()
-    stopServer()
+    stopBridge()
   })
 }
 
 /** PTY env vars to inject so shells spawned inside ArcNext can reach the bridge. */
 export function getPtyEnv(): Record<string, string> {
-  if (!ready) return {}
+  if (!running) return {}
   return {
     ARCNEXT_BRIDGE_SOCK: getSocketPath(),
     ARCNEXT_BRIDGE_TOKEN: getToken()

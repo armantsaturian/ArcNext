@@ -37,10 +37,6 @@ export function onLockEvent(listener: Listener): () => void {
   return () => { listeners.delete(listener) }
 }
 
-export function getLock(paneId: string): Lock | undefined {
-  return locks.get(paneId)
-}
-
 export function holder(paneId: string): string | undefined {
   return locks.get(paneId)?.sessionId
 }
@@ -103,10 +99,4 @@ export function sweepIdle(now: number = Date.now()): void {
       emit({ type: 'released', paneId, sessionId: lock.sessionId })
     }
   }
-}
-
-/** Testing helper. */
-export function _reset(): void {
-  locks.clear()
-  listeners.clear()
 }

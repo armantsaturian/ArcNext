@@ -26,7 +26,12 @@ contextBridge.exposeInMainWorld('settings', {
   },
   webbridge: {
     getSettings: () => ipcRenderer.invoke('webbridge:getSettings'),
+    setEnabled: (on: boolean) => ipcRenderer.invoke('webbridge:setEnabled', on),
     setInstalled: (on: boolean) => ipcRenderer.invoke('webbridge:setInstalled', on),
     isInstalled: () => ipcRenderer.invoke('webbridge:isInstalled')
+  },
+  betaChannel: {
+    getSettings: () => ipcRenderer.invoke('betaChannel:getSettings'),
+    setAllowPrerelease: (on: boolean) => ipcRenderer.invoke('betaChannel:setAllowPrerelease', on)
   }
 })

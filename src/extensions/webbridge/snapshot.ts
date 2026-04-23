@@ -17,12 +17,9 @@ import { ErrorCode } from './protocol'
 interface RefEntry {
   ref: string
   backendNodeId: number
-  role: string
-  name: string
 }
 
 interface PaneRefs {
-  paneId: string
   byRef: Map<string, RefEntry>
 }
 
@@ -40,7 +37,6 @@ interface RawAxNode {
   name?: { value: string }
   value?: { value: unknown }
   description?: { value: string }
-  properties?: Array<{ name: string; value: { value: unknown } }>
   childIds?: string[]
   backendDOMNodeId?: number
 }
@@ -77,7 +73,7 @@ export async function takeSnapshot(paneId: string, wc: WebContents): Promise<Sna
   if (!root) throw new BridgeError(ErrorCode.CDPError, 'empty AX tree')
 
   let refCounter = 1
-  const refs: PaneRefs = { paneId, byRef: new Map() }
+  const refs: PaneRefs = { byRef: new Map() }
 
   const visit = (rawId: string): AxNode | null => {
     const n = byNodeId.get(rawId)
@@ -106,7 +102,7 @@ export async function takeSnapshot(paneId: string, wc: WebContents): Promise<Sna
 
     const backendId = n.backendDOMNodeId
     if (backendId) {
-      refs.byRef.set(ref, { ref, backendNodeId: backendId, role, name: name ?? '' })
+      refs.byRef.set(ref, { ref, backendNodeId: backendId })
     }
 
     const out: AxNode = { ref, role }
@@ -134,7 +130,7 @@ export async function takeSnapshot(paneId: string, wc: WebContents): Promise<Sna
  * Resolve a ref to the DOM content-rect center. Requires a prior snapshot
  * in this pane. Returns {x, y} in viewport coords suitable for Input dispatch.
  */
-export async function resolveRef(paneId: string, ref: string): Promise<{ x: number; y: number; backendNodeId: number }> {
+export async function resolveRef(paneId: string, ref: string): Promise<{ x: number; y: number }> {
   const table = refsByPane.get(paneId)
   const entry = table?.byRef.get(ref)
   if (!entry) {
@@ -142,18 +138,12 @@ export async function resolveRef(paneId: string, ref: string): Promise<{ x: numb
   }
 
   interface BoxModel {
-    model: {
-      content: number[] // [x1,y1,x2,y2,x3,y3,x4,y4]
-      width: number
-      height: number
-    }
+    model: { content: number[] } // [x1,y1,x2,y2,x3,y3,x4,y4]
   }
 
   const box = await send<BoxModel>(paneId, 'DOM.getBoxModel', { backendNodeId: entry.backendNodeId })
   const [x1, y1, x2, y2, x3, y3, x4, y4] = box.model.content
-  const cx = (x1 + x2 + x3 + x4) / 4
-  const cy = (y1 + y2 + y3 + y4) / 4
-  return { x: cx, y: cy, backendNodeId: entry.backendNodeId }
+  return { x: (x1 + x2 + x3 + x4) / 4, y: (y1 + y2 + y3 + y4) / 4 }
 }
 
 /**
@@ -179,9 +169,4 @@ export async function resolveSelector(paneId: string, selector: string): Promise
   const box = await send<BoxModel>(paneId, 'DOM.getBoxModel', { nodeId: found.nodeId })
   const [x1, y1, x2, y2, x3, y3, x4, y4] = box.model.content
   return { x: (x1 + x2 + x3 + x4) / 4, y: (y1 + y2 + y3 + y4) / 4 }
-}
-
-/** For tests. */
-export function _reset(): void {
-  refsByPane.clear()
 }

@@ -49,8 +49,6 @@ export const ErrorCode = {
   RefNotFound: -32040
 } as const
 
-export type AppErrorCode = typeof ErrorCode[keyof typeof ErrorCode]
-
 export interface PaneSummary {
   paneId: string
   url: string
@@ -97,7 +95,6 @@ export interface WaitResult {
 export interface HelloParams { token: string; clientName?: string; clientVersion?: string }
 export interface HelloResult { protocolVersion: number; sessionId: string }
 
-export interface PanesParams { /* none */ }
 export interface OpenParams { url: string; background?: boolean }
 export interface NavigateParams { paneId: string; url: string }
 export interface ReloadParams { paneId: string; ignoreCache?: boolean }
@@ -133,5 +130,3 @@ export const Method = {
   Release: 'release',
   Stop: 'stop'
 } as const
-
-export type MethodName = typeof Method[keyof typeof Method]
