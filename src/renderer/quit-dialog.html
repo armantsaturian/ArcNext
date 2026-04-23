@@ -72,6 +72,22 @@
       button:focus-visible {
         border-color: #a878d4;
       }
+      .kbd {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 5px;
+        margin-left: 6px;
+        border-radius: 4px;
+        background: rgba(255,255,255,0.12);
+        font-size: 10px;
+        font-weight: 600;
+        line-height: 1;
+        color: rgba(255,255,255,0.6);
+        vertical-align: middle;
+      }
     </style>
   </head>
   <body>
@@ -80,8 +96,8 @@
       <div class="title">Are you sure you want to quit?</div>
       <div class="detail">All terminal sessions will be closed.</div>
       <div class="buttons">
-        <button id="cancel" type="button">Cancel</button>
-        <button id="quit" type="button">Quit</button>
+        <button id="cancel" type="button">Cancel<span class="kbd">ESC</span></button>
+        <button id="quit" type="button">Quit<span class="kbd">⏎</span></button>
       </div>
     </div>
     <script type="module" src="./quitDialog.ts"></script>
