@@ -127,6 +127,14 @@ export default function Sidebar() {
   const [colorPicker, setColorPicker] = useState<{ x: number; y: number; workspaceId: string } | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [dividerDropActive, setDividerDropActive] = useState(false)
+  const [aiRenameMissing, setAiRenameMissing] = useState(false)
+
+  useEffect(() => {
+    if (!contextMenu) return
+    window.arcnext.aiRename.checkAvailable().then(({ available }) => {
+      setAiRenameMissing(!available)
+    }).catch(() => {})
+  }, [contextMenu])
 
   const sidebarPopupOpen = !!(contextMenu || colorPicker)
   useEffect(() => {
@@ -411,15 +419,28 @@ export default function Sidebar() {
             >
               Rename
             </button>
-            <button
-              className="ctx-menu-item"
-              onClick={() => {
-                aiRenameWorkspace(contextMenu.workspaceId)
-                setContextMenu(null)
-              }}
-            >
-              AI Rename
-            </button>
+            {aiRenameMissing ? (
+              <button
+                className="ctx-menu-item ctx-menu-item-setup"
+                onClick={() => {
+                  window.arcnext.browser.openInNewWorkspace('https://github.com/steipete/summarize')
+                  setContextMenu(null)
+                }}
+                title="AI Rename requires the `summarize` CLI"
+              >
+                AI Rename · Install summarize →
+              </button>
+            ) : (
+              <button
+                className="ctx-menu-item"
+                onClick={() => {
+                  aiRenameWorkspace(contextMenu.workspaceId)
+                  setContextMenu(null)
+                }}
+              >
+                AI Rename
+              </button>
+            )}
             <button
               className="ctx-menu-item"
               onClick={(e) => {

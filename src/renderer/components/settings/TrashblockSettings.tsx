@@ -16,6 +16,7 @@ declare global {
       xnext: {
         getState: () => Promise<{ enabled: boolean }>
         setEnabled: (enabled: boolean) => Promise<void>
+        checkAvailable: () => Promise<{ available: boolean }>
         onChanged: (cb: () => void) => () => void
       }
     }

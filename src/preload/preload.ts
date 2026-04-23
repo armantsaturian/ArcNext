@@ -18,7 +18,8 @@ const api = {
     query: () => ipcRenderer.invoke('dirDiscovery:query')
   },
   aiRename: {
-    generate: (context: string) => ipcRenderer.invoke('aiRename:generate', context)
+    generate: (context: string) => ipcRenderer.invoke('aiRename:generate', context),
+    checkAvailable: () => ipcRenderer.invoke('aiRename:checkAvailable')
   },
   webHistory: {
     visit: (url: string, title?: string, faviconUrl?: string) =>
@@ -178,6 +179,7 @@ const dictation = {
 const xnext = {
   getState: () => ipcRenderer.invoke('xnext:getState'),
   setEnabled: (enabled: boolean) => ipcRenderer.invoke('xnext:setEnabled', enabled),
+  checkAvailable: () => ipcRenderer.invoke('xnext:checkAvailable'),
   getFeed: () => ipcRenderer.invoke('xnext:getFeed'),
   post: (text: string, mediaPaths: string[]) => ipcRenderer.invoke('xnext:post', text, mediaPaths),
   pickMedia: () => ipcRenderer.invoke('xnext:pickMedia'),

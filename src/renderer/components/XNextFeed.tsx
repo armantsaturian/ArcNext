@@ -13,6 +13,7 @@ export default function XNextFeed() {
   const [mediaPaths, setMediaPaths] = useState<string[]>([])
   const [posting, setPosting] = useState(false)
   const [postError, setPostError] = useState('')
+  const [xcliMissing, setXcliMissing] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const loadState = useCallback(() => {
@@ -27,6 +28,9 @@ export default function XNextFeed() {
       if (feed.length > 0) setTweets(feed)
       setLoading(false)
     }).catch(() => setLoading(false))
+    window.arcnext.xnext?.checkAvailable().then(({ available }) => {
+      setXcliMissing(!available)
+    }).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -51,6 +55,7 @@ export default function XNextFeed() {
       setMediaPaths([])
       setComposing(false)
     } else {
+      if (result.error === 'xcli not installed') setXcliMissing(true)
       setPostError(result.error || 'Failed to post')
     }
   }
@@ -157,7 +162,21 @@ export default function XNextFeed() {
             </div>
           )}
           <div className="xnext-feed">
-            {tweets.length === 0 && !loading && (
+            {tweets.length === 0 && !loading && xcliMissing && (
+              <div className="xnext-empty xnext-setup">
+                Requires <code>xcli</code>.{' '}
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    window.arcnext.browser.openInNewWorkspace('https://github.com/armantsaturian/xcli')
+                  }}
+                >
+                  Install →
+                </a>
+              </div>
+            )}
+            {tweets.length === 0 && !loading && !xcliMissing && (
               <div className="xnext-empty">No tweets yet. Hit ↻ to refresh.</div>
             )}
             {tweets.map((t) => (

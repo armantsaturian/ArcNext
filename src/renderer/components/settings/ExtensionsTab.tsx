@@ -9,6 +9,7 @@ export function ExtensionsTab(): JSX.Element {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [trashblockEnabled, setTrashblockEnabled] = useState(true)
   const [xnextEnabled, setXnextEnabled] = useState(true)
+  const [xcliMissing, setXcliMissing] = useState(false)
 
   const load = useCallback(() => {
     window.settings.trashblock.getState().then((s: TrashblockData) => {
@@ -16,6 +17,9 @@ export function ExtensionsTab(): JSX.Element {
     })
     window.settings.xnext.getState().then((s: XNextData) => {
       setXnextEnabled(s.enabled)
+    })
+    window.settings.xnext.checkAvailable().then(({ available }) => {
+      setXcliMissing(!available)
     })
   }, [])
 
@@ -54,22 +58,40 @@ export function ExtensionsTab(): JSX.Element {
         enabled={xnextEnabled}
         onToggle={toggleXnext}
         onClick={() => setExpandedId(expandedId === 'xnext' ? null : 'xnext')}
+        subtitle={xcliMissing ? (
+          <>
+            Requires <code style={styles.code}>xcli</code>.{' '}
+            <a
+              href="https://github.com/armantsaturian/xcli"
+              target="_blank"
+              rel="noreferrer"
+              style={styles.link}
+              onClick={(e) => e.stopPropagation()}
+            >
+              Install →
+            </a>
+          </>
+        ) : undefined}
       />
     </div>
   )
 }
 
-function ExtensionRow({ name, icon, enabled, onToggle, onClick }: {
+function ExtensionRow({ name, icon, enabled, onToggle, onClick, subtitle }: {
   name: string
   icon: string
   enabled: boolean
   onToggle: (enabled: boolean) => void
   onClick: () => void
+  subtitle?: React.ReactNode
 }) {
   return (
     <div style={styles.row} onClick={onClick}>
       <img src={icon} alt="" style={styles.icon} />
-      <span style={styles.name}>{name}</span>
+      <div style={styles.nameCol}>
+        <span style={styles.name}>{name}</span>
+        {subtitle && <span style={styles.subtitle}>{subtitle}</span>}
+      </div>
       <div
         style={{ ...styles.toggle, ...(enabled ? styles.toggleOn : styles.toggleOff) }}
         onClick={(e) => { e.stopPropagation(); onToggle(!enabled) }}
@@ -95,10 +117,32 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 4,
     flexShrink: 0
   },
-  name: {
+  nameCol: {
     flex: 1,
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: 2,
+    minWidth: 0
+  },
+  name: {
     fontSize: 13,
     color: '#e0e0e0'
+  },
+  subtitle: {
+    fontSize: 11,
+    color: '#888'
+  },
+  code: {
+    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+    fontSize: 10,
+    color: '#bbb',
+    background: 'rgba(255,255,255,0.06)',
+    padding: '1px 4px',
+    borderRadius: 3
+  },
+  link: {
+    color: '#67b3ff',
+    textDecoration: 'none'
   },
   toggle: {
     width: 32,

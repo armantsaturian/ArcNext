@@ -19,7 +19,8 @@ interface ArcNextAPI {
     query(): Promise<DirEntry[]>
   }
   aiRename: {
-    generate(context: string): Promise<{ name: string | null }>
+    generate(context: string): Promise<{ name: string | null; reason?: 'missing' }>
+    checkAvailable(): Promise<{ available: boolean }>
   }
   webHistory: {
     visit(url: string, title?: string, faviconUrl?: string): Promise<void>
@@ -85,6 +86,7 @@ interface ArcNextAPI {
   xnext: {
     getState(): Promise<{ enabled: boolean }>
     setEnabled(enabled: boolean): Promise<void>
+    checkAvailable(): Promise<{ available: boolean }>
     getFeed(): Promise<import('../extensions/xnext/types').XNextTweet[]>
     post(text: string, mediaPaths: string[]): Promise<{ ok: boolean; error?: string }>
     pickMedia(): Promise<string[]>

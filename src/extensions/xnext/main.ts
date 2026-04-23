@@ -36,6 +36,35 @@ function resolveXcli(): string {
   return 'xcli'
 }
 
+function xcliEnv(): NodeJS.ProcessEnv {
+  const home = app.getPath('home')
+  return {
+    ...process.env,
+    PYTHONDONTWRITEBYTECODE: '1',
+    PATH: `${process.env.PATH}:/usr/local/bin:/opt/homebrew/bin:${home}/.local/bin`
+  }
+}
+
+let xcliAvailable: boolean | null = null
+
+function checkXcli(): Promise<boolean> {
+  if (xcliAvailable === true) return Promise.resolve(true)
+
+  return new Promise((resolve) => {
+    const home = app.getPath('home')
+    const pyenvShim = join(home, '.pyenv', 'shims', 'xcli')
+    if (existsSync(pyenvShim)) {
+      xcliAvailable = true
+      resolve(true)
+      return
+    }
+    execFile('which', ['xcli'], { timeout: 3000, env: xcliEnv() }, (err) => {
+      xcliAvailable = !err
+      resolve(xcliAvailable)
+    })
+  })
+}
+
 function parseTweets(raw: unknown[]): XNextTweet[] {
   return raw.map((t: Record<string, unknown>) => {
     const author = t.author as Record<string, string> | undefined
@@ -61,13 +90,15 @@ function fetchFeed(): Promise<XNextTweet[]> {
     const xcli = resolveXcli()
     execFile(xcli, ['feed', '-n', String(FEED_COUNT), '--json'], {
       timeout: 20000,
-      env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' }
+      env: xcliEnv()
     }, (err, stdout) => {
       fetching = false
       if (err) {
+        if ((err as NodeJS.ErrnoException).code === 'ENOENT') xcliAvailable = false
         resolve(cachedFeed)
         return
       }
+      xcliAvailable = true
 
       const jsonLine = stdout.split('\n').find(l => l.trim().startsWith('['))
       if (!jsonLine) {
@@ -95,13 +126,19 @@ function postTweet(text: string, mediaPaths: string[]): Promise<{ ok: boolean; e
     }
     execFile(xcli, args, {
       timeout: 30000,
-      env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' }
+      env: xcliEnv()
     }, (err, _stdout, stderr) => {
       if (err) {
+        if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+          xcliAvailable = false
+          resolve({ ok: false, error: 'xcli not installed' })
+          return
+        }
         const msg = stderr?.trim() || err.message
         resolve({ ok: false, error: msg })
         return
       }
+      xcliAvailable = true
       resolve({ ok: true })
     })
   })
@@ -111,6 +148,10 @@ export function setupXNext(): void {
   load()
 
   ipcMain.handle('xnext:getState', () => ({ enabled: data.enabled }))
+
+  ipcMain.handle('xnext:checkAvailable', async () => {
+    return { available: await checkXcli() }
+  })
 
   ipcMain.handle('xnext:setEnabled', (_e, enabled: boolean) => {
     data.enabled = enabled

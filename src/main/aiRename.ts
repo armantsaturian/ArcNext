@@ -15,10 +15,15 @@ const PROMPT =
 let summarizeAvailable: boolean | null = null
 
 function checkSummarize(): Promise<boolean> {
-  if (summarizeAvailable !== null) return Promise.resolve(summarizeAvailable)
+  if (summarizeAvailable === true) return Promise.resolve(true)
 
   return new Promise((resolve) => {
-    execFile('which', ['summarize'], { timeout: 3000 }, (err) => {
+    const home = homedir()
+    const env = {
+      ...process.env,
+      PATH: `${process.env.PATH}:/usr/local/bin:/opt/homebrew/bin:${home}/.local/bin`
+    }
+    execFile('which', ['summarize'], { timeout: 3000, env }, (err) => {
       summarizeAvailable = !err
       resolve(summarizeAvailable)
     })
@@ -62,10 +67,14 @@ function generate(context: string): Promise<{ name: string | null }> {
 }
 
 export function setupAiRename(): void {
+  ipcMain.handle('aiRename:checkAvailable', async () => {
+    return { available: await checkSummarize() }
+  })
+
   ipcMain.handle('aiRename:generate', async (_event, context: string) => {
     try {
       const available = await checkSummarize()
-      if (!available) return { name: null }
+      if (!available) return { name: null, reason: 'missing' as const }
       return await generate(context)
     } catch {
       return { name: null }

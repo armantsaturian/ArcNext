@@ -700,6 +700,11 @@ body,
     color: #74c0fc;
 }
 
+.ctx-menu-item-setup {
+    color: #888;
+    font-style: italic;
+}
+
 /* ── Color picker ── */
 .color-picker {
     position: fixed;
@@ -1833,6 +1838,30 @@ body,
     text-align: center;
     padding: 12px 0;
     font-style: italic;
+}
+
+.xnext-setup {
+    font-style: normal;
+    color: #888;
+    padding: 12px 8px;
+    line-height: 1.5;
+}
+
+.xnext-setup code {
+    font-family: inherit;
+    color: #bbb;
+    background: rgba(255, 255, 255, 0.06);
+    padding: 1px 4px;
+    border-radius: 3px;
+}
+
+.xnext-setup a {
+    color: #67b3ff;
+    text-decoration: none;
+}
+
+.xnext-setup a:hover {
+    text-decoration: underline;
 }
 
 .xnext-spinning {

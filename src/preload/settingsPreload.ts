@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld('settings', {
   xnext: {
     getState: () => ipcRenderer.invoke('xnext:getState'),
     setEnabled: (enabled: boolean) => ipcRenderer.invoke('xnext:setEnabled', enabled),
+    checkAvailable: () => ipcRenderer.invoke('xnext:checkAvailable'),
     onChanged: (cb: () => void) => {
       const handler = (_event: IpcRendererEvent) => cb()
       ipcRenderer.on('xnext:changed', handler)

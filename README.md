@@ -52,6 +52,17 @@ npm run dev            # development
 npm run package        # production DMG (signed + notarized)
 ```
 
+## Optional Integrations
+
+A few features shell out to external CLIs that aren't bundled with ArcNext. The app works without them — those features just stay dark until you install the tool.
+
+| Feature | Requires | Install |
+|---------|----------|---------|
+| XNext sidebar (X/Twitter feed + compose) | `xcli` | [github.com/armantsaturian/xcli](https://github.com/armantsaturian/xcli) |
+| AI Rename (workspace auto-naming) and browser "Summarize URL" | `summarize` | [github.com/steipete/summarize](https://github.com/steipete/summarize) |
+
+After installing, make sure the CLI is on your `PATH` (or, for `xcli`, available at `~/.pyenv/shims/xcli`). Restart ArcNext to pick it up.
+
 ## Keyboard Shortcuts
 
 | Shortcut | Action |

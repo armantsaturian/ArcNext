@@ -1,4 +1,4 @@
-import { BrowserWindow } from 'electron'
+import { BrowserWindow, shell } from 'electron'
 import { join } from 'path'
 import { onTrashblockChanged } from '../extensions/trashblock/main'
 import { onXNextChanged } from '../extensions/xnext/main'
@@ -34,6 +34,11 @@ export function openSettingsWindow(): void {
       contextIsolation: true,
       sandbox: true
     }
+  })
+
+  settingsWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('http://') || url.startsWith('https://')) shell.openExternal(url)
+    return { action: 'deny' }
   })
 
   const unsubTrashblock = onTrashblockChanged(() => {
