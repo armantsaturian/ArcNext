@@ -1,6 +1,6 @@
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import react from '@vitejs/plugin-react'
-import { copyFileSync, mkdirSync, readdirSync } from 'fs'
+import { copyFileSync, mkdirSync, readdirSync, chmodSync } from 'fs'
 import { resolve, join } from 'path'
 
 function copyShellIntegration() {
@@ -27,9 +27,40 @@ function copyTrashblockBlockPage() {
   }
 }
 
+function buildBridgeCli() {
+  return {
+    name: 'build-bridge-cli',
+    async writeBundle() {
+      // Bundle the CLI as a single self-contained file via esbuild so it can
+      // be invoked by agents from any shell without needing node_modules.
+      // electron-vite's main build produces code-split chunks which won't
+      // resolve correctly once we move the entry — a fresh standalone bundle
+      // avoids that entire class of problem.
+      //
+      // Destination is `out/main/bin/` (not `out/bin/`) so that __dirname +
+      // 'bin' in main.ts resolves correctly in both dev and packaged builds.
+      const { build } = await import('esbuild')
+      mkdirSync('out/main/bin', { recursive: true })
+      const dest = 'out/main/bin/arcnext-bridge'
+      await build({
+        entryPoints: ['src/extensions/webbridge/cli/main.ts'],
+        bundle: true,
+        platform: 'node',
+        target: 'node18',
+        format: 'cjs',
+        outfile: dest,
+        banner: { js: '#!/usr/bin/env node' },
+        logLevel: 'warning',
+        legalComments: 'none'
+      })
+      chmodSync(dest, 0o755)
+    }
+  }
+}
+
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin(), copyShellIntegration(), copyTrashblockBlockPage()],
+    plugins: [externalizeDepsPlugin(), copyShellIntegration(), copyTrashblockBlockPage(), buildBridgeCli()],
     build: {
       outDir: 'out/main',
       rollupOptions: {

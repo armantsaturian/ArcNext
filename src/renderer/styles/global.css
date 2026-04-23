@@ -1202,6 +1202,47 @@ body,
     box-shadow: 0 0 12px rgba(255, 255, 255, 0.15);
 }
 
+/* ── Web bridge: agent ownership + action glow ──
+ * The page-level overlay (injected into the WebContents) handles the
+ * "on top of the page" visual. These classes only add a subtle cue on the
+ * chrome behind the webview so state is still visible at pane edges. */
+.browser-pane.agent-holds {
+    border-color: rgba(116, 192, 252, 0.5);
+}
+
+.browser-pane.agent-acting {
+    border-color: rgba(116, 192, 252, 0.85);
+}
+
+/* ── Sidebar: agent is driving a pane in this workspace (possibly off-screen) ── */
+.ws-row.ws-bridge-holds {
+    box-shadow: inset 0 0 0 1px rgba(116, 192, 252, 0.55);
+}
+
+.ws-row.ws-bridge-acting {
+    box-shadow: inset 0 0 0 1px rgba(116, 192, 252, 0.9), 0 0 10px rgba(116, 192, 252, 0.4);
+    animation: arcnext-sidebar-bridge-pulse 1.0s ease-in-out infinite;
+}
+
+@keyframes arcnext-sidebar-bridge-pulse {
+    0%, 100% {
+        box-shadow: inset 0 0 0 1px rgba(116, 192, 252, 0.65), 0 0 8px rgba(116, 192, 252, 0.3);
+    }
+    50% {
+        box-shadow: inset 0 0 0 1px #74c0fc, 0 0 14px rgba(116, 192, 252, 0.6);
+    }
+}
+
+/* Collapsed sidebar: the row is just an icon; glow the icon itself */
+.sidebar-collapsed .ws-row.ws-bridge-holds .ws-collapsed-icon {
+    box-shadow: 0 0 0 2px rgba(116, 192, 252, 0.7);
+}
+
+.sidebar-collapsed .ws-row.ws-bridge-acting .ws-collapsed-icon {
+    box-shadow: 0 0 0 2px #74c0fc, 0 0 14px rgba(116, 192, 252, 0.8);
+    animation: arcnext-sidebar-bridge-pulse 1.0s ease-in-out infinite;
+}
+
 .browser-nav {
     display: flex;
     align-items: center;

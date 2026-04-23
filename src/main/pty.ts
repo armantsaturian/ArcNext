@@ -2,6 +2,7 @@ import { BrowserWindow, ipcMain } from 'electron'
 import * as pty from 'node-pty'
 import { homedir } from 'os'
 import { join } from 'path'
+import { getPtyEnv } from '../extensions/webbridge/main'
 
 const ptys = new Map<string, pty.IPty>()
 
@@ -9,6 +10,9 @@ const shellIntegrationDir = join(
   __dirname.replace('app.asar', 'app.asar.unpacked'),
   'shell-integration'
 )
+
+/** Directory that contains the bundled arcnext-bridge CLI. */
+const binDir = join(__dirname.replace('app.asar', 'app.asar.unpacked'), 'bin')
 
 export function setupPTY(window: BrowserWindow): void {
   ipcMain.on('pty:create', (_event, paneId: string, cwd?: string) => {
@@ -37,6 +41,10 @@ export function setupPTY(window: BrowserWindow): void {
       env['ARCNEXT_ORIGINAL_ZDOTDIR'] = env['ZDOTDIR'] || env['HOME'] || homedir()
       env['ZDOTDIR'] = shellIntegrationDir
     }
+    // Inject web-bridge env so agents in this shell can reach the bridge.
+    for (const [k, v] of Object.entries(getPtyEnv())) env[k] = v
+    // Prepend the bundled CLI dir to PATH so `arcnext-bridge` resolves.
+    env['PATH'] = env['PATH'] ? `${binDir}:${env['PATH']}` : binDir
     const term = pty.spawn(shell, ['-l'], {
       name: 'xterm-256color',
       cols: 80,

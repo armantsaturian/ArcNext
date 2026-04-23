@@ -10,6 +10,7 @@ import { setupPinnedWorkspaces, flushPinnedWorkspacesSync } from './pinnedWorksp
 import { hasFullDiskAccess, showFDADialog } from './fullDiskAccess'
 import { setupBrowserViewManager, destroyAllBrowserViews } from './browserViewManager'
 import { getBrowserSession } from './browserViewUtils'
+import { setupWebBridge } from '../extensions/webbridge/main'
 import { setupDictation, stopAllDictation } from './whisper/dictation'
 import { setupAiRename } from './aiRename'
 import { registerTrashblockScheme, setupTrashblock, flushTrashblockSync } from '../extensions/trashblock/main'
@@ -66,6 +67,7 @@ function createWindow(): void {
   setupWebHistory()
   setupPinnedWorkspaces()
   setupBrowserViewManager(mainWindow)
+  void setupWebBridge(mainWindow)
   setupDictation(mainWindow)
   setupAiRename()
   setupXNext()

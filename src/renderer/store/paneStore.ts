@@ -8,7 +8,7 @@ import { getVisualWorkspaceOrder } from '../model/workspaceGrouping'
 import { stripAndTruncate } from '../model/titleFormatter'
 import { createTerminal, destroyTerminal, serializeTerminal } from '../model/terminalManager'
 import { destroyBrowserView } from '../model/browserManager'
-import type { PaneInfo, TerminalPaneInfo, BrowserPaneInfo, SerializedPane, PinnedWorkspaceEntry, AgentState, DictationState } from '../../shared/types'
+import type { PaneInfo, TerminalPaneInfo, BrowserPaneInfo, SerializedPane, PinnedWorkspaceEntry, AgentState, BridgeState, DictationState } from '../../shared/types'
 
 let nextPaneId = 1
 let nextWorkspaceId = 1
@@ -158,6 +158,11 @@ interface PaneStore {
   // Agent detection
   agentStates: Map<string, AgentState>
   setAgentState: (paneId: string, state: AgentState | null) => void
+
+  // Web bridge (CDP driving)
+  bridgeStates: Map<string, BridgeState>
+  setBridgeHolds: (paneId: string, holds: boolean) => void
+  pulseBridgeActing: (paneId: string) => void
 
   // Audio state
   audioStates: Map<string, { playing: boolean; muted: boolean }>
@@ -1058,6 +1063,36 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
       newStates.delete(paneId)
     }
     set({ agentStates: newStates })
+  },
+
+  bridgeStates: new Map<string, BridgeState>(),
+  setBridgeHolds: (paneId, holds) => {
+    const { bridgeStates } = get()
+    const existing = bridgeStates.get(paneId)
+    if (!holds && !existing) return
+    const next = new Map(bridgeStates)
+    if (!holds && !existing?.acting) {
+      next.delete(paneId)
+    } else {
+      next.set(paneId, { holds, acting: existing?.acting ?? false })
+    }
+    set({ bridgeStates: next })
+  },
+  pulseBridgeActing: (paneId) => {
+    const { bridgeStates } = get()
+    const existing = bridgeStates.get(paneId)
+    const next = new Map(bridgeStates)
+    next.set(paneId, { holds: existing?.holds ?? false, acting: true })
+    set({ bridgeStates: next })
+    setTimeout(() => {
+      const { bridgeStates: current } = get()
+      const s = current.get(paneId)
+      if (!s) return
+      const after = new Map(current)
+      if (s.holds) after.set(paneId, { holds: true, acting: false })
+      else after.delete(paneId)
+      set({ bridgeStates: after })
+    }, 1500)
   },
 
   dictationStates: new Map<string, DictationState>(),

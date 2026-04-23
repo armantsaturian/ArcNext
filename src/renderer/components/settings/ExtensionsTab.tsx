@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { TrashblockSettings } from './TrashblockSettings'
+import { BrowserBridgeSettings } from './BrowserBridgeSettings'
 import trashblockIcon from '../../../extensions/trashblock/icon.png'
 import xnextIcon from '../../../extensions/xnext/icon.svg'
 import type { TrashblockData } from '../../../extensions/trashblock/types'
@@ -10,6 +11,9 @@ export function ExtensionsTab(): JSX.Element {
   const [trashblockEnabled, setTrashblockEnabled] = useState(true)
   const [xnextEnabled, setXnextEnabled] = useState(true)
   const [xcliMissing, setXcliMissing] = useState(false)
+  const [bridgeInstalled, setBridgeInstalled] = useState(false)
+  const [bridgeBusy, setBridgeBusy] = useState(false)
+  const [bridgeError, setBridgeError] = useState<string | null>(null)
 
   const load = useCallback(() => {
     window.settings.trashblock.getState().then((s: TrashblockData) => {
@@ -20,6 +24,9 @@ export function ExtensionsTab(): JSX.Element {
     })
     window.settings.xnext.checkAvailable().then(({ available }) => {
       setXcliMissing(!available)
+    })
+    window.settings.webbridge.getSettings().then((s: { installed: boolean }) => {
+      setBridgeInstalled(s.installed)
     })
   }, [])
 
@@ -40,8 +47,36 @@ export function ExtensionsTab(): JSX.Element {
     window.settings.xnext.setEnabled(enabled)
   }
 
+  const toggleBridge = async (on: boolean) => {
+    setBridgeBusy(true)
+    setBridgeError(null)
+    try {
+      const result = await window.settings.webbridge.setInstalled(on)
+      if (result.ok) setBridgeInstalled(on)
+      else setBridgeError((result.errors?.[0]) || 'Install failed')
+    } catch (err) {
+      setBridgeError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setBridgeBusy(false)
+    }
+  }
+
   return (
     <div>
+      <ExtensionRow
+        name="Browser Bridge"
+        icon={'🌐'}
+        enabled={bridgeInstalled}
+        onToggle={toggleBridge}
+        disabled={bridgeBusy}
+        onClick={() => setExpandedId(expandedId === 'webbridge' ? null : 'webbridge')}
+        subtitle={bridgeError
+          ? <span style={styles.error}>{bridgeError}</span>
+          : <>Let AI agents see and drive browser panes via <code style={styles.code}>arcnext-bridge</code></>}
+      />
+      {expandedId === 'webbridge' && (
+        <div style={styles.expanded}><BrowserBridgeSettings installed={bridgeInstalled} /></div>
+      )}
       <ExtensionRow
         name="TrashBlock"
         icon={trashblockIcon}
@@ -77,24 +112,33 @@ export function ExtensionsTab(): JSX.Element {
   )
 }
 
-function ExtensionRow({ name, icon, enabled, onToggle, onClick, subtitle }: {
+function ExtensionRow({ name, icon, enabled, onToggle, onClick, subtitle, disabled }: {
   name: string
   icon: string
   enabled: boolean
   onToggle: (enabled: boolean) => void
   onClick: () => void
   subtitle?: React.ReactNode
+  disabled?: boolean
 }) {
+  // Emoji icons (starts with non-ASCII) vs image imports
+  const isEmojiIcon = typeof icon === 'string' && !icon.startsWith('/') && !icon.endsWith('.png') && !icon.endsWith('.svg') && !icon.startsWith('data:')
   return (
     <div style={styles.row} onClick={onClick}>
-      <img src={icon} alt="" style={styles.icon} />
+      {isEmojiIcon
+        ? <span style={styles.iconEmoji}>{icon}</span>
+        : <img src={icon} alt="" style={styles.icon} />}
       <div style={styles.nameCol}>
         <span style={styles.name}>{name}</span>
         {subtitle && <span style={styles.subtitle}>{subtitle}</span>}
       </div>
       <div
-        style={{ ...styles.toggle, ...(enabled ? styles.toggleOn : styles.toggleOff) }}
-        onClick={(e) => { e.stopPropagation(); onToggle(!enabled) }}
+        style={{
+          ...styles.toggle,
+          ...(enabled ? styles.toggleOn : styles.toggleOff),
+          ...(disabled ? styles.toggleDisabled : {})
+        }}
+        onClick={(e) => { e.stopPropagation(); if (!disabled) onToggle(!enabled) }}
       >
         <div style={{ ...styles.knob, ...(enabled ? styles.knobOn : styles.knobOff) }} />
       </div>
@@ -116,6 +160,22 @@ const styles: Record<string, React.CSSProperties> = {
     height: 20,
     borderRadius: 4,
     flexShrink: 0
+  },
+  iconEmoji: {
+    width: 20,
+    height: 20,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: 16,
+    flexShrink: 0
+  },
+  error: {
+    color: '#ff8a80'
+  },
+  toggleDisabled: {
+    opacity: 0.5,
+    cursor: 'wait'
   },
   nameCol: {
     flex: 1,

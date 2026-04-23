@@ -249,6 +249,20 @@ export default function App() {
       window.arcnext.browser.onSummarize((paneId, url) => {
         usePaneStore.getState().summarizeUrl(paneId, url)
       }),
+      // Web bridge: track per-pane agent ownership and per-action pulses.
+      // Single source of truth in the store — BrowserPane + Sidebar read it.
+      window.arcnext.bridge.onAcquired((paneId) => {
+        usePaneStore.getState().setBridgeHolds(paneId, true)
+      }),
+      window.arcnext.bridge.onReleased((paneId) => {
+        usePaneStore.getState().setBridgeHolds(paneId, false)
+      }),
+      window.arcnext.bridge.onYielded((paneId) => {
+        usePaneStore.getState().setBridgeHolds(paneId, false)
+      }),
+      window.arcnext.bridge.onAgentActed((paneId) => {
+        usePaneStore.getState().pulseBridgeActing(paneId)
+      }),
       // Dictation: write transcribed text straight to PTY
       window.arcnext.dictation.onText((paneId, text) => {
         window.arcnext.pty.write(paneId, text)

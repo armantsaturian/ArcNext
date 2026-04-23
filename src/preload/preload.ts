@@ -160,6 +160,30 @@ const api = {
   }
 }
 
+const bridge = {
+  onAgentActed: (cb: (paneId: string) => void) => {
+    const handler = (_e: IpcRendererEvent, paneId: string) => cb(paneId)
+    ipcRenderer.on('bridge:agentActed', handler)
+    return () => { ipcRenderer.removeListener('bridge:agentActed', handler) }
+  },
+  onAcquired: (cb: (paneId: string, sessionId: string | null) => void) => {
+    const handler = (_e: IpcRendererEvent, paneId: string, sessionId: string | null) => cb(paneId, sessionId)
+    ipcRenderer.on('bridge:acquired', handler)
+    return () => { ipcRenderer.removeListener('bridge:acquired', handler) }
+  },
+  onReleased: (cb: (paneId: string) => void) => {
+    const handler = (_e: IpcRendererEvent, paneId: string) => cb(paneId)
+    ipcRenderer.on('bridge:released', handler)
+    return () => { ipcRenderer.removeListener('bridge:released', handler) }
+  },
+  onYielded: (cb: (paneId: string) => void) => {
+    const handler = (_e: IpcRendererEvent, paneId: string) => cb(paneId)
+    ipcRenderer.on('bridge:yielded', handler)
+    return () => { ipcRenderer.removeListener('bridge:yielded', handler) }
+  },
+  reportUserInput: (paneId: string) => ipcRenderer.send('bridge:userInputOnPane', paneId)
+}
+
 const dictation = {
   ensureModel: () => ipcRenderer.invoke('dictation:ensureModel'),
   start: (paneId: string) => ipcRenderer.send('dictation:start', paneId),
@@ -192,6 +216,7 @@ const xnext = {
 
 contextBridge.exposeInMainWorld('arcnext', {
   ...api,
+  bridge,
   dictation,
   xnext,
   getPathForFile: (file: File) => webUtils.getPathForFile(file)

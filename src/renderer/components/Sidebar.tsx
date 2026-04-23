@@ -3,7 +3,7 @@ import { usePaneStore, Workspace, PaneInfo, TerminalPaneInfo, BrowserPaneInfo } 
 import { allPaneIds } from '../model/gridLayout'
 import { groupUnpinnedWorkspaces } from '../model/workspaceGrouping'
 import { paneDisplayTitle, formatTitle } from '../model/titleFormatter'
-import type { AgentState } from '../../shared/types'
+import type { AgentState, BridgeState } from '../../shared/types'
 import AgentIndicator from './AgentIndicator'
 import XNextFeed from './XNextFeed'
 
@@ -108,6 +108,7 @@ export default function Sidebar() {
 
   const setOverlay = usePaneStore((s) => s.setOverlay)
   const agentStates = usePaneStore((s) => s.agentStates)
+  const bridgeStates = usePaneStore((s) => s.bridgeStates)
   const audioStates = usePaneStore((s) => s.audioStates)
   const sidebarGrouped = usePaneStore((s) => s.sidebarGrouped)
   const setSidebarGrouped = usePaneStore((s) => s.setSidebarGrouped)
@@ -272,6 +273,16 @@ export default function Sidebar() {
               }
               if (hasPlaying) wsAudioState = { muted: allMuted, paneIds: playingPaneIds }
             }
+            // Aggregate web-bridge state across this workspace's panes.
+            // "acting" dominates "holds" so recent activity is always visible.
+            let wsBridgeState: BridgeState | null = null
+            for (const pid of wsPaneIds) {
+              const bs = bridgeStates.get(pid)
+              if (!bs) continue
+              if (!wsBridgeState) wsBridgeState = { holds: false, acting: false }
+              if (bs.holds) wsBridgeState.holds = true
+              if (bs.acting) wsBridgeState.acting = true
+            }
             return (
             <WorkspaceRow
               key={ws.id}
@@ -284,6 +295,7 @@ export default function Sidebar() {
               agentState={wsAgentState}
               paneAgentStates={wsPaneAgentStates}
               audioState={wsAudioState}
+              bridgeState={wsBridgeState}
               grouped={sidebarGrouped}
               onSelect={() => {
                 if (ws.dormant) wakeWorkspace(ws.id)
@@ -494,6 +506,7 @@ interface WorkspaceRowProps {
   agentState: AgentState | null
   paneAgentStates?: Map<string, AgentState>
   audioState: { muted: boolean; paneIds: string[] } | null
+  bridgeState: BridgeState | null
   isEditing: boolean
   grouped: boolean
   onSelect: () => void
@@ -512,7 +525,7 @@ interface WorkspaceRowProps {
 }
 
 function WorkspaceRow({
-  workspace, panes, collapsed, isActive, isDragging, dropPosition, agentState, paneAgentStates, audioState, isEditing, grouped,
+  workspace, panes, collapsed, isActive, isDragging, dropPosition, agentState, paneAgentStates, audioState, bridgeState, isEditing, grouped,
   onSelect, onSleep, onRemove, onClosePane, onDoubleClick, onRename, onCancelRename,
   onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd, onContextMenu
 }: WorkspaceRowProps) {
@@ -556,7 +569,9 @@ function WorkspaceRow({
     workspace.dormant && 'ws-dormant',
     dropPosition === 'on' && 'ws-drop-target',
     dropPosition === 'before' && 'ws-insert-before',
-    dropPosition === 'after' && 'ws-insert-after'
+    dropPosition === 'after' && 'ws-insert-after',
+    bridgeState?.holds && 'ws-bridge-holds',
+    bridgeState?.acting && 'ws-bridge-acting'
   ].filter(Boolean).join(' ')
 
   useEffect(() => {

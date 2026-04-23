@@ -1,7 +1,7 @@
 import { BrowserWindow, WebContentsView, ipcMain } from 'electron'
 import { createBrowserView, normalizeBrowserUrl, wireBrowserViewEvents } from './browserViewUtils'
 
-interface ManagedBrowserView {
+export interface ManagedBrowserView {
   view: WebContentsView
   paneId: string
   bounds: { x: number; y: number; width: number; height: number }
@@ -11,6 +11,28 @@ interface ManagedBrowserView {
 
 const views = new Map<string, ManagedBrowserView>()
 let win: BrowserWindow | null = null
+
+type PaneLifecycleListener = (event: { type: 'created' | 'destroyed'; paneId: string }) => void
+const lifecycleListeners = new Set<PaneLifecycleListener>()
+
+function emitLifecycle(event: { type: 'created' | 'destroyed'; paneId: string }): void {
+  for (const l of lifecycleListeners) {
+    try { l(event) } catch { /* ignore */ }
+  }
+}
+
+export function onPaneLifecycle(listener: PaneLifecycleListener): () => void {
+  lifecycleListeners.add(listener)
+  return () => { lifecycleListeners.delete(listener) }
+}
+
+export function getBrowserView(paneId: string): ManagedBrowserView | undefined {
+  return views.get(paneId)
+}
+
+export function listBrowserViews(): ManagedBrowserView[] {
+  return Array.from(views.values())
+}
 
 function wireViewEvents(view: WebContentsView, paneId: string): () => void {
   if (!win) return () => {}
@@ -90,6 +112,7 @@ export function setupBrowserViewManager(mainWindow: BrowserWindow): void {
     const view = createBrowserView()
     const cleanup = wireViewEvents(view, paneId)
     views.set(paneId, { view, paneId, bounds: { x: 0, y: 0, width: 0, height: 0 }, cleanup, mediaPlaying: false })
+    emitLifecycle({ type: 'created', paneId })
 
     view.webContents.loadURL(normalizeBrowserUrl(url))
   })
@@ -241,6 +264,7 @@ function destroyView(paneId: string): void {
   }
   try { managed.view.webContents.close() } catch { /* already closed */ }
   views.delete(paneId)
+  emitLifecycle({ type: 'destroyed', paneId })
 }
 
 export function destroyAllBrowserViews(): void {

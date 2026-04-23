@@ -35,6 +35,10 @@ ArcNext keeps its embedded Chromium current so modern sites and Cloudflare/Turns
 
 ![Integrated Browser demo](assets/demo-browser.gif)
 
+### Agent bridge
+Agents running in an ArcNext terminal pane can observe and drive any open browser pane through the `arcnext-bridge` CLI — snapshot the page, click, type, navigate. Presence is detected via the `ARCNEXT_BRIDGE_SOCK` env var, and the pane glows sky-blue while an agent is acting so you can watch and interrupt.
+For example, ask Claude Code to "like the top post on my LinkedIn feed" and it'll open the page, snapshot it, and click the right button for you. See `arcnext-bridge --help` for the full command list.
+
 ### Smart Cmd+T
 Frecency-powered picker with ghost text autocomplete. Search your directory and web history, Tab to complete, Enter to go.
 

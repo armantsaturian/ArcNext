@@ -71,6 +71,16 @@ export interface AgentState {
   status: AgentStatus
 }
 
+/**
+ * Web-bridge state for a browser pane. Tracks whether an agent currently
+ * holds the debugger lock and whether the agent is mid-action (used for
+ * sky-blue glow in the sidebar + pane border).
+ */
+export interface BridgeState {
+  holds: boolean
+  acting: boolean
+}
+
 export interface IPCChannels {
   'pty:create': (paneId: string, cwd?: string) => void
   'pty:write': (paneId: string, data: string) => void

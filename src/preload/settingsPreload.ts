@@ -23,5 +23,10 @@ contextBridge.exposeInMainWorld('settings', {
       ipcRenderer.on('xnext:changed', handler)
       return () => { ipcRenderer.removeListener('xnext:changed', handler) }
     }
+  },
+  webbridge: {
+    getSettings: () => ipcRenderer.invoke('webbridge:getSettings'),
+    setInstalled: (on: boolean) => ipcRenderer.invoke('webbridge:setInstalled', on),
+    isInstalled: () => ipcRenderer.invoke('webbridge:isInstalled')
   }
 })

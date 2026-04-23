@@ -32,3 +32,15 @@
 - This requires a `GH_TOKEN` env var with repo write access, plus the Apple signing vars from `.env.build` (`APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`).
 - electron-builder uploads the DMG, ZIP, **and** `latest-mac.yml` to the GitHub release. The `latest-mac.yml` file is required for `electron-updater` to detect new versions — without it, the in-app update prompt silently fails.
 - Never manually upload only the DMG/ZIP to a GitHub release; the YAML metadata file will be missing and users won't get update notifications.
+
+## Browser bridge (for agents running inside ArcNext)
+- If `ARCNEXT_BRIDGE_SOCK` is set in your env, you are running inside an ArcNext terminal pane and can drive any open browser pane in the same window.
+- The `arcnext-bridge` CLI is on `PATH`. Use it whenever the human asks you to observe, read, or interact with a web page — don't ask them to copy/paste or describe what they see.
+- Key commands: `panes` (list open browser panes), `open <url>` (open a new pane), `snapshot <paneId>` (accessibility tree of the page), `click <paneId> <ref>`, `type <paneId> <ref> <text>`, `navigate <paneId> <url>`.
+- **Always consult `arcnext-bridge --help` and `arcnext-bridge <command> --help` as the authoritative reference** — the flags and output shape there win over anything written here.
+- Interaction model is ref-based: `snapshot` returns an accessibility tree where each interactable node has a ref like `e23`. Pass those refs to `click` and `type`; don't guess coordinates or CSS selectors.
+- Worked example — user says *"check my LinkedIn feed and like the top post"*:
+  1. `arcnext-bridge open linkedin.com/feed` → returns a `paneId`
+  2. `arcnext-bridge snapshot <paneId>` → find the first post's like button, note its ref (e.g. `e42`)
+  3. `arcnext-bridge click <paneId> e42`
+- The human sees everything: the pane glows sky-blue while you act, and they can interrupt at any time. Don't silently do destructive things (posting, sending, deleting, purchasing) — confirm first.

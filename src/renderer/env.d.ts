@@ -73,6 +73,13 @@ interface ArcNextAPI {
     onPipExited(cb: (paneId: string) => void): () => void
     focusRenderer(): void
   }
+  bridge: {
+    onAgentActed(cb: (paneId: string) => void): () => void
+    onAcquired(cb: (paneId: string, sessionId: string | null) => void): () => void
+    onReleased(cb: (paneId: string) => void): () => void
+    onYielded(cb: (paneId: string) => void): () => void
+    reportUserInput(paneId: string): void
+  }
   dictation: {
     ensureModel(): Promise<{ ready: boolean; error?: string }>
     start(paneId: string): void

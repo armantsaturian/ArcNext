@@ -148,10 +148,19 @@ export default function BrowserPane({ paneId, workspaceId }: Props) {
     })
   }, [paneId])
 
+  // Web bridge state is owned by the store (App.tsx wires IPC once for all panes).
+  const bridgeState = usePaneStore((s) => s.bridgeStates.get(paneId))
+  const agentHolds = !!bridgeState?.holds
+  const agentActing = !!bridgeState?.acting
+
   const handleNavigate = useCallback((targetUrl: string) => {
     window.arcnext.browser.navigate(paneId, targetUrl)
     setError(null)
   }, [paneId])
+
+  const reportUserInputToBridge = useCallback(() => {
+    if (agentHolds) window.arcnext.bridge.reportUserInput(paneId)
+  }, [paneId, agentHolds])
 
   if (!pane) return null
 
@@ -159,8 +168,14 @@ export default function BrowserPane({ paneId, workspaceId }: Props) {
 
   return (
     <div
-      className={`browser-pane${isActivePane ? ' active' : ''}`}
-      onMouseDown={() => setActive(paneId)}
+      className={
+        'browser-pane' +
+        (isActivePane ? ' active' : '') +
+        (agentHolds ? ' agent-holds' : '') +
+        (agentActing ? ' agent-acting' : '')
+      }
+      onMouseDown={() => { setActive(paneId); reportUserInputToBridge() }}
+      onKeyDown={reportUserInputToBridge}
     >
       <div className="browser-nav">
         <button
