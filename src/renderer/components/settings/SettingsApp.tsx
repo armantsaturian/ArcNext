@@ -13,19 +13,22 @@ export function SettingsApp(): JSX.Element {
       <div style={styles.fixedHeader}>
         <div style={styles.dragRegion} />
         <div style={styles.tabBar}>
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                ...styles.tabBtn,
-                ...(activeTab === tab.id ? styles.tabBtnActive : {})
-              }}
-            >
-              <span style={styles.tabIcon}>{tab.icon}</span>
-              <span style={styles.tabLabel}>{tab.label}</span>
-            </button>
-          ))}
+          {tabs.map(tab => {
+            const isActive = activeTab === tab.id
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                style={{
+                  ...styles.tabBtn,
+                  ...(isActive ? styles.tabBtnActive : {})
+                }}
+              >
+                <span style={{ ...styles.tabIcon, ...(isActive ? styles.tabIconActive : {}) }}>{tab.icon}</span>
+                <span style={{ ...styles.tabLabel, ...(isActive ? styles.tabLabelActive : {}) }}>{tab.label}</span>
+              </button>
+            )
+          })}
         </div>
         <div style={styles.divider} />
       </div>
@@ -53,40 +56,49 @@ const styles: Record<string, React.CSSProperties> = {
     zIndex: 1
   },
   dragRegion: {
-    height: 36,
+    height: 28,
     WebkitAppRegion: 'drag' as unknown as undefined
   },
   tabBar: {
     display: 'flex',
     justifyContent: 'center',
     gap: 2,
-    padding: '0 12px 8px'
+    padding: '0 12px 6px'
   },
   tabBtn: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    gap: 1,
-    padding: '4px 10px',
+    gap: 2,
+    padding: '6px 12px',
     background: 'none',
     border: 'none',
-    borderRadius: 6,
+    borderRadius: 8,
     cursor: 'pointer',
-    transition: 'background 0.15s',
-    minWidth: 52
+    transition: 'background 0.15s, color 0.15s',
+    minWidth: 56
   },
   tabBtnActive: {
-    background: 'rgba(255,255,255,0.1)'
+    background: 'rgba(116,192,252,0.18)'
   },
   tabIcon: {
     fontSize: 16,
-    lineHeight: '20px'
+    lineHeight: '20px',
+    color: 'rgba(255,255,255,0.55)',
+    transition: 'color 0.15s'
+  },
+  tabIconActive: {
+    color: '#74c0fc'
   },
   tabLabel: {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: 500,
-    color: '#aaa',
-    letterSpacing: 0.2
+    color: 'rgba(255,255,255,0.55)',
+    letterSpacing: 0.2,
+    transition: 'color 0.15s'
+  },
+  tabLabelActive: {
+    color: '#74c0fc'
   },
   divider: {
     height: 1,
