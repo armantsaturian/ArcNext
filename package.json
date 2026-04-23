@@ -63,9 +63,9 @@
       "provider": "github",
       "owner": "armantsaturian",
       "repo": "arcnext",
-      "channel": "latest"
+      "channel": "beta",
+      "releaseType": "prerelease"
     },
-    "generateUpdatesFilesForAllChannels": true,
     "files": [
       "out/**/*"
     ],
