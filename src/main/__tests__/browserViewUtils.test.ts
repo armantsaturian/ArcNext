@@ -5,12 +5,18 @@ const electronMocks = vi.hoisted(() => {
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.7680.188 Electron/41.2.1 ArcNext/0.10.0 Safari/537.36'
   const setUserAgent = vi.fn()
   const onBeforeSendHeaders = vi.fn()
+  const setPermissionRequestHandler = vi.fn()
+  const setPermissionCheckHandler = vi.fn()
+  const setDisplayMediaRequestHandler = vi.fn()
   const mockApp = {
     userAgentFallback: originalUserAgentFallback,
     getName: () => 'ArcNext'
   }
   const mockSession = {
     setUserAgent,
+    setPermissionRequestHandler,
+    setPermissionCheckHandler,
+    setDisplayMediaRequestHandler,
     webRequest: {
       onBeforeSendHeaders
     }
@@ -20,6 +26,9 @@ const electronMocks = vi.hoisted(() => {
     originalUserAgentFallback,
     setUserAgent,
     onBeforeSendHeaders,
+    setPermissionRequestHandler,
+    setPermissionCheckHandler,
+    setDisplayMediaRequestHandler,
     mockApp,
     mockSession
   }
@@ -51,6 +60,12 @@ vi.mock('electron', () => {
     MenuItem,
     clipboard: {
       writeText: vi.fn()
+    },
+    systemPreferences: {
+      askForMediaAccess: vi.fn(() => Promise.resolve(true))
+    },
+    desktopCapturer: {
+      getSources: vi.fn(() => Promise.resolve([]))
     }
   }
 })
@@ -67,12 +82,21 @@ type Listener = (...args: unknown[]) => void
 function createMockSessionHarness() {
   const setUserAgent = vi.fn()
   const onBeforeSendHeaders = vi.fn()
+  const setPermissionRequestHandler = vi.fn()
+  const setPermissionCheckHandler = vi.fn()
+  const setDisplayMediaRequestHandler = vi.fn()
 
   return {
     setUserAgent,
     onBeforeSendHeaders,
+    setPermissionRequestHandler,
+    setPermissionCheckHandler,
+    setDisplayMediaRequestHandler,
     mockSession: {
       setUserAgent,
+      setPermissionRequestHandler,
+      setPermissionCheckHandler,
+      setDisplayMediaRequestHandler,
       webRequest: {
         onBeforeSendHeaders
       }

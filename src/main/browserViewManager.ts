@@ -91,7 +91,7 @@ export function setupBrowserViewManager(mainWindow: BrowserWindow): void {
     const cleanup = wireViewEvents(view, paneId)
     views.set(paneId, { view, paneId, bounds: { x: 0, y: 0, width: 0, height: 0 }, cleanup, mediaPlaying: false })
 
-    view.webContents.loadURL(url)
+    view.webContents.loadURL(normalizeBrowserUrl(url))
   })
 
   ipcMain.on('browser:destroy', (_e, paneId: string) => {

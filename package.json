@@ -54,7 +54,9 @@
       "entitlementsInherit": "build/entitlements.mac.plist",
       "notarize": true,
       "extendInfo": {
-        "NSMicrophoneUsageDescription": "ArcNext needs microphone access for voice dictation to AI agents."
+        "NSMicrophoneUsageDescription": "ArcNext needs microphone access for voice dictation to AI agents.",
+        "NSCameraUsageDescription": "ArcNext needs camera access to use video in web apps like Google Meet and Zoom.",
+        "NSScreenCaptureUsageDescription": "ArcNext needs screen recording access to share your screen in web apps like Google Meet and Zoom."
       }
     },
     "publish": {

@@ -1,4 +1,4 @@
-import { app, WebContentsView, session, Menu, MenuItem, clipboard } from 'electron'
+import { app, WebContentsView, session, Menu, MenuItem, clipboard, systemPreferences, desktopCapturer } from 'electron'
 
 export const BROWSER_PARTITION = 'persist:browser'
 const configuredBrowserSessions = new WeakSet<Electron.Session>()
@@ -47,6 +47,46 @@ export function configureBrowserSession(browserSession: Electron.Session): strin
     requestHeaders['User-Agent'] = chromeUserAgent
     callback({ requestHeaders })
   })
+
+  const ALLOWED_PERMISSIONS = new Set(['media', 'notifications', 'clipboard-read'])
+
+  // Let web pages (Google Meet, Zoom, etc.) request camera/mic/notifications.
+  // On macOS, proactively trigger the TCC prompt for media — Chromium doesn't
+  // always ask when getUserMedia() runs inside a WebContentsView.
+  browserSession.setPermissionRequestHandler((_wc, permission, callback, details) => {
+    if (!ALLOWED_PERMISSIONS.has(permission)) return callback(false)
+    if (permission !== 'media' || process.platform !== 'darwin') return callback(true)
+
+    const mediaTypes = (details as Electron.MediaAccessPermissionRequest).mediaTypes ?? []
+    const needs: Array<'microphone' | 'camera'> = []
+    if (mediaTypes.includes('audio')) needs.push('microphone')
+    if (mediaTypes.includes('video')) needs.push('camera')
+    // If Chromium didn't tell us what it wants, ask for both so the page works.
+    if (needs.length === 0) needs.push('microphone', 'camera')
+
+    Promise.all(needs.map((m) => systemPreferences.askForMediaAccess(m)))
+      .then((results) => callback(results.every(Boolean)))
+      .catch(() => callback(false))
+  })
+  browserSession.setPermissionCheckHandler((_wc, permission) => {
+    return ALLOWED_PERMISSIONS.has(permission)
+  })
+
+  // Screen sharing via navigator.mediaDevices.getDisplayMedia (Meet, Zoom, etc.).
+  // macOS 15+ uses the native system picker (handler is not invoked); elsewhere
+  // we grant the first available source so the page doesn't silently fail.
+  browserSession.setDisplayMediaRequestHandler(
+    (request, callback) => {
+      desktopCapturer
+        .getSources({ types: ['screen', 'window'] })
+        .then(([source]) => callback(source ? {
+          video: source,
+          audio: request.audioRequested ? 'loopback' : undefined
+        } : {}))
+        .catch(() => callback({}))
+    },
+    { useSystemPicker: process.platform === 'darwin' }
+  )
 
   configuredBrowserSessions.add(browserSession)
   return chromeUserAgent
