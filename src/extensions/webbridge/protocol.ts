@@ -109,6 +109,13 @@ export interface WaitParams { paneId: string; selector?: string; ref?: string; r
 export interface AcquireParams { paneId?: string }
 export interface ReleaseParams { paneId: string }
 export interface StopParams { paneId: string }
+export interface EvaluateParams { paneId: string; expression: string; awaitPromise?: boolean }
+export interface EvaluateResult {
+  value: unknown         // JSON-serializable result (may be null if undefined/non-serializable)
+  type: string           // JS typeof — "string", "number", "object", etc.
+  thrown: boolean        // true if the expression threw
+  description?: string   // for thrown or non-serializable values: a textual description
+}
 
 /** Canonical method names. Kept in one place so CLI and server stay in sync. */
 export const Method = {
@@ -128,5 +135,6 @@ export const Method = {
   Wait: 'wait',
   Acquire: 'acquire',
   Release: 'release',
-  Stop: 'stop'
+  Stop: 'stop',
+  Evaluate: 'evaluate'
 } as const

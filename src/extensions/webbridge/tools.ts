@@ -20,6 +20,8 @@ import {
   ErrorCode,
   type AcquireParams,
   type ClickParams,
+  type EvaluateParams,
+  type EvaluateResult,
   type NavParams,
   type NavigateParams,
   type OpenParams,
@@ -320,6 +322,49 @@ export const handlers = {
   async stop(params: StopParams, sessionId: string): Promise<{ ok: true }> {
     locks.release(params.paneId, sessionId)
     return { ok: true }
+  },
+
+  /**
+   * Run arbitrary JS in the page. Escape hatch for anything the structured
+   * tools can't express — reach for it when a field has no ref and no
+   * queryable selector, or when you need to inspect DOM state. Runs under
+   * the same lock discipline as every other write-tool.
+   */
+  async evaluate(params: EvaluateParams, sessionId: string): Promise<EvaluateResult> {
+    const wc = resolvePaneWC(params.paneId)
+    requireOwned(params.paneId, sessionId)
+    await ensureAttached(params.paneId, wc)
+    notifyActed(params.paneId, 'read')
+
+    if (typeof params.expression !== 'string' || params.expression.length === 0) {
+      throw new BridgeError(ErrorCode.InvalidParams, 'expression required')
+    }
+
+    interface RuntimeEvaluateResult {
+      result: { type: string; value?: unknown; description?: string; subtype?: string }
+      exceptionDetails?: { text: string; exception?: { description?: string } }
+    }
+
+    const r = await send<RuntimeEvaluateResult>(params.paneId, 'Runtime.evaluate', {
+      expression: params.expression,
+      returnByValue: true,
+      awaitPromise: !!params.awaitPromise
+    })
+
+    if (r.exceptionDetails) {
+      return {
+        value: null,
+        type: 'error',
+        thrown: true,
+        description: r.exceptionDetails.exception?.description ?? r.exceptionDetails.text
+      }
+    }
+    return {
+      value: r.result.value ?? null,
+      type: r.result.type,
+      thrown: false,
+      description: r.result.description
+    }
   }
 }
 

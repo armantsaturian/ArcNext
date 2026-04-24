@@ -168,6 +168,16 @@ interface ParsedArgs {
   wantHelp: boolean
 }
 
+// A token that starts with "-" but is actually a negative number should be
+// accepted as a flag value (e.g. `--dy -3000`). Bare `-` is stdin-convention
+// and also treated as a value.
+function isFlagValue(token: string | undefined): boolean {
+  if (token === undefined) return false
+  if (!token.startsWith('-')) return true
+  if (token === '-') return true
+  return /^-\d/.test(token)
+}
+
 function parseArgs(argv: string[]): ParsedArgs {
   const positional: string[] = []
   const flags: Record<string, string | boolean> = {}
@@ -185,19 +195,17 @@ function parseArgs(argv: string[]): ParsedArgs {
         flags[a.slice(2, eq)] = a.slice(eq + 1)
       } else {
         const key = a.slice(2)
-        const next = argv[i + 1]
-        if (next !== undefined && !next.startsWith('-')) {
-          flags[key] = next
+        if (isFlagValue(argv[i + 1])) {
+          flags[key] = argv[i + 1]
           i++
         } else {
           flags[key] = true
         }
       }
-    } else if (a.startsWith('-') && a.length > 1 && a !== '-') {
+    } else if (a.startsWith('-') && a.length > 1 && !/^-\d/.test(a)) {
       const key = a.slice(1)
-      const next = argv[i + 1]
-      if (next !== undefined && !next.startsWith('-')) {
-        flags[key] = next
+      if (isFlagValue(argv[i + 1])) {
+        flags[key] = argv[i + 1]
         i++
       } else {
         flags[key] = true
@@ -241,6 +249,7 @@ COMMANDS
   acquire [<paneId>]                  acquire debugger lock
   release <paneId>                    release debugger lock
   stop <paneId>                       stop current page load
+  evaluate <paneId> <expr> | -        run JS in page (use '-' to read expr from stdin)
 
 GLOBAL FLAGS
   --json                              print raw JSON result
@@ -272,7 +281,9 @@ const COMMAND_HELP: Record<string, string> = {
     'wait <paneId> [--selector|--ref|--role|--name X] [--timeout <ms>] — wait for condition',
   acquire: 'acquire [<paneId>] — acquire debugger lock (server picks pane if omitted)',
   release: 'release <paneId> — release debugger lock',
-  stop: 'stop <paneId> — stop current page load'
+  stop: 'stop <paneId> — stop current page load',
+  evaluate:
+    "evaluate <paneId> <expr> [--await] — run JS in page; use '-' as <expr> to read multi-line from stdin. --await waits for Promise resolution."
 }
 
 // ---------- output helpers ----------
@@ -690,6 +701,34 @@ async function runCommand(cmd: string, args: ParsedArgs): Promise<void> {
         const res = await client.call(Method.Stop, { paneId })
         if (wantJson) jsonOk(res)
         else process.stdout.write('ok\n')
+        return
+      }
+
+      case 'evaluate':
+      case 'eval': {
+        const paneId = args.positional[0]
+        let expression = args.positional.slice(1).join(' ')
+        if (!paneId) throw new Error('evaluate requires <paneId> <expression>')
+        if (expression === '-' || expression === '') {
+          // read expression from stdin for multi-line scripts
+          expression = fs.readFileSync(0, 'utf-8')
+        }
+        const awaitPromise = args.flags['await'] === true
+        const res = await client.call<{
+          value: unknown; type: string; thrown: boolean; description?: string
+        }>(Method.Evaluate, { paneId, expression, awaitPromise })
+        if (wantJson) { jsonOk(res); return }
+        if (res.thrown) {
+          process.stderr.write(`threw: ${res.description ?? '(no description)'}\n`)
+          process.exit(EXIT_GENERIC)
+        }
+        if (res.value === undefined || res.value === null) {
+          process.stdout.write(res.description ?? String(res.value) + '\n')
+        } else if (typeof res.value === 'string') {
+          process.stdout.write(res.value + '\n')
+        } else {
+          process.stdout.write(JSON.stringify(res.value, null, 2) + '\n')
+        }
         return
       }
 
