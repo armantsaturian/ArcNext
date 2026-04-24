@@ -17,7 +17,6 @@ import { homedir } from 'os'
 import { join } from 'path'
 import { getBrowserView, onPaneLifecycle } from '../../main/browserViewManager'
 import { detach as cdpDetach, detachAll as cdpDetachAll } from './cdp'
-import { invalidateRefs } from './snapshot'
 import * as locks from './lockManager'
 import * as overlay from './overlay'
 import { getSocketPath, getToken, startServer, stopServer } from './server'
@@ -120,7 +119,6 @@ export async function setupWebBridge(mainWindow: BrowserWindow): Promise<void> {
   onPaneLifecycle((event) => {
     if (event.type === 'destroyed') {
       void cdpDetach(event.paneId)
-      invalidateRefs(event.paneId)
       locks.yieldPane(event.paneId, 'pane-destroyed')
       overlay.clearPaneState(event.paneId)
       return

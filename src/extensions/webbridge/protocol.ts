@@ -99,7 +99,7 @@ export interface OpenParams { url: string; background?: boolean }
 export interface NavigateParams { paneId: string; url: string }
 export interface ReloadParams { paneId: string; ignoreCache?: boolean }
 export interface NavParams { paneId: string }
-export interface SnapshotParams { paneId: string; viewportOnly?: boolean }
+export interface SnapshotParams { paneId: string }
 export interface ScreenshotParams { paneId: string; format?: 'png' | 'jpeg'; fullPage?: boolean }
 export interface ClickParams { paneId: string; ref?: string; selector?: string; button?: 'left' | 'middle' | 'right' }
 export interface TypeParams { paneId: string; ref?: string; selector?: string; text: string; clearFirst?: boolean; cadenceMs?: number }

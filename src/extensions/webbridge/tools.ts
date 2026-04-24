@@ -38,7 +38,7 @@ import {
   type WaitParams,
   type WaitResult
 } from './protocol'
-import { resolveRef, resolveSelector, takeSnapshot, invalidateRefs, fillRef } from './snapshot'
+import { resolveRef, resolveSelector, takeSnapshot, fillRef } from './snapshot'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -137,7 +137,6 @@ export const handlers = {
     const wc = resolvePaneWC(params.paneId)
     requireOwned(params.paneId, sessionId)
     notifyActed(params.paneId)
-    invalidateRefs(params.paneId)
     await wc.loadURL(params.url)
     return { ok: true }
   },
@@ -146,7 +145,6 @@ export const handlers = {
     const wc = resolvePaneWC(params.paneId)
     requireOwned(params.paneId, sessionId)
     notifyActed(params.paneId)
-    invalidateRefs(params.paneId)
     if (params.ignoreCache) wc.reloadIgnoringCache()
     else wc.reload()
     return { ok: true }
@@ -156,7 +154,6 @@ export const handlers = {
     const wc = resolvePaneWC(params.paneId)
     requireOwned(params.paneId, sessionId)
     notifyActed(params.paneId)
-    invalidateRefs(params.paneId)
     wc.goBack()
     return { ok: true }
   },
@@ -165,7 +162,6 @@ export const handlers = {
     const wc = resolvePaneWC(params.paneId)
     requireOwned(params.paneId, sessionId)
     notifyActed(params.paneId)
-    invalidateRefs(params.paneId)
     wc.goForward()
     return { ok: true }
   },

@@ -230,7 +230,7 @@ COMMANDS
   back <paneId>                       history back
   forward <paneId>                    history forward
   reload <paneId> [--no-cache]        reload pane
-  snapshot <paneId> [--viewport]      accessibility snapshot (with refs)
+  snapshot <paneId>                   accessibility snapshot (with refs)
   screenshot <paneId> [--format png|jpeg] [--full-page] [-o <file>]
                                       capture screenshot
   click <paneId> <ref|selector> [--button left|middle|right]
@@ -259,7 +259,7 @@ const COMMAND_HELP: Record<string, string> = {
   back: 'back <paneId> — history back',
   forward: 'forward <paneId> — history forward',
   reload: 'reload <paneId> [--no-cache] — reload pane',
-  snapshot: 'snapshot <paneId> [--viewport] — accessibility snapshot with refs',
+  snapshot: 'snapshot <paneId> — accessibility snapshot with refs',
   screenshot:
     'screenshot <paneId> [--format png|jpeg] [--full-page] [-o <file>] — capture image',
   click:
@@ -540,8 +540,7 @@ async function runCommand(cmd: string, args: ParsedArgs): Promise<void> {
       case 'snapshot': {
         const paneId = args.positional[0]
         if (!paneId) throw new Error('snapshot requires <paneId>')
-        const viewportOnly = args.flags['viewport'] === true
-        const res = await client.call<Snapshot>(Method.Snapshot, { paneId, viewportOnly })
+        const res = await client.call<Snapshot>(Method.Snapshot, { paneId })
         if (wantJson) jsonOk(res)
         else process.stdout.write(formatSnapshot(res))
         return

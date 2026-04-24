@@ -26,10 +26,6 @@ interface CdpSession {
 
 const sessions = new Map<string, CdpSession>()
 
-function getWc(session: CdpSession): WebContents {
-  return session.wc
-}
-
 export async function attach(paneId: string, wc: WebContents): Promise<void> {
   let existing = sessions.get(paneId)
 
@@ -105,13 +101,6 @@ export async function detach(paneId: string): Promise<void> {
     }
   } catch { /* ignore */ }
   sessions.delete(paneId)
-}
-
-export function isAttached(paneId: string): boolean {
-  const s = sessions.get(paneId)
-  if (!s) return false
-  if (s.wc.isDestroyed()) return false
-  return s.attached && s.wc.debugger.isAttached()
 }
 
 /** Core CDP call. Auto-attaches if needed (callers pass the wc separately in `ensureAttached`). */

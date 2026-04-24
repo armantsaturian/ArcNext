@@ -42,11 +42,6 @@ export async function injectBundle(paneId: string): Promise<void> {
   })
 }
 
-/** No-op hook — refs live in the injected script, which re-runs on navigation. */
-export function invalidateRefs(_paneId: string): void {
-  /* no-op */
-}
-
 interface EvalSuccess<T> {
   result: { type: string; value?: T; description?: string }
   exceptionDetails?: { text: string; exception?: { description?: string } }

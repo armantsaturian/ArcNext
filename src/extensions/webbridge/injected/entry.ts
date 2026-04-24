@@ -213,25 +213,6 @@ function locate(ref: string): LocateResult {
   }
 }
 
-function focus(ref: string): LocateResult {
-  const el = elementForRef(ref)
-  if (!el) return { ok: false, reason: 'ref not in last snapshot' }
-  try {
-    (el as HTMLElement).scrollIntoView?.({ block: 'center', inline: 'center' })
-    ;(el as HTMLElement).focus?.()
-  } catch {
-    return { ok: false, reason: 'focus threw' }
-  }
-  const rect = el.getBoundingClientRect()
-  return {
-    ok: true,
-    x: rect.x + rect.width / 2,
-    y: rect.y + rect.height / 2,
-    width: rect.width,
-    height: rect.height
-  }
-}
-
 interface FillResult extends LocateResult {
   value?: string
 }
@@ -254,8 +235,7 @@ function fill(ref: string, text: string): FillResult {
   }
   try {
     const proto = tag === 'INPUT' ? HTMLInputElement.prototype : HTMLTextAreaElement.prototype
-    const desc = Object.getOwnPropertyDescriptor(proto, 'value')
-    const setter = desc?.set
+    const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set
     if (!setter) return { ok: false, reason: 'no value setter' }
     ;(el as HTMLElement).focus?.()
     setter.call(el, text)
@@ -279,7 +259,6 @@ function fill(ref: string, text: string): FillResult {
 interface ArcnextBridge {
   snapshot: () => SnapshotResult
   locate: (ref: string) => LocateResult
-  focus: (ref: string) => LocateResult
   fill: (ref: string, text: string) => FillResult
 }
 
@@ -290,4 +269,4 @@ declare global {
 }
 
 // Idempotent: re-injection replaces the old object.
-window.__arcnextBridge = { snapshot: takeSnapshot, locate, focus, fill }
+window.__arcnextBridge = { snapshot: takeSnapshot, locate, fill }
