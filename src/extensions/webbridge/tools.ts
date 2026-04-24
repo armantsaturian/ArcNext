@@ -38,7 +38,7 @@ import {
   type WaitParams,
   type WaitResult
 } from './protocol'
-import { resolveRef, resolveSelector, takeSnapshot, invalidateRefs } from './snapshot'
+import { resolveRef, resolveSelector, takeSnapshot, invalidateRefs, fillRef } from './snapshot'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -219,6 +219,16 @@ export const handlers = {
     requireOwned(params.paneId, sessionId)
     await ensureAttached(params.paneId, wc)
     notifyActed(params.paneId)
+
+    // Preferred path for ref-targeted form fields: use the page-side bridge's
+    // React-aware fill(), which routes through the native value setter and
+    // fires input/change events. Handles controlled components that reject
+    // raw `Input.insertText`. Falls back to the classic click+insertText for
+    // content-editables, canvas, selectors, and anywhere fill() returns false.
+    if (params.ref && !params.selector && !params.cadenceMs) {
+      const filled = await fillRef(params.paneId, params.ref, params.text).catch(() => false)
+      if (filled) return { ok: true }
+    }
 
     if (params.ref || params.selector) {
       const { x, y } = await resolveTarget(params.paneId, params.ref, params.selector)

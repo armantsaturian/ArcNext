@@ -58,9 +58,33 @@ function buildBridgeCli() {
   }
 }
 
+function buildBridgeInjected() {
+  return {
+    name: 'build-bridge-injected',
+    async writeBundle() {
+      // Bundle the page-side bridge (ariaSnapshot + roleUtils + our entry)
+      // into a single IIFE loaded via CDP Page.addScriptToEvaluateOnNewDocument.
+      // Output lives next to main so snapshot.ts can readFileSync it at runtime.
+      const { build } = await import('esbuild')
+      mkdirSync('out/main/injected', { recursive: true })
+      await build({
+        entryPoints: ['src/extensions/webbridge/injected/entry.ts'],
+        bundle: true,
+        platform: 'browser',
+        target: 'chrome120',
+        format: 'iife',
+        outfile: 'out/main/injected/snapshot-bundle.js',
+        logLevel: 'warning',
+        legalComments: 'none',
+        minify: true
+      })
+    }
+  }
+}
+
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin(), copyShellIntegration(), copyTrashblockBlockPage(), buildBridgeCli()],
+    plugins: [externalizeDepsPlugin(), copyShellIntegration(), copyTrashblockBlockPage(), buildBridgeCli(), buildBridgeInjected()],
     build: {
       outDir: 'out/main',
       rollupOptions: {

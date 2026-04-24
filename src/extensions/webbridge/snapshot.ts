@@ -1,153 +1,199 @@
 /**
- * Snapshot = compact accessibility tree keyed by stable refs.
+ * Snapshot = ARIA-accurate accessibility tree rendered into a compact text
+ * format, keyed by stable refs.
  *
- * Per snapshot we assign sequential refs ("e1", "e2", ...) to the nodes we keep.
- * The ref→backendNodeId mapping is kept alive per pane so subsequent
- * click/type calls can resolve a ref back to coordinates without a new snapshot.
+ * Implementation: a bundled Playwright-derived script runs in the page and
+ * computes the tree client-side. This surfaces things CDP's
+ * `Accessibility.getFullAXTree` doesn't — empty textareas, elements before
+ * hydration, custom-role elements — and keeps the same ref stable across
+ * re-renders because it's keyed to live DOM elements, not tree-walk order.
  *
- * The mapping is invalidated on navigation (Page.frameNavigated) and on
- * explicit refresh via snapshot().
+ * Refs reset automatically on navigation because the injected script re-runs
+ * on every new document.
  */
 
 import type { WebContents } from 'electron'
-import type { AxNode, Snapshot } from './protocol'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import type { Snapshot } from './protocol'
 import { send, ensureAttached, BridgeError } from './cdp'
 import { ErrorCode } from './protocol'
 
-interface RefEntry {
-  ref: string
-  backendNodeId: number
+let cachedBundle: string | null = null
+
+function loadBundle(): string {
+  if (cachedBundle) return cachedBundle
+  // out/main/snapshot.js lives next to this file at runtime;
+  // the bundled script ships at out/main/injected/snapshot-bundle.js.
+  const bundlePath = join(__dirname, 'injected', 'snapshot-bundle.js')
+  cachedBundle = readFileSync(bundlePath, 'utf-8')
+  return cachedBundle
 }
 
-interface PaneRefs {
-  byRef: Map<string, RefEntry>
+/**
+ * Inject the page-side bridge into the given pane. Called on CDP attach.
+ * Uses `Page.addScriptToEvaluateOnNewDocument` so later navigations
+ * auto-reinject, and one immediate `Runtime.evaluate` so the current
+ * document has it.
+ */
+export async function injectBundle(paneId: string): Promise<void> {
+  const bundle = loadBundle()
+  await send(paneId, 'Page.addScriptToEvaluateOnNewDocument', { source: bundle })
+  // current page
+  await send(paneId, 'Runtime.evaluate', {
+    expression: bundle,
+    awaitPromise: false,
+    returnByValue: false
+  })
 }
 
-const refsByPane = new Map<string, PaneRefs>()
-
-/** Clear stored refs — called on navigation. */
-export function invalidateRefs(paneId: string): void {
-  refsByPane.delete(paneId)
+/**
+ * Called externally on navigation. The page-side bridge already resets its
+ * state when the document reloads, so we have nothing to clean up in main —
+ * this is kept as a no-op hook in case we later cache per-pane data in main.
+ */
+export function invalidateRefs(_paneId: string): void {
+  /* no-op — refs live in the injected script, which re-executes on navigation */
 }
 
-interface RawAxNode {
-  nodeId: string
-  ignored?: boolean
-  role?: { value: string }
-  name?: { value: string }
-  value?: { value: unknown }
-  description?: { value: string }
-  childIds?: string[]
-  backendDOMNodeId?: number
+interface EvalSuccess<T> {
+  result: { type: string; value?: T; description?: string }
+  exceptionDetails?: { text: string; exception?: { description?: string } }
 }
 
-interface GetFullAXTreeResult {
-  nodes: RawAxNode[]
+async function evalInPage<T>(paneId: string, expression: string): Promise<T> {
+  const r = await send<EvalSuccess<T>>(paneId, 'Runtime.evaluate', {
+    expression,
+    returnByValue: true,
+    awaitPromise: false
+  })
+  if (r.exceptionDetails) {
+    const msg = r.exceptionDetails.exception?.description ?? r.exceptionDetails.text
+    throw new BridgeError(ErrorCode.CDPError, `page eval failed: ${msg}`)
+  }
+  if (r.result.type === 'undefined') {
+    throw new BridgeError(ErrorCode.CDPError, 'page eval returned undefined — bundle not loaded?')
+  }
+  return r.result.value as T
 }
 
-function isInteresting(node: RawAxNode): boolean {
-  if (node.ignored) return false
-  const role = node.role?.value
-  if (!role) return false
-  // strip noise roles that just add depth
-  if (role === 'none' || role === 'presentation' || role === 'generic' || role === 'InlineTextBox' || role === 'LineBreak') return false
-  return true
+interface RawSnapshot {
+  text: string
+  url: string
+  title: string
 }
 
-function firstString(v: unknown): string | undefined {
-  if (typeof v === 'string') return v.trim() || undefined
-  if (typeof v === 'number' || typeof v === 'boolean') return String(v)
-  return undefined
+/**
+ * Render the raw text snapshot into our AxNode tree by parsing the
+ * indentation-based format Playwright emits ("- textbox \"label\" [ref=e23]").
+ * We only need this because our on-wire protocol is tree-shaped; a pure text
+ * snapshot would also work for agents.
+ */
+import type { AxNode } from './protocol'
+
+const LINE_RE = /^(\s*)- (.+?)$/
+const ROLE_RE = /^([a-z][a-zA-Z0-9]*)(?:\s+"((?:[^"\\]|\\.)*)")?(.*)$/
+const REF_RE = /\[ref=([^\]]+)\]/
+const VALUE_RE = /:\s*(.+)$/
+
+function parseTextSnapshot(text: string): AxNode {
+  const lines = text.split('\n').filter((l) => l.trim().length > 0)
+  const root: AxNode = { ref: '', role: 'root', children: [] }
+  const stack: Array<{ depth: number; node: AxNode }> = [{ depth: -1, node: root }]
+
+  for (const raw of lines) {
+    const m = LINE_RE.exec(raw)
+    if (!m) continue
+    const depth = m[1].length
+    let content = m[2]
+
+    // Pop stack until we find our parent
+    while (stack.length > 1 && stack[stack.length - 1].depth >= depth) stack.pop()
+    const parent = stack[stack.length - 1].node
+
+    // Leaf text nodes: "- text: foo"
+    if (content.startsWith('text: ')) {
+      const textNode: AxNode = { ref: '', role: 'text', name: content.slice(6) }
+      ;(parent.children ||= []).push(textNode)
+      continue
+    }
+
+    // Inline value: "- textbox \"Label\" [ref=e23]: value"
+    let inlineValue: string | undefined
+    const valueMatch = VALUE_RE.exec(content)
+    if (valueMatch && !content.includes('"' + valueMatch[1])) {
+      // crude: value only counts if it's after closing bracket
+      const lastBracket = content.lastIndexOf(']')
+      const colonIdx = content.indexOf(':', lastBracket >= 0 ? lastBracket : 0)
+      if (colonIdx >= 0 && colonIdx > content.lastIndexOf('"')) {
+        inlineValue = content.slice(colonIdx + 1).trim()
+        content = content.slice(0, colonIdx)
+      }
+    }
+
+    const refMatch = REF_RE.exec(content)
+    const ref = refMatch ? refMatch[1] : ''
+
+    const m2 = ROLE_RE.exec(content)
+    const role = m2 ? m2[1] : 'unknown'
+    const name = m2?.[2]
+
+    const node: AxNode = { ref, role }
+    if (name) node.name = name
+    if (inlineValue) node.value = inlineValue
+
+    ;(parent.children ||= []).push(node)
+    stack.push({ depth, node })
+  }
+
+  // If root has exactly one child (common — a single top-level region), promote it
+  if (root.children?.length === 1) return root.children[0]
+  return root
 }
 
 export async function takeSnapshot(paneId: string, wc: WebContents): Promise<Snapshot> {
   await ensureAttached(paneId, wc)
-
-  const result = await send<GetFullAXTreeResult>(paneId, 'Accessibility.getFullAXTree', {})
-
-  const byNodeId = new Map<string, RawAxNode>()
-  for (const n of result.nodes) byNodeId.set(n.nodeId, n)
-
-  // Find root: first non-ignored with childIds, or the first node
-  const root = result.nodes[0]
-  if (!root) throw new BridgeError(ErrorCode.CDPError, 'empty AX tree')
-
-  let refCounter = 1
-  const refs: PaneRefs = { byRef: new Map() }
-
-  const visit = (rawId: string): AxNode | null => {
-    const n = byNodeId.get(rawId)
-    if (!n) return null
-    const children: AxNode[] = []
-    for (const childId of n.childIds ?? []) {
-      const child = visit(childId)
-      if (child) children.push(child)
-    }
-
-    if (!isInteresting(n)) {
-      // Flatten: pull this node's children up by returning a "stub" only if
-      // it has a single interesting child. Otherwise return null and let the
-      // parent collapse us.
-      if (children.length === 1) return children[0]
-      if (children.length === 0) return null
-      // multi-child generic: keep as a grouping node so structure is preserved
-      return { ref: '', role: n.role?.value ?? 'group', children }
-    }
-
-    const role = n.role?.value ?? 'unknown'
-    const name = firstString(n.name?.value)
-    const value = firstString(n.value?.value)
-    const description = firstString(n.description?.value)
-    const ref = `e${refCounter++}`
-
-    const backendId = n.backendDOMNodeId
-    if (backendId) {
-      refs.byRef.set(ref, { ref, backendNodeId: backendId })
-    }
-
-    const out: AxNode = { ref, role }
-    if (name) out.name = name
-    if (value) out.value = value
-    if (description) out.description = description
-    if (children.length > 0) out.children = children
-    return out
-  }
-
-  const tree = visit(root.nodeId) ?? { ref: '', role: 'root' }
-
-  refsByPane.set(paneId, refs)
-
+  const raw = await evalInPage<RawSnapshot | null>(
+    paneId,
+    'window.__arcnextBridge ? window.__arcnextBridge.snapshot() : null'
+  )
+  if (!raw) throw new BridgeError(ErrorCode.CDPError, 'arcnext bridge not injected on page')
+  const tree = parseTextSnapshot(raw.text)
   return {
     paneId,
-    url: wc.getURL(),
-    title: wc.getTitle(),
+    url: raw.url,
+    title: raw.title,
     tree,
     capturedAt: Date.now()
   }
 }
 
-/**
- * Resolve a ref to the DOM content-rect center. Requires a prior snapshot
- * in this pane. Returns {x, y} in viewport coords suitable for Input dispatch.
- */
-export async function resolveRef(paneId: string, ref: string): Promise<{ x: number; y: number }> {
-  const table = refsByPane.get(paneId)
-  const entry = table?.byRef.get(ref)
-  if (!entry) {
-    throw new BridgeError(ErrorCode.RefNotFound, `ref ${ref} not found — run snapshot first`)
-  }
-
-  interface BoxModel {
-    model: { content: number[] } // [x1,y1,x2,y2,x3,y3,x4,y4]
-  }
-
-  const box = await send<BoxModel>(paneId, 'DOM.getBoxModel', { backendNodeId: entry.backendNodeId })
-  const [x1, y1, x2, y2, x3, y3, x4, y4] = box.model.content
-  return { x: (x1 + x2 + x3 + x4) / 4, y: (y1 + y2 + y3 + y4) / 4 }
+interface LocateResult {
+  ok: boolean
+  x?: number
+  y?: number
+  reason?: string
 }
 
 /**
- * Resolve a CSS selector to coordinates. Falls back when agents send raw selectors.
+ * Resolve a ref to viewport coords, via the page-side bridge. Also
+ * scrolls the element into view before returning.
+ */
+export async function resolveRef(paneId: string, ref: string): Promise<{ x: number; y: number }> {
+  const r = await evalInPage<LocateResult>(
+    paneId,
+    `window.__arcnextBridge ? window.__arcnextBridge.locate(${JSON.stringify(ref)}) : {ok: false, reason: 'bridge not injected'}`
+  )
+  if (!r.ok) {
+    throw new BridgeError(ErrorCode.RefNotFound, `ref ${ref} not found: ${r.reason ?? 'unknown'}`)
+  }
+  return { x: r.x!, y: r.y! }
+}
+
+/**
+ * Resolve a CSS selector to viewport coords. Still here for agents that pass
+ * selectors directly. Uses DOM.querySelector + getBoxModel since the page-side
+ * bridge only tracks accessibility-tree refs.
  */
 export async function resolveSelector(paneId: string, selector: string): Promise<{ x: number; y: number }> {
   interface QueryResult { root: { nodeId: number } }
@@ -163,10 +209,29 @@ export async function resolveSelector(paneId: string, selector: string): Promise
     throw new BridgeError(ErrorCode.RefNotFound, `selector not matched: ${selector}`)
   }
 
-  // scroll into view
-  await send(paneId, 'DOM.scrollIntoViewIfNeeded', { nodeId: found.nodeId }).catch(() => {})
+  // scroll into view — don't swallow errors silently; if this fails, the
+  // getBoxModel that follows probably fails too, and we want to know why.
+  try {
+    await send(paneId, 'DOM.scrollIntoViewIfNeeded', { nodeId: found.nodeId })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    throw new BridgeError(ErrorCode.CDPError, `scrollIntoView failed for selector ${selector}: ${msg}`)
+  }
 
   const box = await send<BoxModel>(paneId, 'DOM.getBoxModel', { nodeId: found.nodeId })
   const [x1, y1, x2, y2, x3, y3, x4, y4] = box.model.content
   return { x: (x1 + x2 + x3 + x4) / 4, y: (y1 + y2 + y3 + y4) / 4 }
+}
+
+/**
+ * Set the value of a form field through React's internal tracker. Returns
+ * true if the page-side bridge succeeded, false otherwise (caller should
+ * fall back to focus+type).
+ */
+export async function fillRef(paneId: string, ref: string, text: string): Promise<boolean> {
+  const r = await evalInPage<LocateResult>(
+    paneId,
+    `window.__arcnextBridge ? window.__arcnextBridge.fill(${JSON.stringify(ref)}, ${JSON.stringify(text)}) : {ok: false}`
+  )
+  return !!r.ok
 }

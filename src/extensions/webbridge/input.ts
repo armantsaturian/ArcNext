@@ -95,6 +95,10 @@ export async function pressKey(paneId: string, key: string, modifiers: Modifier[
     text: key.length === 1 ? key : undefined
   }
 
+  // For printable keys, attaching `text` to keyDown causes Chromium to emit
+  // the char event itself. Sending a separate `char` event as well duplicates
+  // the input (user sees "XX" from one `press X`). Match Playwright's pattern:
+  // one keyDown (with text for printables), no explicit char, one keyUp.
   await send(paneId, 'Input.dispatchKeyEvent', {
     type: 'keyDown',
     key,
@@ -104,16 +108,6 @@ export async function pressKey(paneId: string, key: string, modifiers: Modifier[
     text: spec.text,
     modifiers: modMask
   })
-  if (spec.text) {
-    // printable char: let the page receive a char event too
-    await send(paneId, 'Input.dispatchKeyEvent', {
-      type: 'char',
-      key,
-      code: spec.code,
-      text: spec.text,
-      modifiers: modMask
-    })
-  }
   await send(paneId, 'Input.dispatchKeyEvent', {
     type: 'keyUp',
     key,

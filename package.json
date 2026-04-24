@@ -71,7 +71,8 @@
     ],
     "asarUnpack": [
       "out/main/shell-integration/**",
-      "out/main/bin/**"
+      "out/main/bin/**",
+      "out/main/injected/**"
     ]
   }
 }

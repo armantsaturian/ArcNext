@@ -87,7 +87,12 @@ export async function attach(paneId: string, wc: WebContents): Promise<void> {
   await send(paneId, 'DOM.enable', {})
   await send(paneId, 'Runtime.enable', {})
   await send(paneId, 'Page.enable', {})
-  await send(paneId, 'Accessibility.enable', {})
+
+  // Inject the page-side bridge. Local require (not top-level import) because
+  // snapshot.ts imports from this file, and a top-level import would create a
+  // cycle.
+  const { injectBundle } = await import('./snapshot')
+  await injectBundle(paneId)
 }
 
 export async function detach(paneId: string): Promise<void> {
