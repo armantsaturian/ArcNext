@@ -260,8 +260,8 @@ export default function App() {
       window.arcnext.bridge.onYielded((paneId) => {
         usePaneStore.getState().setBridgeHolds(paneId, false)
       }),
-      window.arcnext.bridge.onAgentActed((paneId) => {
-        usePaneStore.getState().pulseBridgeActing(paneId)
+      window.arcnext.bridge.onAgentActed((paneId, kind) => {
+        usePaneStore.getState().pulseBridgeActing(paneId, kind)
       }),
       // Dictation: write transcribed text straight to PTY
       window.arcnext.dictation.onText((paneId, text) => {

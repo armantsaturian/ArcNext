@@ -571,7 +571,8 @@ function WorkspaceRow({
     dropPosition === 'before' && 'ws-insert-before',
     dropPosition === 'after' && 'ws-insert-after',
     bridgeState?.holds && 'ws-bridge-holds',
-    bridgeState?.acting && 'ws-bridge-acting'
+    bridgeState?.acting && 'ws-bridge-acting',
+    bridgeState?.acting && bridgeState.kind && `ws-bridge-${bridgeState.kind}`
   ].filter(Boolean).join(' ')
 
   useEffect(() => {

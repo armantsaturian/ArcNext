@@ -74,11 +74,15 @@ export interface AgentState {
 /**
  * Web-bridge state for a browser pane. Tracks whether an agent currently
  * holds the debugger lock and whether the agent is mid-action (used for
- * sky-blue glow in the sidebar + pane border).
+ * sky-blue glow in the sidebar + pane border). `kind` drives the motion of
+ * the glow — same color, different visual rhythm per action family.
  */
+export type BridgeActKind = 'read' | 'click' | 'type' | 'nav'
+
 export interface BridgeState {
   holds: boolean
   acting: boolean
+  kind?: BridgeActKind
 }
 
 export interface IPCChannels {

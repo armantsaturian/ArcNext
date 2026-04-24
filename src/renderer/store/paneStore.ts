@@ -21,6 +21,14 @@ let nextWorkspaceId = 1
 const dormantScrollback = new Map<string, string>()
 
 /**
+ * Pending fade-out timers for bridge "acting" glow. One per pane. Kept outside
+ * zustand because they carry no UI state — they just deliver the delayed flip
+ * back to idle. Rescheduling (instead of stacking) prevents flicker during
+ * bursts of agent actions.
+ */
+const bridgePulseTimers = new Map<string, ReturnType<typeof setTimeout>>()
+
+/**
  * Workspace visit history stack.
  * Tracks previously active workspace IDs so closing/sleeping a workspace
  * returns to the most recently visited one instead of the first in the list.
@@ -162,7 +170,7 @@ interface PaneStore {
   // Web bridge (CDP driving)
   bridgeStates: Map<string, BridgeState>
   setBridgeHolds: (paneId: string, holds: boolean) => void
-  pulseBridgeActing: (paneId: string) => void
+  pulseBridgeActing: (paneId: string, kind: 'read' | 'click' | 'type' | 'nav') => void
 
   // Audio state
   audioStates: Map<string, { playing: boolean; muted: boolean }>
@@ -1078,13 +1086,30 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
     }
     set({ bridgeStates: next })
   },
-  pulseBridgeActing: (paneId) => {
+  pulseBridgeActing: (paneId, kind) => {
+    // Inertia: stay "acting" for 3s after the last action; every new action
+    // reschedules the fade rather than stacking timers, so the glow doesn't
+    // flicker during bursts. Priority (stronger wins within the window):
+    // type > click > nav > read. If multiple kinds arrive close together we
+    // keep showing the strongest — a typing agent that also reads stays amber.
+    const PRIORITY: Record<'read' | 'click' | 'type' | 'nav', number> = {
+      read: 0, nav: 1, click: 2, type: 3
+    }
+    const INERTIA_MS = 3000
+
     const { bridgeStates } = get()
     const existing = bridgeStates.get(paneId)
+    const prevKind = existing?.acting ? existing.kind : undefined
+    const nextKind = prevKind && PRIORITY[prevKind] > PRIORITY[kind] ? prevKind : kind
     const next = new Map(bridgeStates)
-    next.set(paneId, { holds: existing?.holds ?? false, acting: true })
+    next.set(paneId, { holds: existing?.holds ?? false, acting: true, kind: nextKind })
     set({ bridgeStates: next })
-    setTimeout(() => {
+
+    // Reschedule: cancel any pending fade-out for this pane, arm a fresh one.
+    const prevTimer = bridgePulseTimers.get(paneId)
+    if (prevTimer !== undefined) clearTimeout(prevTimer)
+    const timer = setTimeout(() => {
+      bridgePulseTimers.delete(paneId)
       const { bridgeStates: current } = get()
       const s = current.get(paneId)
       if (!s) return
@@ -1092,7 +1117,8 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
       if (s.holds) after.set(paneId, { holds: true, acting: false })
       else after.delete(paneId)
       set({ bridgeStates: after })
-    }, 1500)
+    }, INERTIA_MS)
+    bridgePulseTimers.set(paneId, timer)
   },
 
   dictationStates: new Map<string, DictationState>(),

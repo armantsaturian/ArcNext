@@ -161,8 +161,8 @@ const api = {
 }
 
 const bridge = {
-  onAgentActed: (cb: (paneId: string) => void) => {
-    const handler = (_e: IpcRendererEvent, paneId: string) => cb(paneId)
+  onAgentActed: (cb: (paneId: string, kind: 'read' | 'click' | 'type' | 'nav') => void) => {
+    const handler = (_e: IpcRendererEvent, paneId: string, kind: 'read' | 'click' | 'type' | 'nav') => cb(paneId, kind)
     ipcRenderer.on('bridge:agentActed', handler)
     return () => { ipcRenderer.removeListener('bridge:agentActed', handler) }
   },

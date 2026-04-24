@@ -46,9 +46,11 @@ export function setMainWindow(win: BrowserWindow): void {
   mainWindow = win
 }
 
-function notifyActed(paneId: string): void {
+type ActKind = 'read' | 'click' | 'type' | 'nav'
+
+function notifyActed(paneId: string, kind: ActKind): void {
   if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('bridge:agentActed', paneId)
+    mainWindow.webContents.send('bridge:agentActed', paneId, kind)
   }
   // In-page overlay pulse (sits above the page, not behind it).
   const managed = getBrowserView(paneId)
@@ -136,7 +138,7 @@ export const handlers = {
   async navigate(params: NavigateParams, sessionId: string): Promise<{ ok: true }> {
     const wc = resolvePaneWC(params.paneId)
     requireOwned(params.paneId, sessionId)
-    notifyActed(params.paneId)
+    notifyActed(params.paneId, 'nav')
     await wc.loadURL(params.url)
     return { ok: true }
   },
@@ -144,7 +146,7 @@ export const handlers = {
   async reload(params: ReloadParams, sessionId: string): Promise<{ ok: true }> {
     const wc = resolvePaneWC(params.paneId)
     requireOwned(params.paneId, sessionId)
-    notifyActed(params.paneId)
+    notifyActed(params.paneId, 'nav')
     if (params.ignoreCache) wc.reloadIgnoringCache()
     else wc.reload()
     return { ok: true }
@@ -153,7 +155,7 @@ export const handlers = {
   async back(params: NavParams, sessionId: string): Promise<{ ok: true }> {
     const wc = resolvePaneWC(params.paneId)
     requireOwned(params.paneId, sessionId)
-    notifyActed(params.paneId)
+    notifyActed(params.paneId, 'nav')
     wc.goBack()
     return { ok: true }
   },
@@ -161,7 +163,7 @@ export const handlers = {
   async forward(params: NavParams, sessionId: string): Promise<{ ok: true }> {
     const wc = resolvePaneWC(params.paneId)
     requireOwned(params.paneId, sessionId)
-    notifyActed(params.paneId)
+    notifyActed(params.paneId, 'nav')
     wc.goForward()
     return { ok: true }
   },
@@ -169,14 +171,14 @@ export const handlers = {
   async snapshot(params: SnapshotParams, _sessionId: string): Promise<Snapshot> {
     const wc = resolvePaneWC(params.paneId)
     await ensureAttached(params.paneId, wc)
-    notifyActed(params.paneId)
+    notifyActed(params.paneId, 'read')
     return takeSnapshot(params.paneId, wc)
   },
 
   async screenshot(params: ScreenshotParams, _sessionId: string): Promise<ScreenshotResult> {
     const wc = resolvePaneWC(params.paneId)
     await ensureAttached(params.paneId, wc)
-    notifyActed(params.paneId)
+    notifyActed(params.paneId, 'read')
 
     interface CaptureScreenshotResult { data: string }
     const fmt = params.format === 'jpeg' ? 'jpeg' : 'png'
@@ -203,7 +205,7 @@ export const handlers = {
     const wc = resolvePaneWC(params.paneId)
     requireOwned(params.paneId, sessionId)
     await ensureAttached(params.paneId, wc)
-    notifyActed(params.paneId)
+    notifyActed(params.paneId, 'click')
     const { x, y } = await resolveTarget(params.paneId, params.ref, params.selector)
     const button: MouseButton = (params.button as MouseButton) ?? 'left'
     await clickAt(params.paneId, x, y, button)
@@ -214,7 +216,7 @@ export const handlers = {
     const wc = resolvePaneWC(params.paneId)
     requireOwned(params.paneId, sessionId)
     await ensureAttached(params.paneId, wc)
-    notifyActed(params.paneId)
+    notifyActed(params.paneId, 'type')
 
     // Preferred path for ref-targeted form fields: use the page-side bridge's
     // React-aware fill(), which routes through the native value setter and
@@ -243,7 +245,7 @@ export const handlers = {
     const wc = resolvePaneWC(params.paneId)
     requireOwned(params.paneId, sessionId)
     await ensureAttached(params.paneId, wc)
-    notifyActed(params.paneId)
+    notifyActed(params.paneId, 'type')
     await pressKey(params.paneId, params.key, (params.modifiers as Modifier[] | undefined) ?? [])
     return { ok: true }
   },
@@ -252,7 +254,7 @@ export const handlers = {
     const wc = resolvePaneWC(params.paneId)
     requireOwned(params.paneId, sessionId)
     await ensureAttached(params.paneId, wc)
-    notifyActed(params.paneId)
+    notifyActed(params.paneId, 'nav')
     const x = params.x ?? 200
     const y = params.y ?? 200
     await scrollBy(params.paneId, x, y, params.dx ?? 0, params.dy ?? 0)

@@ -1206,6 +1206,10 @@ body,
  * The page-level overlay (injected into the WebContents) handles the
  * "on top of the page" visual. These classes only add a subtle cue on the
  * chrome behind the webview so state is still visible at pane edges. */
+.browser-pane {
+    transition: border-color 400ms ease-out;
+}
+
 .browser-pane.agent-holds {
     border-color: rgba(116, 192, 252, 0.5);
 }
@@ -1214,33 +1218,149 @@ body,
     border-color: rgba(116, 192, 252, 0.85);
 }
 
-/* ── Sidebar: agent is driving a pane in this workspace (possibly off-screen) ── */
+.browser-pane.agent-read {
+    border-color: rgba(116, 192, 252, 0.75);
+}
+
+.browser-pane.agent-nav {
+    animation: arcnext-pane-border-sweep 1.6s ease-in-out infinite;
+}
+
+.browser-pane.agent-click {
+    animation: arcnext-pane-border-bump 1.2s ease-out infinite;
+}
+
+.browser-pane.agent-type {
+    animation: arcnext-pane-border-flicker 0.4s ease-in-out infinite;
+}
+
+@keyframes arcnext-pane-border-sweep {
+    0%, 100% { border-color: rgba(116, 192, 252, 0.55); }
+    50%      { border-color: rgba(116, 192, 252, 1); }
+}
+
+@keyframes arcnext-pane-border-bump {
+    0%   { border-color: rgba(116, 192, 252, 0.7); }
+    30%  { border-color: rgba(116, 192, 252, 1); }
+    100% { border-color: rgba(116, 192, 252, 0.75); }
+}
+
+@keyframes arcnext-pane-border-flicker {
+    0%, 100% { border-color: rgba(116, 192, 252, 0.85); }
+    50%      { border-color: rgba(116, 192, 252, 1); }
+}
+
+/* ── Sidebar: agent is driving a pane in this workspace (possibly off-screen) ──
+ * Same sky-blue across all states. Motion encodes intent:
+ *   holds:  static thin ring  — lock held, idle between actions
+ *   read:   steady soft glow  — agent is observing (snapshot/screenshot)
+ *   nav:    slow sweep 1.6s   — navigation/scroll/reload
+ *   click:  one 0.45s bump    — discrete action
+ *   type:   fast flicker 0.4s — text streaming in
+ * The `transition` on `.ws-row` fades box-shadow out over 400ms when
+ * `ws-bridge-acting` is removed, so the glow never hard-cuts.
+ */
+.ws-row {
+    transition: box-shadow 400ms ease-out;
+}
+
 .ws-row.ws-bridge-holds {
     box-shadow: inset 0 0 0 1px rgba(116, 192, 252, 0.55);
 }
 
 .ws-row.ws-bridge-acting {
     box-shadow: inset 0 0 0 1px rgba(116, 192, 252, 0.9), 0 0 10px rgba(116, 192, 252, 0.4);
-    animation: arcnext-sidebar-bridge-pulse 1.0s ease-in-out infinite;
 }
 
-@keyframes arcnext-sidebar-bridge-pulse {
+.ws-row.ws-bridge-read {
+    /* steady — no animation, just a slightly brighter ring than "holds" */
+    box-shadow: inset 0 0 0 1px rgba(116, 192, 252, 0.75), 0 0 6px rgba(116, 192, 252, 0.25);
+}
+
+.ws-row.ws-bridge-nav {
+    animation: arcnext-sidebar-bridge-sweep 1.6s ease-in-out infinite;
+}
+
+.ws-row.ws-bridge-click {
+    /* Repeats every 1.2s so consecutive clicks keep pulsing even though the
+     * className doesn't change between events. Within the 3s inertia window
+     * the user sees ~2-3 bumps, then it fades. */
+    animation: arcnext-sidebar-bridge-bump 1.2s ease-out infinite;
+}
+
+.ws-row.ws-bridge-type {
+    animation: arcnext-sidebar-bridge-flicker 0.4s ease-in-out infinite;
+}
+
+@keyframes arcnext-sidebar-bridge-sweep {
     0%, 100% {
-        box-shadow: inset 0 0 0 1px rgba(116, 192, 252, 0.65), 0 0 8px rgba(116, 192, 252, 0.3);
+        box-shadow: inset 0 0 0 1px rgba(116, 192, 252, 0.55), 0 0 6px rgba(116, 192, 252, 0.25);
     }
     50% {
-        box-shadow: inset 0 0 0 1px #74c0fc, 0 0 14px rgba(116, 192, 252, 0.6);
+        box-shadow: inset 0 0 0 1px #74c0fc, 0 0 14px rgba(116, 192, 252, 0.55);
+    }
+}
+
+@keyframes arcnext-sidebar-bridge-bump {
+    0% {
+        box-shadow: inset 0 0 0 1px rgba(116, 192, 252, 0.7), 0 0 8px rgba(116, 192, 252, 0.35);
+    }
+    35% {
+        box-shadow: inset 0 0 0 2px #74c0fc, 0 0 18px rgba(116, 192, 252, 0.85);
+    }
+    100% {
+        box-shadow: inset 0 0 0 1px rgba(116, 192, 252, 0.75), 0 0 6px rgba(116, 192, 252, 0.3);
+    }
+}
+
+@keyframes arcnext-sidebar-bridge-flicker {
+    0%, 100% {
+        box-shadow: inset 0 0 0 1px rgba(116, 192, 252, 0.85), 0 0 10px rgba(116, 192, 252, 0.45);
+    }
+    50% {
+        box-shadow: inset 0 0 0 1px #74c0fc, 0 0 16px rgba(116, 192, 252, 0.75);
     }
 }
 
 /* Collapsed sidebar: the row is just an icon; glow the icon itself */
+.sidebar-collapsed .ws-row .ws-collapsed-icon {
+    transition: box-shadow 400ms ease-out;
+}
+
 .sidebar-collapsed .ws-row.ws-bridge-holds .ws-collapsed-icon {
     box-shadow: 0 0 0 2px rgba(116, 192, 252, 0.7);
 }
 
-.sidebar-collapsed .ws-row.ws-bridge-acting .ws-collapsed-icon {
-    box-shadow: 0 0 0 2px #74c0fc, 0 0 14px rgba(116, 192, 252, 0.8);
-    animation: arcnext-sidebar-bridge-pulse 1.0s ease-in-out infinite;
+.sidebar-collapsed .ws-row.ws-bridge-read .ws-collapsed-icon {
+    box-shadow: 0 0 0 2px rgba(116, 192, 252, 0.85), 0 0 8px rgba(116, 192, 252, 0.4);
+}
+
+.sidebar-collapsed .ws-row.ws-bridge-nav .ws-collapsed-icon {
+    animation: arcnext-sidebar-bridge-sweep-icon 1.6s ease-in-out infinite;
+}
+
+.sidebar-collapsed .ws-row.ws-bridge-click .ws-collapsed-icon {
+    animation: arcnext-sidebar-bridge-bump-icon 1.2s ease-out infinite;
+}
+
+.sidebar-collapsed .ws-row.ws-bridge-type .ws-collapsed-icon {
+    animation: arcnext-sidebar-bridge-flicker-icon 0.4s ease-in-out infinite;
+}
+
+@keyframes arcnext-sidebar-bridge-sweep-icon {
+    0%, 100% { box-shadow: 0 0 0 2px rgba(116, 192, 252, 0.6), 0 0 8px rgba(116, 192, 252, 0.3); }
+    50%      { box-shadow: 0 0 0 2px #74c0fc, 0 0 16px rgba(116, 192, 252, 0.75); }
+}
+
+@keyframes arcnext-sidebar-bridge-bump-icon {
+    0%   { box-shadow: 0 0 0 2px rgba(116, 192, 252, 0.7), 0 0 8px rgba(116, 192, 252, 0.35); }
+    35%  { box-shadow: 0 0 0 3px #74c0fc, 0 0 20px rgba(116, 192, 252, 0.9); }
+    100% { box-shadow: 0 0 0 2px rgba(116, 192, 252, 0.75), 0 0 6px rgba(116, 192, 252, 0.3); }
+}
+
+@keyframes arcnext-sidebar-bridge-flicker-icon {
+    0%, 100% { box-shadow: 0 0 0 2px rgba(116, 192, 252, 0.85), 0 0 10px rgba(116, 192, 252, 0.45); }
+    50%      { box-shadow: 0 0 0 2px #74c0fc, 0 0 18px rgba(116, 192, 252, 0.8); }
 }
 
 .browser-nav {

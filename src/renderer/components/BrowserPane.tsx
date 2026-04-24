@@ -172,7 +172,8 @@ export default function BrowserPane({ paneId, workspaceId }: Props) {
         'browser-pane' +
         (isActivePane ? ' active' : '') +
         (agentHolds ? ' agent-holds' : '') +
-        (agentActing ? ' agent-acting' : '')
+        (agentActing ? ' agent-acting' : '') +
+        (agentActing && bridgeState?.kind ? ` agent-${bridgeState.kind}` : '')
       }
       onMouseDown={() => { setActive(paneId); reportUserInputToBridge() }}
       onKeyDown={reportUserInputToBridge}
