@@ -214,7 +214,7 @@ export const handlers = {
     return { ok: true }
   },
 
-  async type(params: TypeParams, sessionId: string): Promise<{ ok: true }> {
+  async type(params: TypeParams, sessionId: string): Promise<{ ok: true; value?: string; method?: 'fill' | 'insertText' }> {
     const wc = resolvePaneWC(params.paneId)
     requireOwned(params.paneId, sessionId)
     await ensureAttached(params.paneId, wc)
@@ -226,8 +226,8 @@ export const handlers = {
     // raw `Input.insertText`. Falls back to the classic click+insertText for
     // content-editables, canvas, selectors, and anywhere fill() returns false.
     if (params.ref && !params.selector && !params.cadenceMs) {
-      const filled = await fillRef(params.paneId, params.ref, params.text).catch(() => false)
-      if (filled) return { ok: true }
+      const res = await fillRef(params.paneId, params.ref, params.text).catch(() => ({ ok: false }) as { ok: boolean; value?: string })
+      if (res.ok) return { ok: true, value: res.value, method: 'fill' }
     }
 
     if (params.ref || params.selector) {
@@ -240,7 +240,7 @@ export const handlers = {
       await pressKey(params.paneId, 'Delete')
     }
     await typeText(params.paneId, params.text, params.cadenceMs ?? 0)
-    return { ok: true }
+    return { ok: true, method: 'insertText' }
   },
 
   async press(params: PressParams, sessionId: string): Promise<{ ok: true }> {

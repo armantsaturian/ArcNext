@@ -607,7 +607,7 @@ async function runCommand(cmd: string, args: ParsedArgs): Promise<void> {
         const text = rest.join(' ')
         const clearFirst = args.flags['clear'] === true
         const cadenceMs = toInt(args.flags['cadence'], '--cadence')
-        const res = await client.call(Method.Type, {
+        const res = await client.call<{ ok: true; value?: string; method?: string }>(Method.Type, {
           paneId,
           ...refOrSelector(target),
           text,
@@ -615,7 +615,12 @@ async function runCommand(cmd: string, args: ParsedArgs): Promise<void> {
           cadenceMs
         })
         if (wantJson) jsonOk(res)
-        else process.stdout.write('ok\n')
+        else if (res.value !== undefined) {
+          // Text mode shows the readback so agents can see what landed.
+          process.stdout.write(`ok — value=${JSON.stringify(res.value)}\n`)
+        } else {
+          process.stdout.write('ok\n')
+        }
         return
       }
 
