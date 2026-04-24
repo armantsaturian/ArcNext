@@ -1,0 +1,100 @@
+export function SettingRow({ name, icon, enabled, onToggle, onClick, subtitle, disabled }: {
+  name: string
+  icon: string
+  enabled: boolean
+  onToggle: (enabled: boolean) => void
+  onClick: () => void
+  subtitle?: React.ReactNode
+  disabled?: boolean
+}): JSX.Element {
+  const isEmojiIcon = typeof icon === 'string' && !icon.startsWith('/') && !icon.endsWith('.png') && !icon.endsWith('.svg') && !icon.startsWith('data:')
+  return (
+    <div style={styles.row} onClick={onClick}>
+      {isEmojiIcon
+        ? <span style={styles.iconEmoji}>{icon}</span>
+        : <img src={icon} alt="" style={styles.icon} />}
+      <div style={styles.nameCol}>
+        <span style={styles.name}>{name}</span>
+        {subtitle && <span style={styles.subtitle}>{subtitle}</span>}
+      </div>
+      <div
+        style={{
+          ...styles.toggle,
+          ...(enabled ? styles.toggleOn : styles.toggleOff),
+          ...(disabled ? styles.toggleDisabled : {})
+        }}
+        onClick={(e) => { e.stopPropagation(); if (!disabled) onToggle(!enabled) }}
+      >
+        <div style={{ ...styles.knob, ...(enabled ? styles.knobOn : styles.knobOff) }} />
+      </div>
+    </div>
+  )
+}
+
+export const settingStyles: Record<string, React.CSSProperties> = {
+  error: { color: '#ff8a80' },
+  code: {
+    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+    fontSize: 10,
+    color: '#bbb',
+    background: 'rgba(255,255,255,0.06)',
+    padding: '1px 4px',
+    borderRadius: 3
+  },
+  link: { color: '#67b3ff', textDecoration: 'none' },
+  expanded: { padding: '4px 8px 12px 36px' }
+}
+
+const styles: Record<string, React.CSSProperties> = {
+  row: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '0 8px',
+    minHeight: 44,
+    borderRadius: 6,
+    cursor: 'pointer',
+    gap: 8
+  },
+  icon: { width: 20, height: 20, borderRadius: 4, flexShrink: 0 },
+  iconEmoji: {
+    width: 20,
+    height: 20,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: 16,
+    flexShrink: 0
+  },
+  toggleDisabled: { opacity: 0.5, cursor: 'wait' },
+  nameCol: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: 2,
+    minWidth: 0
+  },
+  name: { fontSize: 13, color: '#e0e0e0' },
+  subtitle: { fontSize: 11, color: '#888' },
+  toggle: {
+    width: 32,
+    height: 18,
+    borderRadius: 9,
+    cursor: 'pointer',
+    position: 'relative' as const,
+    flexShrink: 0,
+    transition: 'background 0.2s'
+  },
+  toggleOn: { background: '#4ecca3' },
+  toggleOff: { background: 'rgba(255,255,255,0.15)' },
+  knob: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    background: '#fff',
+    position: 'absolute' as const,
+    top: 2,
+    transition: 'left 0.2s'
+  },
+  knobOn: { left: 16 },
+  knobOff: { left: 2 }
+}

@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { ExtensionsTab } from './ExtensionsTab'
+import { GeneralTab } from './GeneralTab'
 
 const tabs = [
-  { id: 'extensions', label: 'Extensions', icon: '\u29C9' }
+  { id: 'general', label: 'General', icon: '⚙' },
+  { id: 'extensions', label: 'Extensions', icon: '⧉' }
 ] as const
 
 export function SettingsApp(): JSX.Element {
-  const [activeTab, setActiveTab] = useState<string>('extensions')
+  const [activeTab, setActiveTab] = useState<string>('general')
 
   return (
     <div style={styles.root}>
@@ -33,6 +35,7 @@ export function SettingsApp(): JSX.Element {
         <div style={styles.divider} />
       </div>
       <div style={styles.content}>
+        {activeTab === 'general' && <GeneralTab />}
         {activeTab === 'extensions' && <ExtensionsTab />}
       </div>
     </div>
@@ -70,13 +73,13 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: 'column',
     alignItems: 'center',
     gap: 2,
-    padding: '6px 12px',
+    padding: '6px 0',
     background: 'none',
     border: 'none',
     borderRadius: 8,
     cursor: 'pointer',
     transition: 'background 0.15s, color 0.15s',
-    minWidth: 56
+    width: 88
   },
   tabBtnActive: {
     background: 'rgba(116,192,252,0.18)'

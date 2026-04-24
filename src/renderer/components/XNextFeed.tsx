@@ -103,12 +103,12 @@ export default function XNextFeed() {
             {composing ? '×' : '+'}
           </button>
           <button
-            className={`xnext-refresh-btn${loading ? ' xnext-spinning' : ''}`}
+            className="xnext-refresh-btn"
             onClick={loadFeed}
             title="Refresh feed"
             disabled={loading}
           >
-            ↻
+            <span className={loading ? 'xnext-spinning' : undefined}>↻</span>
           </button>
           <button
             className="xnext-collapse-btn"
