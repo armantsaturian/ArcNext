@@ -48,7 +48,7 @@ export function configureBrowserSession(browserSession: Electron.Session): strin
     callback({ requestHeaders })
   })
 
-  const ALLOWED_PERMISSIONS = new Set(['media', 'notifications', 'clipboard-read'])
+  const ALLOWED_PERMISSIONS = new Set(['media', 'notifications', 'clipboard-read', 'fullscreen', 'pointerLock'])
 
   // Let web pages (Google Meet, Zoom, etc.) request camera/mic/notifications.
   // On macOS, proactively trigger the TCC prompt for media — Chromium doesn't
@@ -114,6 +114,7 @@ interface BrowserWebContentsCallbacks {
   onSummarize?: (url: string) => void
   onFoundInPage?: (activeMatch: number, totalMatches: number) => void
   onAudioStateChanged?: (playing: boolean, muted: boolean) => void
+  onHtmlFullScreen?: (entered: boolean) => void
   onBeforeInput?: (input: Electron.Input) => boolean
 }
 
@@ -358,8 +359,18 @@ export function wireBrowserViewEvents(
     callbacks.onAudioStateChanged?.(mediaPlayingCount > 0, wc.isAudioMuted())
   }
 
+  const onEnterHtmlFullScreen = (): void => {
+    callbacks.onHtmlFullScreen?.(true)
+  }
+
+  const onLeaveHtmlFullScreen = (): void => {
+    callbacks.onHtmlFullScreen?.(false)
+  }
+
   wc.on('media-started-playing', onMediaStarted)
   wc.on('media-paused', onMediaPaused)
+  wc.on('enter-html-full-screen', onEnterHtmlFullScreen)
+  wc.on('leave-html-full-screen', onLeaveHtmlFullScreen)
 
   wc.on('page-title-updated', onTitleUpdated)
   wc.on('did-navigate', onDidNavigate)
@@ -392,6 +403,8 @@ export function wireBrowserViewEvents(
   return () => {
     wc.removeListener('media-started-playing', onMediaStarted)
     wc.removeListener('media-paused', onMediaPaused)
+    wc.removeListener('enter-html-full-screen', onEnterHtmlFullScreen)
+    wc.removeListener('leave-html-full-screen', onLeaveHtmlFullScreen)
     wc.removeListener('page-title-updated', onTitleUpdated)
     wc.removeListener('did-navigate', onDidNavigate)
     wc.removeListener('did-navigate-in-page', onDidNavigateInPage)

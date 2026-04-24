@@ -12,6 +12,14 @@ export interface ManagedBrowserView {
 const views = new Map<string, ManagedBrowserView>()
 let win: BrowserWindow | null = null
 
+// When a page enters HTML5 fullscreen (video fullscreen button, etc.), we
+// expand its view to cover the whole window and put the OS window into real
+// fullscreen so it matches Chrome/Arc. While fullscreen is active, the
+// renderer's ResizeObserver-driven setBounds calls are ignored — otherwise
+// they'd snap the view back to the placeholder rect.
+let fullscreenPaneId: string | null = null
+let enteredOsFullscreenForHtml = false
+
 type PaneLifecycleListener = (event: { type: 'created' | 'destroyed'; paneId: string }) => void
 const lifecycleListeners = new Set<PaneLifecycleListener>()
 
@@ -32,6 +40,53 @@ export function getBrowserView(paneId: string): ManagedBrowserView | undefined {
 
 export function listBrowserViews(): ManagedBrowserView[] {
   return Array.from(views.values())
+}
+
+function applyPlaceholderBounds(managed: ManagedBrowserView): void {
+  const { x, y, width, height } = managed.bounds
+  managed.view.setBounds({
+    x: Math.round(x),
+    y: Math.round(y),
+    width: Math.round(width),
+    height: Math.round(height)
+  })
+}
+
+function applyFullscreenBounds(managed: ManagedBrowserView): void {
+  if (!win || win.isDestroyed()) return
+  const [width, height] = win.getContentSize()
+  managed.view.setBounds({ x: 0, y: 0, width, height })
+}
+
+function enterHtmlFullscreen(paneId: string): void {
+  if (!win || win.isDestroyed()) return
+  const managed = views.get(paneId)
+  if (!managed) return
+
+  fullscreenPaneId = paneId
+  applyFullscreenBounds(managed)
+
+  if (!win.isFullScreen()) {
+    enteredOsFullscreenForHtml = true
+    win.setFullScreen(true)
+  } else {
+    enteredOsFullscreenForHtml = false
+  }
+}
+
+function leaveHtmlFullscreen(): void {
+  const paneId = fullscreenPaneId
+  fullscreenPaneId = null
+
+  if (paneId) {
+    const managed = views.get(paneId)
+    if (managed) applyPlaceholderBounds(managed)
+  }
+
+  if (win && !win.isDestroyed() && enteredOsFullscreenForHtml && win.isFullScreen()) {
+    win.setFullScreen(false)
+  }
+  enteredOsFullscreenForHtml = false
 }
 
 function wireViewEvents(view: WebContentsView, paneId: string): () => void {
@@ -57,6 +112,10 @@ function wireViewEvents(view: WebContentsView, paneId: string): () => void {
       const managed = views.get(paneId)
       if (managed) managed.mediaPlaying = playing
       send('browser:audioStateChanged', paneId, playing, muted)
+    },
+    onHtmlFullScreen: (entered) => {
+      if (entered) enterHtmlFullscreen(paneId)
+      else if (fullscreenPaneId === paneId) leaveHtmlFullscreen()
     },
     onBeforeInput: (input) => {
       const meta = input.meta || input.control
@@ -106,6 +165,34 @@ function wireViewEvents(view: WebContentsView, paneId: string): () => void {
 export function setupBrowserViewManager(mainWindow: BrowserWindow): void {
   win = mainWindow
 
+  // If the user exits OS fullscreen (Esc, trackpad, Cmd+Ctrl+F) while a page
+  // is in HTML5 fullscreen, tell the page to exit too — otherwise the video
+  // stays "fullscreen" but visibly windowed, which is the bug we just fixed.
+  mainWindow.on('leave-full-screen', () => {
+    if (!fullscreenPaneId) return
+    const managed = views.get(fullscreenPaneId)
+    if (!managed) {
+      fullscreenPaneId = null
+      enteredOsFullscreenForHtml = false
+      return
+    }
+    enteredOsFullscreenForHtml = false
+    managed.view.webContents
+      .executeJavaScript(
+        `document.fullscreenElement ? document.exitFullscreen().catch(() => {}) : Promise.resolve()`,
+        true
+      )
+      .catch(() => {})
+  })
+
+  // While fullscreen, keep the view filling the content area across resizes
+  // (e.g. the OS fullscreen-enter animation resizes the window).
+  mainWindow.on('resize', () => {
+    if (!fullscreenPaneId) return
+    const managed = views.get(fullscreenPaneId)
+    if (managed) applyFullscreenBounds(managed)
+  })
+
   ipcMain.on('browser:create', (_e, paneId: string, url: string) => {
     if (!win || win.isDestroyed() || views.has(paneId)) return
 
@@ -129,13 +216,11 @@ export function setupBrowserViewManager(mainWindow: BrowserWindow): void {
   ipcMain.on('browser:setBounds', (_e, paneId: string, bounds: { x: number; y: number; width: number; height: number }) => {
     const managed = views.get(paneId)
     if (!managed) return
+    // Remember the requested placeholder rect so we can restore it on exit,
+    // but don't apply it while this pane is in HTML5 fullscreen.
     managed.bounds = bounds
-    managed.view.setBounds({
-      x: Math.round(bounds.x),
-      y: Math.round(bounds.y),
-      width: Math.round(bounds.width),
-      height: Math.round(bounds.height)
-    })
+    if (fullscreenPaneId === paneId) return
+    applyPlaceholderBounds(managed)
   })
 
   ipcMain.on('browser:show', (_e, paneId: string) => {
@@ -145,12 +230,8 @@ export function setupBrowserViewManager(mainWindow: BrowserWindow): void {
     if (!children.includes(managed.view)) {
       win.contentView.addChildView(managed.view)
     }
-    managed.view.setBounds({
-      x: Math.round(managed.bounds.x),
-      y: Math.round(managed.bounds.y),
-      width: Math.round(managed.bounds.width),
-      height: Math.round(managed.bounds.height)
-    })
+    if (fullscreenPaneId === paneId) applyFullscreenBounds(managed)
+    else applyPlaceholderBounds(managed)
   })
 
   ipcMain.on('browser:hide', (_e, paneId: string) => {
@@ -258,6 +339,13 @@ export function setupBrowserViewManager(mainWindow: BrowserWindow): void {
 function destroyView(paneId: string): void {
   const managed = views.get(paneId)
   if (!managed) return
+  if (fullscreenPaneId === paneId) {
+    fullscreenPaneId = null
+    if (win && !win.isDestroyed() && enteredOsFullscreenForHtml && win.isFullScreen()) {
+      win.setFullScreen(false)
+    }
+    enteredOsFullscreenForHtml = false
+  }
   managed.cleanup?.()
   if (win && !win.isDestroyed()) {
     try { win.contentView.removeChildView(managed.view) } catch { /* not attached */ }
