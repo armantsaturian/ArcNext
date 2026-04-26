@@ -62,10 +62,10 @@ A few features shell out to external CLIs that aren't bundled with ArcNext. The 
 
 | Feature | Requires | Install |
 |---------|----------|---------|
-| XNext sidebar (X/Twitter feed + compose) | `xcli` | [github.com/armantsaturian/xcli](https://github.com/armantsaturian/xcli) |
+| XNext sidebar (X/Twitter feed + compose, disabled by default) | `xcli` | [github.com/armantsaturian/xcli](https://github.com/armantsaturian/xcli) |
 | AI Rename (workspace auto-naming) and browser "Summarize URL" | `summarize` | [github.com/steipete/summarize](https://github.com/steipete/summarize) |
 
-After installing, make sure the CLI is on your `PATH` (or, for `xcli`, available at `~/.pyenv/shims/xcli`). Restart ArcNext to pick it up.
+After installing, make sure the CLI is on your `PATH` (or, for `xcli`, available at `~/.pyenv/shims/xcli`). Restart ArcNext to pick it up. Enable XNext in Settings → Extensions when you want the sidebar feed.
 
 ## Keyboard Shortcuts
 

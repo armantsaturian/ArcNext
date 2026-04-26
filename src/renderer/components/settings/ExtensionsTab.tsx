@@ -2,16 +2,15 @@ import { useState, useEffect, useCallback } from 'react'
 import { TrashblockSettings } from './TrashblockSettings'
 import { BrowserBridgeSettings } from './BrowserBridgeSettings'
 import { SettingRow, settingStyles } from './SettingRow'
+import { setXNextEnabled, useXNextSnapshot } from '../../store/xnextStore'
 import trashblockIcon from '../../../extensions/trashblock/icon.png'
 import xnextIcon from '../../../extensions/xnext/icon.svg'
 import type { TrashblockData } from '../../../extensions/trashblock/types'
-import type { XNextData } from '../../../extensions/xnext/types'
 
 export function ExtensionsTab(): JSX.Element {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [trashblockEnabled, setTrashblockEnabled] = useState(true)
-  const [xnextEnabled, setXnextEnabled] = useState(true)
-  const [xcliMissing, setXcliMissing] = useState(false)
+  const { enabled: xnextEnabled, xcliMissing } = useXNextSnapshot()
   const [bridgeEnabled, setBridgeEnabled] = useState(false)
   const [bridgeInstalled, setBridgeInstalled] = useState(false)
   const [bridgeBusy, setBridgeBusy] = useState(false)
@@ -20,12 +19,6 @@ export function ExtensionsTab(): JSX.Element {
   const load = useCallback(() => {
     window.settings.trashblock.getState().then((s: TrashblockData) => {
       setTrashblockEnabled(s.enabled)
-    })
-    window.settings.xnext.getState().then((s: XNextData) => {
-      setXnextEnabled(s.enabled)
-    })
-    window.settings.xnext.checkAvailable().then(({ available }) => {
-      setXcliMissing(!available)
     })
     window.settings.webbridge.getSettings().then((s: { enabled: boolean; installed: boolean }) => {
       setBridgeEnabled(s.enabled)
@@ -36,8 +29,7 @@ export function ExtensionsTab(): JSX.Element {
   useEffect(() => {
     load()
     const unsub1 = window.settings.trashblock.onChanged(load)
-    const unsub2 = window.settings.xnext.onChanged(load)
-    return () => { unsub1(); unsub2() }
+    return () => { unsub1() }
   }, [load])
 
   const toggleTrashblock = (enabled: boolean) => {
@@ -46,8 +38,7 @@ export function ExtensionsTab(): JSX.Element {
   }
 
   const toggleXnext = (enabled: boolean) => {
-    setXnextEnabled(enabled)
-    window.settings.xnext.setEnabled(enabled)
+    setXNextEnabled(enabled)
   }
 
   const toggleBridgeEnabled = async (on: boolean) => {

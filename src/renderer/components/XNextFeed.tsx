@@ -1,67 +1,35 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState } from 'react'
 import { usePaneStore } from '../store/paneStore'
+import { pickXNextMedia, postXNext, refreshXNextFeed, useXNextSnapshot } from '../store/xnextStore'
 import type { XNextTweet } from '../../extensions/xnext/types'
 
 export default function XNextFeed() {
   const sidebarCollapsed = usePaneStore((s) => s.sidebarCollapsed)
-  const [enabled, setEnabled] = useState(true)
+  const { enabled, tweets, loading, xcliMissing } = useXNextSnapshot()
   const [collapsed, setCollapsed] = useState(false)
-  const [tweets, setTweets] = useState<XNextTweet[]>([])
-  const [loading, setLoading] = useState(false)
   const [composeText, setComposeText] = useState('')
   const [composing, setComposing] = useState(false)
   const [mediaPaths, setMediaPaths] = useState<string[]>([])
   const [posting, setPosting] = useState(false)
   const [postError, setPostError] = useState('')
-  const [xcliMissing, setXcliMissing] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  const loadState = useCallback(() => {
-    window.arcnext.xnext?.getState().then((s: { enabled: boolean }) => {
-      setEnabled(s.enabled)
-    }).catch(() => {})
-  }, [])
-
-  const loadFeed = useCallback(() => {
-    setLoading(true)
-    window.arcnext.xnext?.getFeed().then((feed: XNextTweet[]) => {
-      if (feed.length > 0) setTweets(feed)
-      setLoading(false)
-    }).catch(() => setLoading(false))
-    window.arcnext.xnext?.checkAvailable().then(({ available }) => {
-      setXcliMissing(!available)
-    }).catch(() => {})
-  }, [])
-
-  useEffect(() => {
-    loadState()
-    loadFeed()
-    const unsub = window.arcnext.xnext?.onChanged(loadState)
-    return () => { unsub?.() }
-  }, [loadState, loadFeed])
-
-  useEffect(() => {
-    if (composing && inputRef.current) inputRef.current.focus()
-  }, [composing])
 
   const submitPost = async () => {
     if (!composeText.trim() || posting) return
     setPosting(true)
     setPostError('')
-    const result = await window.arcnext.xnext.post(composeText, mediaPaths)
+    const result = await postXNext(composeText, mediaPaths)
     setPosting(false)
     if (result.ok) {
       setComposeText('')
       setMediaPaths([])
       setComposing(false)
     } else {
-      if (result.error === 'xcli not installed') setXcliMissing(true)
       setPostError(result.error || 'Failed to post')
     }
   }
 
   const pickMedia = async () => {
-    const paths = await window.arcnext.xnext.pickMedia()
+    const paths = await pickXNextMedia()
     if (paths.length > 0) setMediaPaths(prev => [...prev, ...paths].slice(0, 4))
   }
 
@@ -104,7 +72,7 @@ export default function XNextFeed() {
           </button>
           <button
             className="xnext-refresh-btn"
-            onClick={loadFeed}
+            onClick={refreshXNextFeed}
             title="Refresh feed"
             disabled={loading}
           >
@@ -124,7 +92,7 @@ export default function XNextFeed() {
           {composing && (
             <div className="xnext-compose">
               <input
-                ref={inputRef}
+                autoFocus
                 data-suppress-shortcuts
                 className="xnext-compose-input"
                 placeholder="What's happening?"

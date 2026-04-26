@@ -4,7 +4,7 @@ import { join } from 'path'
 import { execFile } from 'child_process'
 import type { XNextData, XNextTweet } from './types'
 
-const DEFAULTS: XNextData = { enabled: true }
+const DEFAULTS: XNextData = { enabled: false }
 const FEED_COUNT = 30
 
 let data: XNextData = { ...DEFAULTS }
@@ -160,14 +160,17 @@ export function setupXNext(): void {
   })
 
   ipcMain.handle('xnext:getFeed', async () => {
+    if (!data.enabled) return []
     return fetchFeed()
   })
 
   ipcMain.handle('xnext:post', async (_e, text: string, mediaPaths: string[]) => {
+    if (!data.enabled) return { ok: false, error: 'XNext is disabled' }
     return postTweet(text, mediaPaths)
   })
 
   ipcMain.handle('xnext:pickMedia', async () => {
+    if (!data.enabled) return []
     const result = await dialog.showOpenDialog({
       properties: ['openFile', 'multiSelections'],
       filters: [
