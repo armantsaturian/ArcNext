@@ -1,28 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { TrashblockData } from '../../../extensions/trashblock/types'
 
-declare global {
-  interface Window {
-    settings: {
-      trashblock: {
-        getState: () => Promise<TrashblockData>
-        setEnabled: (enabled: boolean) => Promise<void>
-        addSite: (domain: string) => Promise<boolean>
-        removeSite: (domain: string) => Promise<{ needsChallenge: boolean }>
-        savePhrase: (phrase: string) => Promise<{ saved?: boolean; needsChallenge?: boolean }>
-        saveDays: (days: number[]) => Promise<{ saved?: boolean; needsChallenge?: boolean }>
-        onChanged: (cb: () => void) => () => void
-      }
-      xnext: {
-        getState: () => Promise<{ enabled: boolean }>
-        setEnabled: (enabled: boolean) => Promise<void>
-        checkAvailable: () => Promise<{ available: boolean }>
-        onChanged: (cb: () => void) => () => void
-      }
-    }
-  }
-}
-
 const DAYS = [
   { day: 1, label: 'M' },
   { day: 2, label: 'T' },

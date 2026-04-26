@@ -28,7 +28,12 @@ contextBridge.exposeInMainWorld('settings', {
     getSettings: () => ipcRenderer.invoke('webbridge:getSettings'),
     setEnabled: (on: boolean) => ipcRenderer.invoke('webbridge:setEnabled', on),
     setInstalled: (on: boolean) => ipcRenderer.invoke('webbridge:setInstalled', on),
-    isInstalled: () => ipcRenderer.invoke('webbridge:isInstalled')
+    isInstalled: () => ipcRenderer.invoke('webbridge:isInstalled'),
+    onChanged: (cb: () => void) => {
+      const handler = (_event: IpcRendererEvent) => cb()
+      ipcRenderer.on('webbridge:changed', handler)
+      return () => { ipcRenderer.removeListener('webbridge:changed', handler) }
+    }
   },
   betaChannel: {
     getSettings: () => ipcRenderer.invoke('betaChannel:getSettings'),

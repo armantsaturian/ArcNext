@@ -2,6 +2,7 @@ import { BrowserWindow, shell } from 'electron'
 import { join } from 'path'
 import { onTrashblockChanged } from '../extensions/trashblock/main'
 import { onXNextChanged } from '../extensions/xnext/main'
+import { onSettingsChanged as onWebBridgeSettingsChanged } from '../extensions/webbridge/settings'
 
 let settingsWindow: BrowserWindow | null = null
 
@@ -53,9 +54,16 @@ export function openSettingsWindow(): void {
     }
   })
 
+  const unsubWebBridge = onWebBridgeSettingsChanged(() => {
+    if (settingsWindow && !settingsWindow.isDestroyed()) {
+      settingsWindow.webContents.send('webbridge:changed')
+    }
+  })
+
   settingsWindow.on('closed', () => {
     unsubTrashblock()
     unsubXNext()
+    unsubWebBridge()
     settingsWindow = null
   })
 

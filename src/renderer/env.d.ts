@@ -102,8 +102,47 @@ interface ArcNextAPI {
   getPathForFile(file: File): string
 }
 
+interface TrashblockSettingsData {
+  enabled: boolean
+  blockedSites: string[]
+  unlockPhrase: string
+  unlockedSites: Record<string, number>
+  activeDays: number[]
+  daysConfigured: boolean
+}
+
+interface SettingsAPI {
+  trashblock: {
+    getState(): Promise<TrashblockSettingsData>
+    setEnabled(enabled: boolean): Promise<void>
+    addSite(domain: string): Promise<boolean>
+    removeSite(domain: string): Promise<{ needsChallenge: boolean }>
+    savePhrase(phrase: string): Promise<{ saved?: boolean; needsChallenge?: boolean }>
+    saveDays(days: number[]): Promise<{ saved?: boolean; needsChallenge?: boolean }>
+    onChanged(cb: () => void): () => void
+  }
+  xnext: {
+    getState(): Promise<{ enabled: boolean }>
+    setEnabled(enabled: boolean): Promise<void>
+    checkAvailable(): Promise<{ available: boolean }>
+    onChanged(cb: () => void): () => void
+  }
+  webbridge: {
+    getSettings(): Promise<{ enabled: boolean; installed: boolean }>
+    setEnabled(on: boolean): Promise<{ ok: boolean }>
+    setInstalled(on: boolean): Promise<{ ok: boolean; errors?: string[] }>
+    isInstalled(): Promise<boolean>
+    onChanged(cb: () => void): () => void
+  }
+  betaChannel: {
+    getSettings(): Promise<{ allowPrerelease: boolean }>
+    setAllowPrerelease(on: boolean): Promise<void>
+  }
+}
+
 declare global {
   interface Window {
     arcnext: ArcNextAPI
+    settings: SettingsAPI
   }
 }
