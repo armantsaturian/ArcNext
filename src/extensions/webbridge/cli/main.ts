@@ -365,8 +365,9 @@ function toInt(v: string | boolean | undefined, name: string): number | undefine
  *
  * Preference order:
  *   1. ARCNEXT_BRIDGE_SOCK + ARCNEXT_BRIDGE_TOKEN env vars
- *      (always present in ArcNext-spawned PTYs)
- *   2. ~/.arcnext/bridge.json discovery file
+ *      (always present in ArcNext-spawned PTYs — always targets the app that
+ *      spawned the shell, even if both dev and prod are running)
+ *   2. ~/.arcnext/bridge-prod.json, then bridge-dev.json, then legacy bridge.json
  *      (written by the running ArcNext main process — lets this CLI work
  *      from any shell on the machine, not just ones spawned by ArcNext)
  */
@@ -375,13 +376,16 @@ function resolveConnection(): { sock: string; token: string } | null {
   const envToken = process.env.ARCNEXT_BRIDGE_TOKEN
   if (envSock) return { sock: envSock, token: envToken ?? '' }
 
-  const discoveryPath = path.join(os.homedir(), '.arcnext', 'bridge.json')
-  try {
-    const raw = fs.readFileSync(discoveryPath, 'utf-8')
-    const parsed = JSON.parse(raw) as { sock?: string; token?: string }
-    if (parsed.sock && parsed.token) return { sock: parsed.sock, token: parsed.token }
-  } catch {
-    /* missing or unreadable — fall through */
+  const discoveryDir = path.join(os.homedir(), '.arcnext')
+  const candidates = ['bridge-prod.json', 'bridge-dev.json', 'bridge.json']
+  for (const name of candidates) {
+    try {
+      const raw = fs.readFileSync(path.join(discoveryDir, name), 'utf-8')
+      const parsed = JSON.parse(raw) as { sock?: string; token?: string }
+      if (parsed.sock && parsed.token) return { sock: parsed.sock, token: parsed.token }
+    } catch {
+      /* missing or unreadable — try next */
+    }
   }
   return null
 }
@@ -390,7 +394,7 @@ function getSockPath(wantJson: boolean): string {
   const conn = resolveConnection()
   if (!conn) {
     fail(
-      'ArcNext bridge not available. Either run this command inside an ArcNext terminal, or start ArcNext first (it publishes connection info to ~/.arcnext/bridge.json).',
+      'ArcNext bridge not available. Either run this command inside an ArcNext terminal, or start ArcNext first (it publishes connection info to ~/.arcnext/bridge-prod.json).',
       EXIT_NO_SOCK,
       wantJson
     )
@@ -402,7 +406,7 @@ async function connectAndHello(wantJson: boolean): Promise<BridgeClient> {
   const conn = resolveConnection()
   if (!conn) {
     fail(
-      'ArcNext bridge not available. Either run this command inside an ArcNext terminal, or start ArcNext first (it publishes connection info to ~/.arcnext/bridge.json).',
+      'ArcNext bridge not available. Either run this command inside an ArcNext terminal, or start ArcNext first (it publishes connection info to ~/.arcnext/bridge-prod.json).',
       EXIT_NO_SOCK,
       wantJson
     )

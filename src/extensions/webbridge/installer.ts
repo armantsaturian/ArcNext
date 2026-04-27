@@ -15,9 +15,9 @@
  *
  * Install is idempotent. Rerun safely on app upgrade.
  *
- * The `~/.arcnext/bridge.json` discovery file written by server.ts is
+ * The `~/.arcnext/bridge-<channel>.json` discovery file written by main.ts is
  * separate (it's always present while the server runs, not gated by this
- * toggle — see server.ts for rationale).
+ * toggle — see main.ts for rationale).
  */
 
 import { app } from 'electron'

@@ -2,10 +2,13 @@
  * Web Bridge extension entry point.
  *
  * Wires:
- *   - JSON-RPC server on Unix socket at userData/webbridge.sock
+ *   - JSON-RPC server on Unix socket at userData/webbridge-<channel>.sock
  *   - Lock lifecycle events → renderer IPC (glow on acquire/release)
  *   - Pane destroy → CDP detach + lock release
  *   - Renderer user-input signal → yieldPane (preempts agent lock)
+ *
+ * Dev vs prod are namespaced (socket + discovery file) so running a dev build
+ * alongside the installed app doesn't clobber the prod socket.
  *
  * Exposes getPtyEnv() so main/pty.ts can inject ARCNEXT_BRIDGE_SOCK and
  * ARCNEXT_BRIDGE_TOKEN into every spawned shell.
@@ -25,11 +28,16 @@ import { setMainWindow } from './tools'
 
 let running = false
 
+const isDev = !!process.env.ELECTRON_RENDERER_URL
+const channel = isDev ? 'dev' : 'prod'
+const socketFileName = `webbridge-${channel}.sock`
+const discoveryFileName = `bridge-${channel}.json`
+
 const discoveryDir = join(homedir(), '.arcnext')
-const discoveryPath = join(discoveryDir, 'bridge.json')
+const discoveryPath = join(discoveryDir, discoveryFileName)
 
 function writeDiscoveryFile(): void {
-  // Token-discovery file at ~/.arcnext/bridge.json (0600).
+  // Token-discovery file at ~/.arcnext/bridge-<channel>.json (0600).
   // Written only while the server is running — this is how the CLI finds
   // ArcNext from shells where ARCNEXT_BRIDGE_SOCK/TOKEN weren't injected
   // (e.g. Terminal.app, iTerm, VS Code terminal). If the file is absent and
@@ -41,6 +49,7 @@ function writeDiscoveryFile(): void {
       sock: getSocketPath(),
       token: getToken(),
       pid: process.pid,
+      channel,
       writtenAt: Date.now()
     }))
     try { chmodSync(discoveryPath, 0o600) } catch { /* best effort */ }
@@ -53,7 +62,7 @@ function removeDiscoveryFile(): void {
 
 async function startBridge(): Promise<void> {
   if (running) return
-  const sockPath = join(app.getPath('userData'), 'webbridge.sock')
+  const sockPath = join(app.getPath('userData'), socketFileName)
   try {
     await startServer(sockPath)
     running = true
@@ -68,7 +77,7 @@ async function startBridge(): Promise<void> {
   writeDiscoveryFile()
 
   // Dev-only: mirror connection info to a smoke-test helper file.
-  if (process.env.ELECTRON_RENDERER_URL) {
+  if (isDev) {
     const devInfoPath = join(app.getPath('userData'), 'webbridge-dev.json')
     try {
       writeFileSync(devInfoPath, JSON.stringify({ sock: getSocketPath(), token: getToken() }))

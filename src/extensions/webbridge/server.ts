@@ -10,7 +10,7 @@
  * Wire format: newline-delimited JSON (one request per line).
  */
 
-import { createServer, Server, Socket } from 'net'
+import { createConnection, createServer, Server, Socket } from 'net'
 import { randomBytes } from 'crypto'
 import { existsSync, unlinkSync, chmodSync } from 'fs'
 import { handlers } from './tools'
@@ -38,12 +38,37 @@ let server: Server | null = null
 export function getToken(): string { return token }
 export function getSocketPath(): string { return sockPath }
 
-export function startServer(socketPath: string): Promise<void> {
+/**
+ * Quick liveness probe: try to connect to the socket briefly. If anything
+ * accepts the connection, treat it as live — we must not unlink a socket that
+ * another ArcNext instance is listening on. Returns false on any failure
+ * (stale socket, no listener, EACCES) with a short timeout to avoid hanging
+ * startup if the path is a weird file.
+ */
+function isSocketLive(path: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const sock = createConnection(path)
+    const done = (alive: boolean): void => {
+      try { sock.destroy() } catch { /* ignore */ }
+      resolve(alive)
+    }
+    sock.once('connect', () => done(true))
+    sock.once('error', () => done(false))
+    setTimeout(() => done(false), 250)
+  })
+}
+
+export async function startServer(socketPath: string): Promise<void> {
   token = randomBytes(32).toString('hex')
   sockPath = socketPath
 
-  // Remove stale socket if present
   if (existsSync(sockPath)) {
+    if (await isSocketLive(sockPath)) {
+      throw new Error(
+        `another process is already listening on ${sockPath} — refusing to clobber it. ` +
+        `If no other ArcNext instance is running, remove the file manually.`
+      )
+    }
     try { unlinkSync(sockPath) } catch { /* ignore */ }
   }
 
