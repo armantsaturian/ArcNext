@@ -3,14 +3,15 @@ import { execFile } from 'child_process'
 import { homedir } from 'os'
 
 const PROMPT =
-  'You are a workspace namer. Read the context and output exactly 3 keywords that identify this work session. ' +
+  'You are a workspace namer. Read the context and output a single emoji followed by 2-3 keywords that identify this work session. ' +
   'Rules: ' +
-  '1. Use specific identifiers only: project names, feature names, tool names, proper nouns, filenames. ' +
-  '2. No generic words: fix, bug, update, code, react, implement, add, change, work, task, feature, issue. ' +
-  '3. ALL LOWERCASE. No capitals, no title case. ' +
-  '4. No punctuation, no quotes, no explanation. Just 3 words separated by spaces. ' +
-  'Examples: "zappa in arcnext", "autorename in arcnext", "nebius hw2 cifar10", "whisper dictation arcnext". ' +
-  'Output ONLY 3 lowercase words, nothing else.'
+  '1. Pick ONE emoji that fits the actual work (🎙️ for dictation/audio, 🔒 for auth/security, 🧪 for tests, 🐛 for bugs, 📦 for releases/builds, 🎨 for UI/design, 🤖 for AI/agents, 🌐 for browser/web, 📝 for docs, 🗂️ for refactors, ⚡ for perf, 🔧 for tooling, etc). Pick what matches — don\'t force these. ' +
+  '2. Then 2-3 specific keywords: project names, feature names, tool names, proper nouns, filenames. ' +
+  '3. No generic words: fix, bug, update, code, react, implement, add, change, work, task, feature, issue. ' +
+  '4. Keywords ALL LOWERCASE. No capitals, no title case. ' +
+  '5. No punctuation, no quotes, no explanation. Format: "<emoji> word word word". ' +
+  'Examples: "🤖 autorename arcnext", "🎙️ whisper dictation", "🧪 cifar10 nebius", "🔮 claude dangerous", "🌐 webbridge snapshot". ' +
+  'Output ONLY the emoji and 2-3 lowercase words, nothing else.'
 
 let summarizeAvailable: boolean | null = null
 

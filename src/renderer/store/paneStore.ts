@@ -79,6 +79,7 @@ export interface Workspace {
   color?: string
   pinned?: boolean
   dormant?: boolean
+  autoRenamed?: boolean
 }
 
 interface BrowserPaneOptions {
@@ -444,7 +445,7 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
   setWorkspaceName: (id, name) => {
     const { workspaces } = get()
     set({
-      workspaces: workspaces.map((w) => w.id === id ? { ...w, name } : w)
+      workspaces: workspaces.map((w) => w.id === id ? { ...w, name, autoRenamed: true } : w)
     })
     if (workspaces.find((w) => w.id === id)?.pinned) get().persistPinned()
   },
@@ -452,44 +453,48 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
   aiRenameWorkspace: async (workspaceId) => {
     const { workspaces, panes } = get()
     const ws = workspaces.find((w) => w.id === workspaceId)
-    if (!ws) return
+    if (!ws || ws.autoRenamed) return
 
-    const paneIds = allPaneIds(ws.grid)
-    const paneInfos = paneIds.map((id) => panes.get(id)).filter(Boolean) as PaneInfo[]
+    // Poison-pill the flag up front so concurrent triggers don't double-fire.
+    // Snapshot the starting name so a manual rename mid-flight wins.
+    const startName = ws.name
+    set({ workspaces: get().workspaces.map((w) => w.id === workspaceId ? { ...w, autoRenamed: true } : w) })
+
+    const terminals = allPaneIds(ws.grid)
+      .map((id) => panes.get(id))
+      .filter((p): p is TerminalPaneInfo => p?.type === 'terminal')
 
     const agentCommands = new Set(['claude', 'codex', 'opencode'])
     const parts: string[] = []
-    for (const pane of paneInfos) {
-      if (pane.type === 'terminal') {
-        const tp = pane as TerminalPaneInfo
-        if (tp.userMessage) parts.push(`User task: ${tp.userMessage}`)
-        if (tp.command && !agentCommands.has(tp.command)) parts.push(`Running: ${tp.command}`)
-        if (tp.cwd) parts.push(`Project: ${tp.cwd.split('/').pop()}`)
-      } else if (pane.type === 'browser') {
-        const bp = pane as BrowserPaneInfo
-        if (bp.title) parts.push(`Page: ${bp.title}`)
-        if (bp.url) parts.push(`URL: ${bp.url}`)
-      }
+    for (const tp of terminals) {
+      if (tp.userMessage) parts.push(`User task: ${tp.userMessage}`)
+      if (tp.command && !agentCommands.has(tp.command)) parts.push(`Running: ${tp.command}`)
+      if (tp.cwd) parts.push(`Project: ${tp.cwd.split('/').pop()}`)
     }
 
     if (parts.length === 0) return
 
-    const context = parts.join('\n')
+    const applyIfUntouched = (newName: string): void => {
+      const current = get().workspaces.find((w) => w.id === workspaceId)
+      if (!current || current.name !== startName) return
+      set({ workspaces: get().workspaces.map((w) => w.id === workspaceId ? { ...w, name: newName } : w) })
+      if (current.pinned) get().persistPinned()
+    }
 
     try {
-      const result = await window.arcnext.aiRename.generate(context)
+      const result = await window.arcnext.aiRename.generate(parts.join('\n'))
       if (result.name) {
-        get().setWorkspaceName(workspaceId, result.name)
+        applyIfUntouched(result.name)
         return
       }
     } catch {
       // fall through to fallback
     }
 
-    const primary = paneInfos.find((p) => p.type === 'terminal' && (p as TerminalPaneInfo).userMessage)
-    if (primary && primary.type === 'terminal') {
-      const fallback = stripAndTruncate((primary as TerminalPaneInfo).userMessage!)
-      if (fallback) get().setWorkspaceName(workspaceId, fallback)
+    const primary = terminals.find((t) => t.userMessage)
+    if (primary) {
+      const fallback = stripAndTruncate(primary.userMessage!)
+      if (fallback) applyIfUntouched(fallback)
     }
   },
 
@@ -690,12 +695,15 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
   },
 
   setPaneUserMessage: (id, message) => {
-    const { panes } = get()
+    const { panes, workspaces } = get()
     const pane = panes.get(id)
     if (!pane || pane.type !== 'terminal') return
     const newPanes = new Map(panes)
     newPanes.set(id, { ...pane, userMessage: message })
     set({ panes: newPanes })
+
+    const ws = findWorkspaceByPaneId(workspaces, id)
+    if (ws && !ws.autoRenamed) get().aiRenameWorkspace(ws.id)
   },
 
   setGrid: (grid) => {
