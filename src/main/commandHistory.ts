@@ -34,14 +34,19 @@ function recordVisit(command: string): void {
   }
 }
 
-function commandScore(entry: { visitCount: number; lastVisit: number }, now = Date.now()): number {
+const AGENT_COMMANDS = new Set(['claude', 'codex', 'opencode'])
+
+function commandScore(entry: { command?: string; visitCount: number; lastVisit: number }, now = Date.now()): number {
   const ageHours = (now - entry.lastVisit) / (1000 * 60 * 60)
   let recencyWeight: number
   if (ageHours < 1) recencyWeight = 4
   else if (ageHours < 24) recencyWeight = 2
   else if (ageHours < 7 * 24) recencyWeight = 1
   else recencyWeight = 0.5
-  return Math.sqrt(entry.visitCount) * recencyWeight
+
+  const firstWord = entry.command?.split(/\s+/)[0]?.toLowerCase()
+  const commandBoost = firstWord && AGENT_COMMANDS.has(firstWord) ? 2.5 : 1
+  return Math.sqrt(entry.visitCount) * recencyWeight * commandBoost
 }
 
 function mergeCommandEntries(
@@ -62,15 +67,16 @@ function mergeCommandEntries(
 
   for (const entry of appEntries) {
     const existing = merged.get(entry.command)
+    const appScore = commandScore(entry, now)
     if (existing) {
       merged.set(entry.command, {
         command: entry.command,
         visitCount: entry.visitCount + existing.visitCount,
         lastVisit: Math.max(entry.lastVisit, existing.lastVisit),
-        score: entry.score + existing.score
+        score: appScore + existing.score
       })
     } else {
-      merged.set(entry.command, entry)
+      merged.set(entry.command, { ...entry, score: appScore })
     }
   }
 

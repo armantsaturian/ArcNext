@@ -376,9 +376,7 @@ export default function UnifiedPicker({ onClose }: Props) {
       <div className="picker" onClick={(e) => e.stopPropagation()}>
         <div className={`picker-input-wrapper${runTarget ? ' picker-input-wrapper-run' : ''}`}>
           {runTarget && (
-            <div className="picker-run-token">
-              <span className="picker-run-token-name">{runTarget.displayName}</span>
-            </div>
+            <span className="picker-run-prefix">{runTarget.displayName}</span>
           )}
           <div className="picker-input-stack">
             <div className="picker-ghost" aria-hidden="true">

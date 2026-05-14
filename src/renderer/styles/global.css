@@ -19,7 +19,7 @@ body,
     display: flex;
     flex-direction: row;
     -webkit-app-region: drag;
-    background: #121212;
+    background: rgba(18, 18, 18, 0.85);
     transition: background 0.2s;
 }
 
@@ -1079,26 +1079,17 @@ body,
     z-index: 0;
 }
 
-.picker-run-token {
-    display: flex;
-    align-items: center;
-    margin-left: 12px;
-    padding: 5px 11px;
-    border-radius: 999px;
-    background: rgba(116, 192, 252, 0.12);
-    border: 1px solid rgba(116, 192, 252, 0.16);
-    color: #d8efff;
-    white-space: nowrap;
-    min-width: 0;
-    max-width: 44%;
-}
-
-.picker-run-token-name {
+.picker-run-prefix {
+    margin-left: 16px;
+    color: #e0e0e0;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-size: 13px;
-    font-weight: 700;
-    font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+    white-space: nowrap;
+    font-size: 15px;
+    font-weight: inherit;
+    font-family: inherit;
+    max-width: 44%;
+    flex-shrink: 0;
 }
 
 .picker-input-hint {

@@ -8,6 +8,8 @@ export interface ShellCommandEntry {
   lastVisit: number
 }
 
+const MAX_COMMAND_LENGTH = 500
+
 function shellHistoryScore(entry: ShellCommandEntry, now: number): number {
   const ageHours = (now - entry.lastVisit) / (1000 * 60 * 60)
   let recencyWeight: number
@@ -22,13 +24,26 @@ function normalizeCommand(command: string): string {
   return command.trim()
 }
 
+function isUsefulCommand(command: string): boolean {
+  if (!command || command.length > MAX_COMMAND_LENGTH) return false
+  if (command.includes('\n') || command.includes('\r')) return false
+  if (!/[A-Za-z0-9]/.test(command)) return false
+
+  // Multi-line shell snippets often leave continuation fragments in history
+  // files. They are technically commands, but awful launcher suggestions.
+  if (/\\$/.test(command)) return false
+  if (/^(import|from|const|let|var|function|return|if|for|while)\b/.test(command)) return false
+
+  return true
+}
+
 function addEntry(
   entries: Map<string, ShellCommandEntry>,
   command: string,
   lastVisit: number
 ): void {
   const normalized = normalizeCommand(command)
-  if (!normalized) return
+  if (!isUsefulCommand(normalized)) return
   const existing = entries.get(normalized)
   if (existing) {
     existing.visitCount++
@@ -41,16 +56,29 @@ function addEntry(
 export function parseZshHistory(raw: string, fallbackTimestamp: number): ShellCommandEntry[] {
   const entries = new Map<string, ShellCommandEntry>()
   const lines = raw.split(/\r?\n/)
+  let pendingCommand: string | null = null
+  let pendingTimestamp = fallbackTimestamp
+
+  const flushPending = (): void => {
+    if (pendingCommand === null) return
+    addEntry(entries, pendingCommand, pendingTimestamp)
+    pendingCommand = null
+  }
 
   lines.forEach((line, index) => {
     const fallback = fallbackTimestamp - Math.max(0, lines.length - index - 1) * 1000
     const extended = line.match(/^: (\d+):\d+;(.*)$/)
     if (extended) {
-      addEntry(entries, extended[2], Number(extended[1]) * 1000)
+      flushPending()
+      pendingCommand = extended[2]
+      pendingTimestamp = Number(extended[1]) * 1000
+    } else if (pendingCommand !== null) {
+      pendingCommand += `\n${line}`
     } else {
       addEntry(entries, line, fallback)
     }
   })
+  flushPending()
 
   return [...entries.values()]
 }

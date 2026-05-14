@@ -36,6 +36,18 @@ describe('shellHistory parsing', () => {
     })
   })
 
+  it('does not surface zsh multiline continuation fragments as commands', () => {
+    const entries = parseZshHistory([
+      ': 1700000000:0;python3 - <<\\PY',
+      'import json\\',
+      'print("hello")',
+      'PY',
+      ': 1700000100:0;npm run dev'
+    ].join('\n'), 0)
+
+    expect(entries.map((entry) => entry.command)).toEqual(['npm run dev'])
+  })
+
   it('keeps frequent daily commands above merely recent one-offs', () => {
     const now = 10 * 24 * 60 * 60 * 1000
     const ranked = rankShellHistoryEntries([
