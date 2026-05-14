@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { substringMatch, computeGhostText, filterWebEntries } from '../model/pickerHelpers'
-import type { WebEntry } from '../../shared/types'
+import { substringMatch, computeGhostText, filterWebEntries, filterCommandEntries } from '../model/pickerHelpers'
+import type { CommandEntry, WebEntry } from '../../shared/types'
 
 function webEntry(url: string, title: string, score: number): WebEntry {
   return { url, title, faviconUrl: '', visitCount: 1, lastVisit: Date.now(), score }
+}
+
+function commandEntry(command: string, score: number): CommandEntry {
+  return { command, visitCount: 1, lastVisit: Date.now(), score }
 }
 
 describe('substringMatch', () => {
@@ -92,5 +96,28 @@ describe('filterWebEntries', () => {
 
   it('returns empty array when no entries match', () => {
     expect(filterWebEntries(entries, 'zzzzz', 10)).toEqual([])
+  })
+})
+
+describe('filterCommandEntries', () => {
+  const entries: CommandEntry[] = [
+    commandEntry('codex --dangerously-bypass-approvals-and-sandbox', 30),
+    commandEntry('claude', 20),
+    commandEntry('npm run dev', 10),
+  ]
+
+  it('filters command history by substring', () => {
+    const result = filterCommandEntries(entries, 'codex', 10)
+    expect(result.map(e => e.command)).toEqual([
+      'codex --dangerously-bypass-approvals-and-sandbox'
+    ])
+  })
+
+  it('sorts by score descending and limits results', () => {
+    const result = filterCommandEntries(entries, '', 2)
+    expect(result.map(e => e.command)).toEqual([
+      'codex --dangerously-bypass-approvals-and-sandbox',
+      'claude'
+    ])
   })
 })

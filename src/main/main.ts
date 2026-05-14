@@ -5,6 +5,7 @@ import { setupPTY, killAllPTY } from './pty'
 import { showQuitDialog } from './quitDialog'
 import { setupDirHistory, flushDirHistorySync } from './dirHistory'
 import { setupDirDiscovery } from './dirDiscovery'
+import { setupCommandHistory, flushCommandHistorySync } from './commandHistory'
 import { setupWebHistory, flushWebHistorySync } from './webHistory'
 import { setupPinnedWorkspaces, flushPinnedWorkspacesSync } from './pinnedWorkspaces'
 import { hasFullDiskAccess, showFDADialog } from './fullDiskAccess'
@@ -65,6 +66,7 @@ function createWindow(): void {
   setupPTY(mainWindow)
   setupDirHistory()
   setupDirDiscovery()
+  setupCommandHistory()
   setupWebHistory()
   setupPinnedWorkspaces()
   setupBrowserViewManager(mainWindow)
@@ -205,6 +207,7 @@ app.on('before-quit', () => {
   stopAllDictation()
   destroyAllBrowserViews()
   flushDirHistorySync()
+  flushCommandHistorySync()
   flushWebHistorySync()
   flushPinnedWorkspacesSync()
   flushTrashblockSync()

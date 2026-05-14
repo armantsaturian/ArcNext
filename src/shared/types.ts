@@ -37,6 +37,13 @@ export interface WebEntry {
   score: number
 }
 
+export interface CommandEntry {
+  command: string
+  visitCount: number
+  lastVisit: number
+  score: number
+}
+
 export interface SerializedPane {
   type: 'terminal' | 'browser'
   id: string
@@ -96,6 +103,8 @@ export interface IPCChannels {
   'dirHistory:visit': (path: string) => void
   'dirHistory:query': () => Promise<DirEntry[]>
   'dirDiscovery:query': () => Promise<DirEntry[]>
+  'commandHistory:visit': (command: string) => void
+  'commandHistory:query': () => Promise<CommandEntry[]>
   'webHistory:visit': (url: string, title?: string, faviconUrl?: string) => void
   'webHistory:query': () => Promise<WebEntry[]>
   // Browser view lifecycle

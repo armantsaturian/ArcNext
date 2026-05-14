@@ -116,6 +116,19 @@ describe('paneStore — terminal pane basics', () => {
     expect(createTerminal).toHaveBeenCalledTimes(callCount + 1)
   })
 
+  it('passes an initial command when creating a terminal workspace', () => {
+    usePaneStore.getState().addWorkspace('/tmp/project', {
+      initialCommand: 'codex --dangerously-bypass-approvals-and-sandbox'
+    })
+
+    expect(createTerminal).toHaveBeenLastCalledWith(
+      expect.any(String),
+      '/tmp/project',
+      undefined,
+      'codex --dangerously-bypass-approvals-and-sandbox'
+    )
+  })
+
   it('splitActive creates a new terminal pane (horizontal = new column)', () => {
     const { panes: before } = usePaneStore.getState()
     usePaneStore.getState().splitActive('horizontal')

@@ -1028,6 +1028,14 @@ body,
 .picker-input-wrapper {
     position: relative;
     border-bottom: 1px solid #2a2a2a;
+    display: flex;
+    align-items: center;
+}
+
+.picker-input-stack {
+    position: relative;
+    flex: 1;
+    min-width: 0;
 }
 
 .picker-input {
@@ -1042,6 +1050,14 @@ body,
     box-sizing: border-box;
     position: relative;
     z-index: 1;
+}
+
+.picker-input-wrapper-run .picker-input {
+    padding-left: 8px;
+}
+
+.picker-input-wrapper-run .picker-ghost {
+    padding-left: 8px;
 }
 
 .picker-input::placeholder {
@@ -1061,6 +1077,50 @@ body,
     overflow: hidden;
     box-sizing: border-box;
     z-index: 0;
+}
+
+.picker-run-token {
+    display: flex;
+    align-items: center;
+    margin-left: 12px;
+    padding: 5px 11px;
+    border-radius: 999px;
+    background: rgba(116, 192, 252, 0.12);
+    border: 1px solid rgba(116, 192, 252, 0.16);
+    color: #d8efff;
+    white-space: nowrap;
+    min-width: 0;
+    max-width: 44%;
+}
+
+.picker-run-token-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+}
+
+.picker-input-hint {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-right: 14px;
+    color: #6f6f6f;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.picker-input-hint kbd {
+    padding: 4px 7px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #b8b8b8;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 750;
 }
 
 .picker-ghost-hidden {
@@ -1178,6 +1238,18 @@ body,
     text-align: center;
     color: #666;
     font-size: 13px;
+}
+
+.picker-run-path {
+    padding: 8px 12px 10px;
+    color: #666;
+    font-size: 11px;
+    font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    margin-top: 4px;
 }
 
 /* ── Browser pane ── */

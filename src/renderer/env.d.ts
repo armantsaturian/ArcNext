@@ -1,5 +1,6 @@
 import type {
   DirEntry,
+  CommandEntry,
   PinnedWorkspaceEntry,
   WebEntry
 } from '../shared/types'
@@ -17,6 +18,10 @@ interface ArcNextAPI {
   }
   dirDiscovery: {
     query(): Promise<DirEntry[]>
+  }
+  commandHistory: {
+    visit(command: string): Promise<void>
+    query(): Promise<CommandEntry[]>
   }
   aiRename: {
     generate(context: string): Promise<{ name: string | null; reason?: 'missing' }>

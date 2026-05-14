@@ -89,6 +89,12 @@ interface BrowserPaneOptions {
   openerWorkspaceId?: string
 }
 
+interface TerminalPaneOptions {
+  initialCommand?: string
+}
+
+interface TerminalWorkspaceOptions extends TerminalPaneOptions {}
+
 interface PaneStore {
   workspaces: Workspace[]
   activeWorkspaceId: string | null
@@ -101,7 +107,7 @@ interface PaneStore {
   setSidebarWidth: (width: number) => void
 
   // Workspace actions
-  addWorkspace: (cwd?: string) => void
+  addWorkspace: (cwd?: string, options?: TerminalWorkspaceOptions) => void
   removeWorkspace: (id: string) => void
   switchWorkspace: (id: string) => void
   mergeWorkspaces: (targetId: string, sourceId: string, direction: Direction) => void
@@ -189,9 +195,9 @@ interface PaneStore {
   setDictationState: (paneId: string, state: DictationState | null) => void
 }
 
-function makeTerminalPane(cwd?: string): TerminalPaneInfo {
+function makeTerminalPane(cwd?: string, options: TerminalPaneOptions = {}): TerminalPaneInfo {
   const id = genPaneId()
-  createTerminal(id, cwd)
+  createTerminal(id, cwd, undefined, options.initialCommand)
   return { type: 'terminal', id, title: 'shell', cwd: cwd || '' }
 }
 
@@ -217,8 +223,8 @@ function destroyPaneResource(pane: PaneInfo): void {
   }
 }
 
-function makeWorkspace(name?: string, cwd?: string): { workspace: Workspace; pane: PaneInfo } {
-  const pane = makeTerminalPane(cwd)
+function makeWorkspace(name?: string, cwd?: string, options?: TerminalWorkspaceOptions): { workspace: Workspace; pane: PaneInfo } {
+  const pane = makeTerminalPane(cwd, options)
   const id = genWorkspaceId()
   return {
     workspace: {
@@ -311,9 +317,9 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
   toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
   setSidebarWidth: (width) => set({ sidebarWidth: Math.max(150, Math.min(400, width)) }),
 
-  addWorkspace: (cwd?: string) => {
+  addWorkspace: (cwd?: string, options?: TerminalWorkspaceOptions) => {
     const { workspaces, activeWorkspaceId, panes } = get()
-    const { workspace, pane } = makeWorkspace(undefined, cwd)
+    const { workspace, pane } = makeWorkspace(undefined, cwd, options)
     const newPanes = new Map(panes)
     newPanes.set(pane.id, pane)
     if (activeWorkspaceId) pushWorkspaceHistory(activeWorkspaceId)

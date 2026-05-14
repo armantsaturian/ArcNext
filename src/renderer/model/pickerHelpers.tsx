@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { WebEntry } from '../../shared/types'
+import type { CommandEntry, WebEntry } from '../../shared/types'
 
 export function substringMatch(text: string, query: string): number {
   return text.toLowerCase().indexOf(query.toLowerCase())
@@ -22,6 +22,17 @@ export function filterWebEntries(entries: WebEntry[], query: string, limit: numb
   }
 
   return [...dedupMap.values()]
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+}
+
+/** Filter and sort initial-command history by query. */
+export function filterCommandEntries(entries: CommandEntry[], query: string, limit: number): CommandEntry[] {
+  const filtered = query
+    ? entries.filter(e => substringMatch(e.command, query) !== -1)
+    : entries
+
+  return [...filtered]
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
 }

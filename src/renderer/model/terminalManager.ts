@@ -70,19 +70,25 @@ interface ManagedTerminal {
   search: SearchAddon
   serialize: SerializeAddon
   webgl: WebglAddon | null
+  initialCommandTimer: ReturnType<typeof setTimeout> | null
   removeDataListener: () => void
   removeExitListener: () => void
 }
 
 const terminals = new Map<string, ManagedTerminal>()
 
+const INITIAL_COMMAND_FALLBACK_MS = 1500
+const INITIAL_COMMAND_PROMPT_DELAY_MS = 25
+
 const parkingDiv = document.createElement('div')
 parkingDiv.id = 'terminal-parking'
 parkingDiv.style.cssText = 'visibility:hidden;position:absolute;width:0;height:0;overflow:hidden'
 document.body.appendChild(parkingDiv)
 
-export function createTerminal(paneId: string, cwd?: string, scrollback?: string): Terminal {
+export function createTerminal(paneId: string, cwd?: string, scrollback?: string, initialCommand?: string): Terminal {
   if (terminals.has(paneId)) return terminals.get(paneId)!.term
+  let pendingInitialCommand = initialCommand?.trim() || null
+  let initialCommandTimer: ReturnType<typeof setTimeout> | null = null
 
   const term = new Terminal({
     fontSize: 14,
@@ -162,8 +168,21 @@ export function createTerminal(paneId: string, cwd?: string, scrollback?: string
     term.write(scrollback)
   }
 
-  // PTY connection
-  window.arcnext.pty.create(paneId, cwd)
+  const sendInitialCommand = (): void => {
+    if (!pendingInitialCommand) return
+    const command = pendingInitialCommand
+    pendingInitialCommand = null
+    if (initialCommandTimer) {
+      clearTimeout(initialCommandTimer)
+      initialCommandTimer = null
+    }
+
+    // The shell integration emits "prompt" just before zsh paints the prompt.
+    // Wait one tick so the command lands after the shell has started reading.
+    setTimeout(() => {
+      window.arcnext.pty.write(paneId, `${command}\r`)
+    }, INITIAL_COMMAND_PROMPT_DELAY_MS)
+  }
 
   term.onData((data) => {
     window.arcnext.pty.write(paneId, data)
@@ -208,11 +227,29 @@ export function createTerminal(paneId: string, cwd?: string, scrollback?: string
     } else if (data === 'prompt') {
       // precmd: command finished, back to prompt
       onCommandChange?.(paneId, null)
+      sendInitialCommand()
     }
     return true
   })
 
-  terminals.set(paneId, { term, fit, search, serialize, webgl, removeDataListener, removeExitListener })
+  // PTY connection — registered after listeners/OSC handlers so startup
+  // output and the first shell prompt cannot race past us.
+  window.arcnext.pty.create(paneId, cwd)
+
+  if (pendingInitialCommand) {
+    initialCommandTimer = setTimeout(sendInitialCommand, INITIAL_COMMAND_FALLBACK_MS)
+  }
+
+  terminals.set(paneId, {
+    term,
+    fit,
+    search,
+    serialize,
+    webgl,
+    initialCommandTimer,
+    removeDataListener,
+    removeExitListener
+  })
   return term
 }
 
@@ -313,6 +350,7 @@ export function destroyTerminal(paneId: string): void {
   if (!managed) return
   managed.removeDataListener()
   managed.removeExitListener()
+  if (managed.initialCommandTimer) clearTimeout(managed.initialCommandTimer)
   inputBuffers.delete(paneId)
   // Clean up host div from parking to prevent DOM leaks
   const host = managed.term.element?.parentElement

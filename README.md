@@ -40,7 +40,8 @@ Agents running in an ArcNext terminal pane can observe and drive any open browse
 For example, ask Claude Code to "like the top post on my LinkedIn feed" and it'll open the page, snapshot it, and click the right button for you. See `arcnext-bridge --help` for the full command list.
 
 ### Smart Cmd+T
-Frecency-powered picker with ghost text autocomplete. Search your directory and web history, Tab to complete, Enter to go.
+Frecency-powered picker with ghost text autocomplete. Search your directory and web history, Enter to go.
+When a directory is selected, press Tab to switch into an Arc-style "Run in…" mode, type an initial shell command, then press Enter to open that folder and run it. Commands launched this way are remembered so long agent commands can be reused from history.
 
 ![Smart Cmd+T demo](assets/demo-cmdt.gif)
 
@@ -72,6 +73,7 @@ After installing, make sure the CLI is on your `PATH` (or, for `xcli`, available
 | Shortcut | Action |
 |----------|--------|
 | `Cmd+T` | New tab picker |
+| `Tab` in Cmd+T on a directory | Type an initial command to run in that directory |
 | `Cmd+D` / `Cmd+Shift+D` | Split right / down |
 | `Cmd+W` | Close pane |
 | `Cmd+B` | Toggle sidebar |
