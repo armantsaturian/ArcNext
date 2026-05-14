@@ -90,10 +90,28 @@ interface BrowserPaneOptions {
 }
 
 interface TerminalPaneOptions {
-  initialCommand?: string
+  startupCommand?: string
 }
 
 interface TerminalWorkspaceOptions extends TerminalPaneOptions {}
+
+const SUMMARIZE_PROMPT = 'Summarize as a bullet list of concise, tweet-sized facts (2-3 sentences each). No headers, no paragraphs, no intro — just bullet points.'
+
+function shellQuote(value: string): string {
+  return `'${value.replace(/'/g, "'\\''")}'`
+}
+
+function buildSummarizeCommand(url: string): string {
+  return [
+    'summarize',
+    '--length medium',
+    '--format md',
+    '--model openai/gpt-5.4-mini',
+    '--prompt',
+    shellQuote(SUMMARIZE_PROMPT),
+    shellQuote(url)
+  ].join(' ')
+}
 
 interface PaneStore {
   workspaces: Workspace[]
@@ -197,7 +215,7 @@ interface PaneStore {
 
 function makeTerminalPane(cwd?: string, options: TerminalPaneOptions = {}): TerminalPaneInfo {
   const id = genPaneId()
-  createTerminal(id, cwd, undefined, options.initialCommand)
+  createTerminal(id, cwd, { startupCommand: options.startupCommand })
   return { type: 'terminal', id, title: 'shell', cwd: cwd || '' }
 }
 
@@ -577,7 +595,7 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
     const ws = workspaces.find((w) => allPaneIds(w.grid).includes(browserPaneId))
     if (!ws) return
 
-    const newPane = makeTerminalPane()
+    const newPane = makeTerminalPane(undefined, { startupCommand: buildSummarizeCommand(url) })
     const newPanes = new Map(panes)
     newPanes.set(newPane.id, newPane)
 
@@ -589,13 +607,6 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
       panes: newPanes
     })
     if (ws.pinned) get().persistPinned()
-
-    // Write the summarize command once the shell is ready
-    const escaped = url.replace(/'/g, "'\\''")
-    const cmd = `summarize --length medium --format md --model openai/gpt-5.4-mini --prompt 'Summarize as a bullet list of concise, tweet-sized facts (2-3 sentences each). No headers, no paragraphs, no intro — just bullet points.' '${escaped}'\r`
-    setTimeout(() => {
-      window.arcnext.pty.write(newPane.id, cmd)
-    }, 150)
   },
 
   closePane: (id) => {
@@ -929,7 +940,7 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
       if (pane.type === 'terminal') {
         const tp = pane as TerminalPaneInfo
         const savedScrollback = dormantScrollback.get(pid)
-        createTerminal(pid, tp.cwd || undefined, savedScrollback)
+        createTerminal(pid, tp.cwd || undefined, { scrollback: savedScrollback })
         dormantScrollback.delete(pid)
       }
     }

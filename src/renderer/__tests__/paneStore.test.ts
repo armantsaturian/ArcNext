@@ -116,16 +116,15 @@ describe('paneStore — terminal pane basics', () => {
     expect(createTerminal).toHaveBeenCalledTimes(callCount + 1)
   })
 
-  it('passes an initial command when creating a terminal workspace', () => {
+  it('passes a startup command when creating a terminal workspace', () => {
     usePaneStore.getState().addWorkspace('/tmp/project', {
-      initialCommand: 'codex --dangerously-bypass-approvals-and-sandbox'
+      startupCommand: 'codex --dangerously-bypass-approvals-and-sandbox'
     })
 
     expect(createTerminal).toHaveBeenLastCalledWith(
       expect.any(String),
       '/tmp/project',
-      undefined,
-      'codex --dangerously-bypass-approvals-and-sandbox'
+      { startupCommand: 'codex --dangerously-bypass-approvals-and-sandbox' }
     )
   })
 
@@ -222,6 +221,38 @@ describe('paneStore — browser pane actions', () => {
 
     const otherPaneId = ids.find(id => id !== ws.activePaneId)!
     expect(panes.get(otherPaneId)!.type).toBe('terminal')
+  })
+
+  it('summarizeUrl creates a terminal with a summarize startup command', () => {
+    vi.useFakeTimers()
+    try {
+      usePaneStore.getState().addBrowserWorkspace('https://example.com')
+      const browserWs = usePaneStore.getState().workspaces.at(-1)!
+      const browserPaneId = browserWs.activePaneId
+
+      vi.clearAllMocks()
+      usePaneStore.getState().summarizeUrl(browserPaneId, "https://example.com/a'b?x=1")
+
+      expect(createTerminal).toHaveBeenCalledTimes(1)
+      const [terminalPaneId, cwd, options] = (createTerminal as ReturnType<typeof vi.fn>).mock.lastCall!
+      expect(cwd).toBeUndefined()
+      expect(options).toEqual({
+        startupCommand: expect.stringContaining('summarize --length medium --format md --model openai/gpt-5.4-mini')
+      })
+      expect(options.startupCommand).toContain("'https://example.com/a'\\''b?x=1'")
+      expect(options.startupCommand).not.toContain('\r')
+
+      const { workspaces, panes } = usePaneStore.getState()
+      const updatedWs = workspaces.find(w => w.id === browserWs.id)!
+      expect(updatedWs.activePaneId).toBe(terminalPaneId)
+      expect(panes.get(terminalPaneId)?.type).toBe('terminal')
+
+      expect(ptyWrite).not.toHaveBeenCalled()
+      vi.advanceTimersByTime(200)
+      expect(ptyWrite).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('setBrowserPaneUrl updates url on browser panes only', () => {

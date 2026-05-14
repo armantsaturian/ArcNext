@@ -20,7 +20,6 @@ interface ArcNextAPI {
     query(): Promise<DirEntry[]>
   }
   commandHistory: {
-    visit(command: string): Promise<void>
     query(): Promise<CommandEntry[]>
   }
   aiRename: {

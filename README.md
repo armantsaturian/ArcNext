@@ -41,7 +41,7 @@ For example, ask Claude Code to "like the top post on my LinkedIn feed" and it'l
 
 ### Smart Cmd+T
 Frecency-powered picker with ghost text autocomplete. Search your directory and web history, Enter to go.
-When a directory is selected, press Tab to switch into an Arc-style "Run in…" mode, type an initial shell command, then press Enter to open that folder and run it. Commands launched this way are remembered so long agent commands can be reused from history.
+When a directory is selected, press Tab to switch into an Arc-style "Run in…" mode, type an initial shell command, then press Enter to open that folder and run it. Run-mode suggestions come from your shell history, so long agent commands can be reused without retyping.
 
 ![Smart Cmd+T demo](assets/demo-cmdt.gif)
 

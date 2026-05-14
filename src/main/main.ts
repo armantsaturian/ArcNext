@@ -5,7 +5,7 @@ import { setupPTY, killAllPTY } from './pty'
 import { showQuitDialog } from './quitDialog'
 import { setupDirHistory, flushDirHistorySync } from './dirHistory'
 import { setupDirDiscovery } from './dirDiscovery'
-import { setupCommandHistory, flushCommandHistorySync } from './commandHistory'
+import { setupCommandHistory } from './commandHistory'
 import { setupWebHistory, flushWebHistorySync } from './webHistory'
 import { setupPinnedWorkspaces, flushPinnedWorkspacesSync } from './pinnedWorkspaces'
 import { hasFullDiskAccess, showFDADialog } from './fullDiskAccess'
@@ -207,7 +207,6 @@ app.on('before-quit', () => {
   stopAllDictation()
   destroyAllBrowserViews()
   flushDirHistorySync()
-  flushCommandHistorySync()
   flushWebHistorySync()
   flushPinnedWorkspacesSync()
   flushTrashblockSync()

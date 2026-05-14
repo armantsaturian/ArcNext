@@ -18,7 +18,6 @@ const api = {
     query: () => ipcRenderer.invoke('dirDiscovery:query')
   },
   commandHistory: {
-    visit: (command: string) => ipcRenderer.invoke('commandHistory:visit', command),
     query: () => ipcRenderer.invoke('commandHistory:query')
   },
   aiRename: {

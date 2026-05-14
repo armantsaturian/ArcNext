@@ -1,41 +1,26 @@
 import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from 'react'
 import { usePaneStore } from '../store/paneStore'
 import type { CommandEntry, DirEntry, WebEntry } from '../../shared/types'
-import {
-  ensureProtocol,
-  hostnameFromUrl,
-  bareUrl,
-  compactUrl,
-  looksLikeUrl
-} from '../../shared/urlUtils'
+import { ensureProtocol, compactUrl } from '../../shared/urlUtils'
 import {
   createInitialPickerSelectionState,
   movePickerSelection,
   selectPickerIndex,
   syncPickerSelection
 } from '../model/pickerSelection'
-import { substringMatch, filterWebEntries, filterCommandEntries, highlightSubstring, computeGhostText } from '../model/pickerHelpers'
-
-type PickerItemType = 'dir' | 'web' | 'command'
-
-interface PickerItem {
-  type: PickerItemType
-  key: string
-  label: string        // text used for ghost text completion
-  displayName: string  // what to show in the list
-  score: number
-  dirPath?: string
-  url?: string
-  title?: string
-  faviconUrl?: string
-  command?: string
-}
+import { highlightSubstring, computeGhostText } from '../model/pickerHelpers'
+import {
+  buildCommandItems,
+  buildDirectUrlItems,
+  buildDirItems,
+  buildGoogleSearchItems,
+  buildWebItems,
+  type PickerItem
+} from '../model/pickerItems'
 
 interface Props {
   onClose: () => void
 }
-
-const DIR_BOOST = 1.5
 
 function PickerRow({ item, idx, selected, onSelect, onHover, compact, children }: {
   item: PickerItem
@@ -91,98 +76,24 @@ export default function UnifiedPicker({ onClose }: Props) {
   // --- Memoized data pipeline ---
 
   const sortedDirs = useMemo(() => {
-    const items: PickerItem[] = (query
-      ? allDirEntries.filter((e) => substringMatch(e.path, query) !== -1)
-      : allDirEntries
-    ).map((e) => {
-      const name = e.path.split('/').filter(Boolean).pop() || e.path
-      return {
-        type: 'dir' as const,
-        key: `dir:${e.path}`,
-        label: name,
-        displayName: name,
-        score: e.score * DIR_BOOST,
-        dirPath: e.path
-      }
-    })
-    const limit = query ? 15 : 4
-    return items.sort((a, b) => b.score - a.score).slice(0, limit)
+    return buildDirItems(allDirEntries, query)
   }, [query, allDirEntries])
 
   const sortedWebs = useMemo(() => {
-    const limit = query ? 15 : 4
-    return filterWebEntries(allWebEntries, query, limit).map((e) => ({
-      type: 'web' as const,
-      key: `web:${e.url}`,
-      label: bareUrl(e.url),
-      displayName: e.title || hostnameFromUrl(e.url),
-      score: e.score,
-      url: e.url,
-      title: e.title,
-      faviconUrl: e.faviconUrl
-    }))
+    return buildWebItems(allWebEntries, query)
   }, [query, allWebEntries])
 
   const directUrlItems = useMemo(() => {
-    const items: PickerItem[] = []
-    if (!query || !looksLikeUrl(query)) return items
-
-    const targetUrl = ensureProtocol(query)
-    const bareTarget = bareUrl(targetUrl)
-
-    items.push({
-      type: 'web',
-      key: `open:${targetUrl}`,
-      label: bareTarget,
-      displayName: `Open ${query}`,
-      score: Infinity,
-      url: targetUrl,
-      title: `Open ${query}`
-    })
-    return items
+    return buildDirectUrlItems(query)
   }, [query])
 
   const googleSearchItem = useMemo((): PickerItem[] => {
-    if (!query) return []
-    const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`
-    return [{
-      type: 'web',
-      key: `search:${query}`,
-      label: query,
-      displayName: `Search Google for "${query}"`,
-      score: -Infinity,
-      url: searchUrl
-    }]
+    return buildGoogleSearchItems(query)
   }, [query])
 
   const commandItems = useMemo((): PickerItem[] => {
     if (!runTarget) return []
-
-    const trimmed = commandQuery.trim()
-    const historyLimit = trimmed ? 10 : 6
-    const historyItems = filterCommandEntries(allCommandEntries, commandQuery, historyLimit)
-      .map((e) => ({
-        type: 'command' as const,
-        key: `command-history:${e.command}`,
-        label: e.command,
-        displayName: e.command,
-        score: e.score,
-        command: e.command
-      }))
-
-    if (!trimmed) return historyItems
-
-    const hasExactHistoryItem = historyItems.some((item) => item.command === trimmed)
-    const directItem: PickerItem = {
-      type: 'command',
-      key: `command-direct:${trimmed}`,
-      label: trimmed,
-      displayName: `Run "${trimmed}"`,
-      score: Infinity,
-      command: trimmed
-    }
-
-    return hasExactHistoryItem ? historyItems : [...historyItems, directItem]
+    return buildCommandItems(allCommandEntries, commandQuery)
   }, [runTarget, commandQuery, allCommandEntries])
 
   const allItems = useMemo(
@@ -226,8 +137,7 @@ export default function UnifiedPicker({ onClose }: Props) {
     const cwd = runTarget?.dirPath
     if (!cwd) return
     const trimmed = command.trim()
-    addWorkspace(cwd, trimmed ? { initialCommand: trimmed } : undefined)
-    if (trimmed) window.arcnext.commandHistory.visit(trimmed)
+    addWorkspace(cwd, trimmed ? { startupCommand: trimmed } : undefined)
     onClose()
   }, [addWorkspace, onClose, runTarget])
 
@@ -340,7 +250,7 @@ export default function UnifiedPicker({ onClose }: Props) {
           const selected = allItems[selectedIndex]
           const typedCommand = commandQuery.trim()
           if (typedCommand) {
-            handleRunCommand(selected?.type === 'command' ? selected.command || typedCommand : typedCommand)
+            handleRunCommand(typedCommand)
           } else if (selected?.type === 'command' && selection.hasUserNavigated) {
             handleRunCommand(selected.command || '')
           } else {

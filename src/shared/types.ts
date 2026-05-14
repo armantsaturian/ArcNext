@@ -103,7 +103,6 @@ export interface IPCChannels {
   'dirHistory:visit': (path: string) => void
   'dirHistory:query': () => Promise<DirEntry[]>
   'dirDiscovery:query': () => Promise<DirEntry[]>
-  'commandHistory:visit': (command: string) => void
   'commandHistory:query': () => Promise<CommandEntry[]>
   'webHistory:visit': (url: string, title?: string, faviconUrl?: string) => void
   'webHistory:query': () => Promise<WebEntry[]>

@@ -9,15 +9,19 @@ export interface ShellCommandEntry {
 }
 
 const MAX_COMMAND_LENGTH = 500
+const AGENT_COMMANDS = new Set(['claude', 'codex', 'opencode'])
 
-function shellHistoryScore(entry: ShellCommandEntry, now: number): number {
+export function shellHistoryScore(entry: ShellCommandEntry, now = Date.now()): number {
   const ageHours = (now - entry.lastVisit) / (1000 * 60 * 60)
   let recencyWeight: number
   if (ageHours < 1) recencyWeight = 4
   else if (ageHours < 24) recencyWeight = 2
   else if (ageHours < 7 * 24) recencyWeight = 1
   else recencyWeight = 0.5
-  return Math.sqrt(entry.visitCount) * recencyWeight
+
+  const firstWord = entry.command.split(/\s+/)[0]?.toLowerCase()
+  const commandBoost = AGENT_COMMANDS.has(firstWord) ? 2.5 : 1
+  return Math.sqrt(entry.visitCount) * recencyWeight * commandBoost
 }
 
 function normalizeCommand(command: string): string {
@@ -131,8 +135,8 @@ export function readShellHistory(limit = 2_000): ShellCommandEntry[] {
         addEntry(entries, entry.command, entry.lastVisit)
       }
     } catch {
-      // Missing or unreadable shell history is fine — ArcNext has its own
-      // command history too.
+      // Missing or unreadable shell history is fine; the picker just shows
+      // fewer command suggestions.
     }
   }
 
