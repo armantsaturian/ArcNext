@@ -6,7 +6,8 @@ import { usePaneStore, flushPersistPinned, Workspace } from './store/paneStore'
 import { setTitleChangeCallback, setCwdChangeCallback, setCommandChangeCallback, setPtyDataCallback, setUserInputCallback, writeToTerminalPTY } from './model/terminalManager'
 import {
   setAgentStateCallback, onCommandStart, onCommandEnd,
-  onTitleChange as agentOnTitleChange, onPtyData as agentOnPtyData, startIdleChecker
+  onTitleChange as agentOnTitleChange, onPtyData as agentOnPtyData,
+  onUserInputSubmit as agentOnUserInputSubmit, startIdleChecker
 } from './model/agentDetector'
 import { findController } from './model/findController'
 import { NavDirection, allPaneIds } from './model/gridLayout'
@@ -201,6 +202,7 @@ export default function App() {
     setUserInputCallback((paneId, message) => {
       const s = usePaneStore.getState()
       if (s.agentStates.get(paneId)) s.setPaneUserMessage(paneId, message)
+      agentOnUserInputSubmit(paneId)
     })
     setPtyDataCallback((paneId) => agentOnPtyData(paneId))
     const stopIdleChecker = startIdleChecker()

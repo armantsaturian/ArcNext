@@ -19,20 +19,46 @@ interface PaneState {
   agent: AgentType | null
   title: string
   lastOutputTime: number
+  codexTurnActive: boolean
+  codexSawOutputSinceSubmit: boolean
 }
 
 const panes = new Map<string, PaneState>()
 let callback: AgentStateCallback | null = null
 
 const IDLE_THRESHOLD_MS = 2000
+const CODEX_FIRST_OUTPUT_GRACE_MS = 10000
 
 function getPane(paneId: string): PaneState {
   let state = panes.get(paneId)
   if (!state) {
-    state = { agent: null, title: '', lastOutputTime: 0 }
+    state = {
+      agent: null,
+      title: '',
+      lastOutputTime: 0,
+      codexTurnActive: false,
+      codexSawOutputSinceSubmit: false
+    }
     panes.set(paneId, state)
   }
   return state
+}
+
+function isRecentOutputActive(pane: PaneState): boolean {
+  return pane.lastOutputTime > 0 && (Date.now() - pane.lastOutputTime) < IDLE_THRESHOLD_MS
+}
+
+function isCodexTurnActive(pane: PaneState): boolean {
+  if (!pane.codexTurnActive || pane.lastOutputTime === 0) return false
+  const threshold = pane.codexSawOutputSinceSubmit
+    ? IDLE_THRESHOLD_MS
+    : CODEX_FIRST_OUTPUT_GRACE_MS
+  return (Date.now() - pane.lastOutputTime) < threshold
+}
+
+function clearCodexTurn(pane: PaneState): void {
+  pane.codexTurnActive = false
+  pane.codexSawOutputSinceSubmit = false
 }
 
 function resolveState(pane: PaneState): AgentState | null {
@@ -44,13 +70,18 @@ function resolveState(pane: PaneState): AgentState | null {
     if (isBrailleChar(firstChar)) return { agent: 'claude', status: 'thinking' }
     if (firstChar === CLAUDE_IDLE_PREFIX) return { agent: 'claude', status: 'idle' }
     // During startup before title is set, fall back to output activity
-    const active = pane.lastOutputTime > 0 && (Date.now() - pane.lastOutputTime) < IDLE_THRESHOLD_MS
+    const active = isRecentOutputActive(pane)
     return { agent: 'claude', status: active ? 'thinking' : 'idle' }
   }
 
-  // Codex: output activity is the only state signal
-  const active = pane.lastOutputTime > 0 && (Date.now() - pane.lastOutputTime) < IDLE_THRESHOLD_MS
-  return { agent: 'codex', status: active ? 'thinking' : 'idle' }
+  if (pane.agent === 'codex') {
+    // Codex redraws its TUI for human typing, focus, and resize events. Treat
+    // output as work only after the user has submitted a prompt to Codex.
+    return { agent: 'codex', status: isCodexTurnActive(pane) ? 'thinking' : 'idle' }
+  }
+
+  // OpenCode: no richer signal yet, so use output activity.
+  return { agent: pane.agent, status: isRecentOutputActive(pane) ? 'thinking' : 'idle' }
 }
 
 function emit(paneId: string): void {
@@ -64,7 +95,8 @@ export function onCommandStart(paneId: string, command: string): void {
   const firstWord = command.split(/\s+/)[0]?.toLowerCase() ?? ''
   const agent = KNOWN_AGENTS[firstWord] ?? null
   pane.agent = agent
-  pane.lastOutputTime = agent ? Date.now() : 0
+  pane.lastOutputTime = agent === 'claude' || agent === 'opencode' ? Date.now() : 0
+  clearCodexTurn(pane)
   emit(paneId)
 }
 
@@ -74,6 +106,7 @@ export function onCommandEnd(paneId: string): void {
   if (pane.agent) {
     pane.agent = null
     pane.lastOutputTime = 0
+    clearCodexTurn(pane)
     emit(paneId)
   }
 }
@@ -85,11 +118,32 @@ export function onTitleChange(paneId: string, title: string): void {
   if (pane.agent === 'claude') emit(paneId)
 }
 
-/** PTY output received — used for Codex state detection */
+/** User submitted a prompt in an interactive agent TUI. */
+export function onUserInputSubmit(paneId: string): void {
+  const pane = panes.get(paneId)
+  if (pane?.agent !== 'codex') return
+  const wasActive = isCodexTurnActive(pane)
+  pane.codexTurnActive = true
+  pane.codexSawOutputSinceSubmit = false
+  pane.lastOutputTime = Date.now()
+  if (!wasActive) emit(paneId)
+}
+
+/** PTY output received — used for agent state detection */
 export function onPtyData(paneId: string): void {
   const pane = panes.get(paneId)
   if (!pane?.agent) return
-  const wasIdle = pane.lastOutputTime === 0 || (Date.now() - pane.lastOutputTime) >= IDLE_THRESHOLD_MS
+
+  if (pane.agent === 'codex') {
+    if (!pane.codexTurnActive) return
+    const wasIdle = !isCodexTurnActive(pane)
+    pane.codexSawOutputSinceSubmit = true
+    pane.lastOutputTime = Date.now()
+    if (wasIdle) emit(paneId)
+    return
+  }
+
+  const wasIdle = !isRecentOutputActive(pane)
   pane.lastOutputTime = Date.now()
   if (wasIdle) emit(paneId)
 }
@@ -99,7 +153,14 @@ export function startIdleChecker(): () => void {
   const interval = setInterval(() => {
     for (const [paneId, pane] of panes) {
       if (!pane.agent || pane.agent === 'claude') continue // Claude uses title, not timeout
-      if (pane.lastOutputTime > 0 && (Date.now() - pane.lastOutputTime) >= IDLE_THRESHOLD_MS) {
+      if (pane.agent === 'codex') {
+        if (pane.codexTurnActive && !isCodexTurnActive(pane)) {
+          clearCodexTurn(pane)
+          emit(paneId)
+        }
+        continue
+      }
+      if (!isRecentOutputActive(pane)) {
         emit(paneId)
       }
     }
