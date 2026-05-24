@@ -48,7 +48,14 @@ export function configureBrowserSession(browserSession: Electron.Session): strin
     callback({ requestHeaders })
   })
 
-  const ALLOWED_PERMISSIONS = new Set(['media', 'notifications', 'clipboard-read', 'fullscreen', 'pointerLock'])
+  const ALLOWED_PERMISSIONS = new Set([
+    'media',
+    'notifications',
+    'clipboard-read',
+    'clipboard-sanitized-write',
+    'fullscreen',
+    'pointerLock'
+  ])
 
   // Let web pages (Google Meet, Zoom, etc.) request camera/mic/notifications.
   // On macOS, proactively trigger the TCC prompt for media — Chromium doesn't

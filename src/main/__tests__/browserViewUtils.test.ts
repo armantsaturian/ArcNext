@@ -207,6 +207,29 @@ describe('browser user agent overrides', () => {
     expect(sessionHarness.onBeforeSendHeaders).toHaveBeenCalledTimes(1)
     expect(sessionHarness.setUserAgent).toHaveBeenCalledTimes(2)
   })
+
+  it('grants browser pages sanitized clipboard write permission', () => {
+    const sessionHarness = createMockSessionHarness()
+
+    configureBrowserSession(sessionHarness.mockSession as unknown as Electron.Session)
+
+    const requestHandler = sessionHarness.setPermissionRequestHandler.mock.calls[0][0] as (
+      webContents: unknown,
+      permission: string,
+      callback: (granted: boolean) => void,
+      details: unknown
+    ) => void
+    const checkHandler = sessionHarness.setPermissionCheckHandler.mock.calls[0][0] as (
+      webContents: unknown,
+      permission: string
+    ) => boolean
+    const requestCallback = vi.fn()
+
+    requestHandler({}, 'clipboard-sanitized-write', requestCallback, {})
+
+    expect(requestCallback).toHaveBeenCalledWith(true)
+    expect(checkHandler(null, 'clipboard-sanitized-write')).toBe(true)
+  })
 })
 
 describe('wireBrowserViewEvents', () => {
