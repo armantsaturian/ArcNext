@@ -211,6 +211,11 @@ export default function App() {
       const pane = usePaneStore.getState().panes.get(paneId)
       return pane?.type === 'browser' ? (pane as BrowserPaneInfo).url : undefined
     }
+    const openInNewBrowserWorkspace = (url: string, sourcePaneId?: string): void => {
+      usePaneStore.getState().addBrowserWorkspace(url, {
+        openerWorkspaceId: resolveOpenerWorkspaceId(sourcePaneId)
+      })
+    }
     const browserUnsubs = [
       window.arcnext.browser.onTitleChanged((paneId, title) => {
         usePaneStore.getState().setPaneTitle(paneId, title)
@@ -243,11 +248,7 @@ export default function App() {
           usePaneStore.setState({ pipPaneId: null })
         }
       }),
-      window.arcnext.browser.onOpenInNewWorkspace((url, sourcePaneId) => {
-        usePaneStore.getState().addBrowserWorkspace(url, {
-          openerWorkspaceId: resolveOpenerWorkspaceId(sourcePaneId)
-        })
-      }),
+      window.arcnext.browser.onOpenInNewWorkspace(openInNewBrowserWorkspace),
       window.arcnext.browser.onSummarize((paneId, url) => {
         usePaneStore.getState().summarizeUrl(paneId, url)
       }),
@@ -270,6 +271,10 @@ export default function App() {
         window.arcnext.pty.write(paneId, text)
       })
     ]
+
+    window.arcnext.app.consumePendingOpenUrls()
+      .then((urls) => urls.forEach((url) => openInNewBrowserWorkspace(url)))
+      .catch(() => {})
 
     return () => {
       stopIdleChecker()

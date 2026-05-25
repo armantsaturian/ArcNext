@@ -32,6 +32,7 @@ Terminals and browser views side by side in any layout.
 ### Integrated Browser
 Dock any web page next to your terminals. Links open in-app. Undock back to a standalone window anytime.
 ArcNext keeps its embedded Chromium current so modern sites and Cloudflare/Turnstile checks are less likely to break in-app.
+On macOS, packaged builds advertise HTTP, HTTPS, HTML, and XHTML handling so ArcNext can appear in System Settings as a selectable default browser. You can also make ArcNext the default from Settings → General. Incoming links open as browser workspaces.
 
 ![Integrated Browser demo](assets/demo-browser.gif)
 

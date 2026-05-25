@@ -8,7 +8,8 @@ const api = {
       ipcRenderer.send('sidebar:traffic-lights', visible)
   },
   app: {
-    hide: () => ipcRenderer.send('app:hide')
+    hide: () => ipcRenderer.send('app:hide'),
+    consumePendingOpenUrls: () => ipcRenderer.invoke('app:consumePendingOpenUrls')
   },
   dirHistory: {
     visit: (path: string) => ipcRenderer.invoke('dirHistory:visit', path),

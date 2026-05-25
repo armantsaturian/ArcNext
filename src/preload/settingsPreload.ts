@@ -38,5 +38,9 @@ contextBridge.exposeInMainWorld('settings', {
   betaChannel: {
     getSettings: () => ipcRenderer.invoke('betaChannel:getSettings'),
     setAllowPrerelease: (on: boolean) => ipcRenderer.invoke('betaChannel:setAllowPrerelease', on)
+  },
+  defaultBrowser: {
+    getStatus: () => ipcRenderer.invoke('defaultBrowser:getStatus'),
+    setAsDefault: () => ipcRenderer.invoke('defaultBrowser:setAsDefault')
   }
 })

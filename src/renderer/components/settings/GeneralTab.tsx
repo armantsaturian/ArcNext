@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { SettingRow } from './SettingRow'
+import { DefaultBrowserRow } from './DefaultBrowserRow'
 
 export function GeneralTab(): JSX.Element {
   const [betaChannel, setBetaChannel] = useState(false)
@@ -17,6 +18,7 @@ export function GeneralTab(): JSX.Element {
 
   return (
     <div>
+      <DefaultBrowserRow />
       <SettingRow
         name="Beta updates"
         icon={'\u{1F9EA}'}

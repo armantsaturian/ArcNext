@@ -18,6 +18,7 @@ import { setupAiRename } from './aiRename'
 import { registerTrashblockScheme, setupTrashblock, flushTrashblockSync } from '../extensions/trashblock/main'
 import { setupXNext, flushXNextSync, onXNextChanged } from '../extensions/xnext/main'
 import { openSettingsWindow } from './settingsWindow'
+import { resetIncomingBrowserUrlRendererReadiness, setupDefaultBrowser } from './defaultBrowser'
 
 // Prevent sites from detecting Electron as an automated browser
 app.commandLine.appendSwitch('disable-blink-features', 'AutomationControlled')
@@ -27,7 +28,11 @@ registerTrashblockScheme()
 let mainWindow: BrowserWindow | null = null
 let forceQuit = false
 
+setupDefaultBrowser(() => mainWindow)
+
 function createWindow(): void {
+  resetIncomingBrowserUrlRendererReadiness()
+
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,

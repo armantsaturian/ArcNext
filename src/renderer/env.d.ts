@@ -11,6 +11,7 @@ interface ArcNextAPI {
   }
   app: {
     hide(): void
+    consumePendingOpenUrls(): Promise<string[]>
   }
   dirHistory: {
     visit(path: string): Promise<void>
@@ -141,6 +142,10 @@ interface SettingsAPI {
   betaChannel: {
     getSettings(): Promise<{ allowPrerelease: boolean }>
     setAllowPrerelease(on: boolean): Promise<void>
+  }
+  defaultBrowser: {
+    getStatus(): Promise<{ available: boolean; isDefault: boolean }>
+    setAsDefault(): Promise<{ ok: boolean; available: boolean; isDefault: boolean }>
   }
 }
 
