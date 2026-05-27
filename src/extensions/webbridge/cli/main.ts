@@ -233,7 +233,7 @@ USAGE
 
 COMMANDS
   panes                               list open browser panes
-  open <url>                          open <url> in a new browser pane
+  open <url> [--foreground]           open <url> in a new browser pane (background by default)
   navigate <paneId> <url>             navigate pane to url
   back <paneId>                       history back
   forward <paneId>                    history forward
@@ -263,7 +263,7 @@ ENV
 
 const COMMAND_HELP: Record<string, string> = {
   panes: 'panes — list open browser panes (no args)',
-  open: 'open <url> — open a url in a new browser pane',
+  open: 'open <url> [--foreground] — open a url in a new browser pane. Defaults to background.',
   navigate: 'navigate <paneId> <url> — navigate pane to url',
   back: 'back <paneId> — history back',
   forward: 'forward <paneId> — history forward',
@@ -390,18 +390,6 @@ function resolveConnection(): { sock: string; token: string } | null {
   return null
 }
 
-function getSockPath(wantJson: boolean): string {
-  const conn = resolveConnection()
-  if (!conn) {
-    fail(
-      'ArcNext bridge not available. Either run this command inside an ArcNext terminal, or start ArcNext first (it publishes connection info to ~/.arcnext/bridge-prod.json).',
-      EXIT_NO_SOCK,
-      wantJson
-    )
-  }
-  return conn.sock
-}
-
 async function connectAndHello(wantJson: boolean): Promise<BridgeClient> {
   const conn = resolveConnection()
   if (!conn) {
@@ -516,7 +504,8 @@ async function runCommand(cmd: string, args: ParsedArgs): Promise<void> {
       case 'open': {
         const url = args.positional[0]
         if (!url) throw new Error('open requires <url>')
-        const res = await client.call<OpenResult>(Method.Open, { url })
+        const background = args.flags['foreground'] === true ? false : undefined
+        const res = await client.call<OpenResult>(Method.Open, { url, background })
         if (wantJson) jsonOk(res)
         else process.stdout.write(`ok — opened ${res.paneId} at ${res.url}\n`)
         return

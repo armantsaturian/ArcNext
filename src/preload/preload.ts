@@ -71,8 +71,8 @@ const api = {
       ipcRenderer.send('browser:show', paneId),
     hide: (paneId: string) =>
       ipcRenderer.send('browser:hide', paneId),
-    openInNewWorkspace: (url: string, sourcePaneId?: string) =>
-      ipcRenderer.send('browser:openInNewWorkspaceRequest', url, sourcePaneId),
+    openInNewWorkspace: (url: string, sourcePaneId?: string, activate?: boolean) =>
+      ipcRenderer.send('browser:openInNewWorkspaceRequest', url, sourcePaneId, activate),
     navigate: (paneId: string, url: string) =>
       ipcRenderer.send('browser:navigate', paneId, url),
     goBack: (paneId: string) =>
@@ -118,8 +118,8 @@ const api = {
       ipcRenderer.on('browser:faviconChanged', handler)
       return () => { ipcRenderer.removeListener('browser:faviconChanged', handler) }
     },
-    onOpenInNewWorkspace: (cb: (url: string, sourcePaneId?: string) => void) => {
-      const handler = (_event: IpcRendererEvent, url: string, sourcePaneId?: string) => cb(url, sourcePaneId)
+    onOpenInNewWorkspace: (cb: (url: string, sourcePaneId?: string, activate?: boolean) => void) => {
+      const handler = (_event: IpcRendererEvent, url: string, sourcePaneId?: string, activate?: boolean) => cb(url, sourcePaneId, activate)
       ipcRenderer.on('browser:openInNewWorkspace', handler)
       return () => { ipcRenderer.removeListener('browser:openInNewWorkspace', handler) }
     },

@@ -211,9 +211,10 @@ export default function App() {
       const pane = usePaneStore.getState().panes.get(paneId)
       return pane?.type === 'browser' ? (pane as BrowserPaneInfo).url : undefined
     }
-    const openInNewBrowserWorkspace = (url: string, sourcePaneId?: string): void => {
+    const openInNewBrowserWorkspace = (url: string, sourcePaneId?: string, activate?: boolean): void => {
       usePaneStore.getState().addBrowserWorkspace(url, {
-        openerWorkspaceId: resolveOpenerWorkspaceId(sourcePaneId)
+        openerWorkspaceId: resolveOpenerWorkspaceId(sourcePaneId),
+        activate
       })
     }
     const browserUnsubs = [

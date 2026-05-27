@@ -112,7 +112,7 @@ export interface IPCChannels {
   'browser:setBounds': (paneId: string, bounds: { x: number; y: number; width: number; height: number }) => void
   'browser:show': (paneId: string) => void
   'browser:hide': (paneId: string) => void
-  'browser:openInNewWorkspaceRequest': (url: string, sourcePaneId?: string) => void
+  'browser:openInNewWorkspaceRequest': (url: string, sourcePaneId?: string, activate?: boolean) => void
   'browser:navigate': (paneId: string, url: string) => void
   'browser:goBack': (paneId: string) => void
   'browser:goForward': (paneId: string) => void
@@ -127,7 +127,7 @@ export interface IPCChannels {
   'browser:focused': (paneId: string) => void
   'browser:faviconChanged': (paneId: string, faviconUrl: string) => void
   // Open URL in a new browser workspace (main → renderer)
-  'browser:openInNewWorkspace': (url: string, sourcePaneId?: string) => void
+  'browser:openInNewWorkspace': (url: string, sourcePaneId?: string, activate?: boolean) => void
   'browser:findInPage': (paneId: string, text: string, forward?: boolean) => void
   'browser:stopFindInPage': (paneId: string) => void
   'browser:foundInPage': (paneId: string, activeMatch: number, totalMatches: number) => void

@@ -324,6 +324,23 @@ describe('paneStore — browser pane actions', () => {
 
     expect(pane.openerWorkspaceId).toBe(openerWorkspaceId)
   })
+
+  it('addBrowserWorkspace can create a background workspace without activating it', () => {
+    const activeBefore = usePaneStore.getState().activeWorkspaceId
+    const { workspaces: before } = usePaneStore.getState()
+
+    usePaneStore.getState().addBrowserWorkspace('https://example.com', {
+      activate: false
+    })
+
+    const { workspaces, panes, activeWorkspaceId } = usePaneStore.getState()
+    const newWs = workspaces[workspaces.length - 1]
+
+    expect(workspaces).toHaveLength(before.length + 1)
+    expect(activeWorkspaceId).toBe(activeBefore)
+    expect(newWs.id).not.toBe(activeBefore)
+    expect(panes.get(newWs.activePaneId)?.type).toBe('browser')
+  })
 })
 
 describe('paneStore — opener-aware browser back', () => {

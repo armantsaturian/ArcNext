@@ -87,6 +87,7 @@ interface BrowserPaneOptions {
   title?: string
   isLoading?: boolean
   openerWorkspaceId?: string
+  activate?: boolean
 }
 
 interface TerminalPaneOptions {
@@ -746,10 +747,11 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
     }
     const newPanes = new Map(panes)
     newPanes.set(pane.id, pane)
-    if (activeWorkspaceId) pushWorkspaceHistory(activeWorkspaceId)
+    const shouldActivate = (options.activate ?? true) || !activeWorkspaceId
+    if (shouldActivate && activeWorkspaceId) pushWorkspaceHistory(activeWorkspaceId)
     set({
       workspaces: [...workspaces, workspace],
-      activeWorkspaceId: workspace.id,
+      activeWorkspaceId: shouldActivate ? workspace.id : activeWorkspaceId,
       panes: newPanes
     })
   },

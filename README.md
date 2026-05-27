@@ -38,6 +38,7 @@ On macOS, packaged builds advertise HTTP, HTTPS, HTML, and XHTML handling so Arc
 
 ### Agent bridge
 Agents running in an ArcNext terminal pane can observe and drive any open browser pane through the `arcnext-bridge` CLI — snapshot the page, click, type, navigate. Presence is detected via the `ARCNEXT_BRIDGE_SOCK` env var, and the pane glows sky-blue while an agent is acting so you can watch and interrupt.
+`arcnext-bridge open <url>` creates a new browser workspace in the background by default, so agents can open pages without stealing your current workspace. Use `arcnext-bridge open <url> --foreground` when you do want it to switch you to the new page.
 For example, ask Claude Code to "like the top post on my LinkedIn feed" and it'll open the page, snapshot it, and click the right button for you. See `arcnext-bridge --help` for the full command list.
 
 ### Smart Cmd+T

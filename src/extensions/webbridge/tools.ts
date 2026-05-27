@@ -122,7 +122,8 @@ export const handlers = {
     }
 
     const beforeIds = new Set(listBrowserViews().map((v) => v.paneId))
-    mainWindow.webContents.send('browser:openInNewWorkspace', params.url)
+    const activate = params.background === false
+    mainWindow.webContents.send('browser:openInNewWorkspace', params.url, undefined, activate)
 
     // Poll for the new pane (renderer creates the WebContentsView asynchronously)
     const deadline = Date.now() + 5000

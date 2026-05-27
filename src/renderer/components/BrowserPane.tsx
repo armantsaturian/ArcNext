@@ -34,6 +34,14 @@ export default function BrowserPane({ paneId, workspaceId }: Props) {
   const isLoading = pane?.isLoading ?? false
   const canCloseToOpener = !!pane?.openerWorkspaceId
 
+  const reportBounds = useCallback(() => {
+    const rect = placeholderRef.current?.getBoundingClientRect()
+    if (!rect || rect.width <= 0 || rect.height <= 0) return
+    window.arcnext.browser.setBounds(paneId, {
+      x: rect.x, y: rect.y, width: rect.width, height: rect.height
+    })
+  }, [paneId])
+
   // Find-in-page state
   const [findOpen, setFindOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -106,40 +114,33 @@ export default function BrowserPane({ paneId, workspaceId }: Props) {
   useEffect(() => {
     if (isWorkspaceActive && !error && !overlayActive && !urlDropdownOpen) {
       window.arcnext.browser.show(paneId)
-      // Report bounds immediately on show
-      if (placeholderRef.current) {
-        const rect = placeholderRef.current.getBoundingClientRect()
-        window.arcnext.browser.setBounds(paneId, {
-          x: rect.x, y: rect.y, width: rect.width, height: rect.height
-        })
-      }
+      reportBounds()
     } else {
+      reportBounds()
       window.arcnext.browser.hide(paneId)
     }
-  }, [isWorkspaceActive, error, overlayActive, urlDropdownOpen, paneId])
+  }, [isWorkspaceActive, error, overlayActive, urlDropdownOpen, paneId, reportBounds])
 
-  // Report bounds on resize
+  // Report bounds on resize even while hidden, so background bridge panes have
+  // a real viewport without stealing the active workspace.
   useEffect(() => {
     const el = placeholderRef.current
     if (!el) return
     let rafId = 0
     const report = () => {
-      if (!isWorkspaceActive || error || overlayActive || urlDropdownOpen) return
-      const rect = el.getBoundingClientRect()
-      window.arcnext.browser.setBounds(paneId, {
-        x: rect.x, y: rect.y, width: rect.width, height: rect.height
-      })
+      reportBounds()
     }
     const observer = new ResizeObserver(() => {
       cancelAnimationFrame(rafId)
       rafId = requestAnimationFrame(report)
     })
     observer.observe(el)
+    report()
     return () => {
       cancelAnimationFrame(rafId)
       observer.disconnect()
     }
-  }, [paneId, isWorkspaceActive, error, overlayActive, urlDropdownOpen])
+  }, [reportBounds])
 
   // Listen for load failures
   useEffect(() => {

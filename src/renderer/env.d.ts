@@ -51,7 +51,7 @@ interface ArcNextAPI {
     setBounds(paneId: string, bounds: { x: number; y: number; width: number; height: number }): void
     show(paneId: string): void
     hide(paneId: string): void
-    openInNewWorkspace(url: string, sourcePaneId?: string): void
+    openInNewWorkspace(url: string, sourcePaneId?: string, activate?: boolean): void
     navigate(paneId: string, url: string): void
     goBack(paneId: string): void
     goForward(paneId: string): void
@@ -64,7 +64,7 @@ interface ArcNextAPI {
     onLoadFailed(cb: (paneId: string, errorCode: number, errorDesc: string) => void): () => void
     onFocused(cb: (paneId: string) => void): () => void
     onFaviconChanged(cb: (paneId: string, faviconUrl: string) => void): () => void
-    onOpenInNewWorkspace(cb: (url: string, sourcePaneId?: string) => void): () => void
+    onOpenInNewWorkspace(cb: (url: string, sourcePaneId?: string, activate?: boolean) => void): () => void
     onSummarize(cb: (paneId: string, url: string) => void): () => void
     findInPage(paneId: string, text: string, forward?: boolean): void
     stopFindInPage(paneId: string): void

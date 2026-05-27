@@ -208,9 +208,9 @@ export function setupBrowserViewManager(mainWindow: BrowserWindow): void {
     destroyView(paneId)
   })
 
-  ipcMain.on('browser:openInNewWorkspaceRequest', (_e, url: string, sourcePaneId?: string) => {
+  ipcMain.on('browser:openInNewWorkspaceRequest', (_e, url: string, sourcePaneId?: string, activate?: boolean) => {
     if (!win || win.isDestroyed()) return
-    win.webContents.send('browser:openInNewWorkspace', url, sourcePaneId)
+    win.webContents.send('browser:openInNewWorkspace', url, sourcePaneId, activate)
   })
 
   ipcMain.on('browser:setBounds', (_e, paneId: string, bounds: { x: number; y: number; width: number; height: number }) => {
