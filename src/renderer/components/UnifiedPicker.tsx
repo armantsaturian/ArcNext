@@ -46,7 +46,9 @@ function PickerRow({ item, idx, selected, onSelect, onHover, compact, children }
 
 export default function UnifiedPicker({ onClose }: Props) {
   const [query, setQuery] = useState('')
+  // In run mode, commandQuery is the committed input; commandFilterQuery keeps the history list stable after arrow-fill.
   const [commandQuery, setCommandQuery] = useState('')
+  const [commandFilterQuery, setCommandFilterQuery] = useState('')
   const [runTarget, setRunTarget] = useState<PickerItem | null>(null)
   const [allDirEntries, setAllDirEntries] = useState<DirEntry[]>([])
   const [allWebEntries, setAllWebEntries] = useState<WebEntry[]>([])
@@ -93,8 +95,8 @@ export default function UnifiedPicker({ onClose }: Props) {
 
   const commandItems = useMemo((): PickerItem[] => {
     if (!runTarget) return []
-    return buildCommandItems(allCommandEntries, commandQuery)
-  }, [runTarget, commandQuery, allCommandEntries])
+    return buildCommandItems(allCommandEntries, commandFilterQuery)
+  }, [runTarget, commandFilterQuery, allCommandEntries])
 
   const allItems = useMemo(
     () => runTarget
@@ -116,8 +118,14 @@ export default function UnifiedPicker({ onClose }: Props) {
   const activeQuery = runTarget ? commandQuery : query
 
   const ghostText = (() => {
-    if (!activeQuery) return ''
     if (!selectedItem) return ''
+    if (runTarget) {
+      if (selectedItem.type !== 'command') return ''
+      const command = selectedItem.command || selectedItem.displayName
+      if (!commandQuery) return command
+      return computeGhostText(selectedItem.label, commandQuery)
+    }
+    if (!activeQuery) return ''
     return computeGhostText(selectedItem.label, activeQuery)
   })()
 
@@ -182,6 +190,7 @@ export default function UnifiedPicker({ onClose }: Props) {
     if (item.type !== 'dir' || !item.dirPath) return false
     setRunTarget(item)
     setCommandQuery('')
+    setCommandFilterQuery('')
     setSelection(createInitialPickerSelectionState())
     requestAnimationFrame(() => inputRef.current?.focus())
     return true
@@ -190,6 +199,7 @@ export default function UnifiedPicker({ onClose }: Props) {
   const exitRunMode = useCallback(() => {
     setRunTarget(null)
     setCommandQuery('')
+    setCommandFilterQuery('')
     setSelection(createInitialPickerSelectionState())
     requestAnimationFrame(() => inputRef.current?.focus())
   }, [])
@@ -205,6 +215,22 @@ export default function UnifiedPicker({ onClose }: Props) {
     }
     return true
   }, [ghostText, allItems, selectedIndex, runTarget])
+
+  const setTypedCommandQuery = useCallback((value: string) => {
+    setCommandQuery(value)
+    setCommandFilterQuery(value)
+  }, [])
+
+  const moveSelection = useCallback((delta: number) => {
+    const nextSelection = movePickerSelection(selection, itemKeys, delta)
+    setSelection(nextSelection)
+
+    if (!runTarget) return
+    const nextItem = allItems[nextSelection.selectedIndex]
+    if (nextItem?.type === 'command') {
+      setCommandQuery(nextItem.command || nextItem.displayName)
+    }
+  }, [allItems, itemKeys, runTarget, selection])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     switch (e.key) {
@@ -238,21 +264,18 @@ export default function UnifiedPicker({ onClose }: Props) {
       }
       case 'ArrowDown':
         e.preventDefault()
-        setSelection((prev) => movePickerSelection(prev, itemKeys, 1))
+        moveSelection(1)
         break
       case 'ArrowUp':
         e.preventDefault()
-        setSelection((prev) => movePickerSelection(prev, itemKeys, -1))
+        moveSelection(-1)
         break
       case 'Enter':
         e.preventDefault()
         if (runTarget) {
-          const selected = allItems[selectedIndex]
           const typedCommand = commandQuery.trim()
           if (typedCommand) {
             handleRunCommand(typedCommand)
-          } else if (selected?.type === 'command' && selection.hasUserNavigated) {
-            handleRunCommand(selected.command || '')
           } else {
             handleRunCommand('')
           }
@@ -266,7 +289,6 @@ export default function UnifiedPicker({ onClose }: Props) {
   }, [
     allItems,
     selectedIndex,
-    selection.hasUserNavigated,
     handleSelect,
     handleNewBlankWorkspace,
     onClose,
@@ -278,7 +300,8 @@ export default function UnifiedPicker({ onClose }: Props) {
     commandQuery,
     handleRunCommand,
     enterRunMode,
-    exitRunMode
+    exitRunMode,
+    moveSelection
   ])
 
   return (
@@ -296,9 +319,9 @@ export default function UnifiedPicker({ onClose }: Props) {
             <input
               ref={inputRef}
               className="picker-input"
-              placeholder={runTarget ? 'Command to run…' : 'New tab — directory or website...'}
+              placeholder={runTarget && ghostText ? '' : runTarget ? 'Command to run…' : 'New tab — directory or website...'}
               value={activeQuery}
-              onChange={(e) => runTarget ? setCommandQuery(e.target.value) : setQuery(e.target.value)}
+              onChange={(e) => runTarget ? setTypedCommandQuery(e.target.value) : setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
             />
           </div>
@@ -319,7 +342,7 @@ export default function UnifiedPicker({ onClose }: Props) {
                   <PickerRow key={item.key} item={item} idx={idx} selected={idx === selectedIndex} onSelect={handleSelect} onHover={handleHover}>
                     <div className="picker-item-web-row">
                       <span className="picker-item-favicon-icon">$</span>
-                      <span className="picker-item-name picker-item-name-truncate">{highlightSubstring(item.displayName, commandQuery)}</span>
+                      <span className="picker-item-name picker-item-name-truncate">{highlightSubstring(item.displayName, commandFilterQuery)}</span>
                     </div>
                   </PickerRow>
                 )
