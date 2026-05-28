@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent, webUtils } from 'electron'
+import type { BrowserNavigationOptions } from '../shared/types'
 
 type Callback = (...args: unknown[]) => void
 
@@ -61,8 +62,8 @@ const api = {
     saveSync: (data: unknown) => ipcRenderer.sendSync('pinnedWorkspaces:saveSync', data)
   },
   browser: {
-    create: (paneId: string, url: string) =>
-      ipcRenderer.send('browser:create', paneId, url),
+    create: (paneId: string, url: string, options?: BrowserNavigationOptions) =>
+      ipcRenderer.send('browser:create', paneId, url, options),
     destroy: (paneId: string) =>
       ipcRenderer.send('browser:destroy', paneId),
     setBounds: (paneId: string, bounds: { x: number; y: number; width: number; height: number }) =>
@@ -71,10 +72,10 @@ const api = {
       ipcRenderer.send('browser:show', paneId),
     hide: (paneId: string) =>
       ipcRenderer.send('browser:hide', paneId),
-    openInNewWorkspace: (url: string, sourcePaneId?: string, activate?: boolean) =>
-      ipcRenderer.send('browser:openInNewWorkspaceRequest', url, sourcePaneId, activate),
-    navigate: (paneId: string, url: string) =>
-      ipcRenderer.send('browser:navigate', paneId, url),
+    openInNewWorkspace: (url: string, sourcePaneId?: string, activate?: boolean, options?: BrowserNavigationOptions) =>
+      ipcRenderer.send('browser:openInNewWorkspaceRequest', url, sourcePaneId, activate, options),
+    navigate: (paneId: string, url: string, options?: BrowserNavigationOptions) =>
+      ipcRenderer.send('browser:navigate', paneId, url, options),
     goBack: (paneId: string) =>
       ipcRenderer.send('browser:goBack', paneId),
     goForward: (paneId: string) =>
@@ -118,8 +119,8 @@ const api = {
       ipcRenderer.on('browser:faviconChanged', handler)
       return () => { ipcRenderer.removeListener('browser:faviconChanged', handler) }
     },
-    onOpenInNewWorkspace: (cb: (url: string, sourcePaneId?: string, activate?: boolean) => void) => {
-      const handler = (_event: IpcRendererEvent, url: string, sourcePaneId?: string, activate?: boolean) => cb(url, sourcePaneId, activate)
+    onOpenInNewWorkspace: (cb: (url: string, sourcePaneId?: string, activate?: boolean, options?: BrowserNavigationOptions) => void) => {
+      const handler = (_event: IpcRendererEvent, url: string, sourcePaneId?: string, activate?: boolean, options?: BrowserNavigationOptions) => cb(url, sourcePaneId, activate, options)
       ipcRenderer.on('browser:openInNewWorkspace', handler)
       return () => { ipcRenderer.removeListener('browser:openInNewWorkspace', handler) }
     },

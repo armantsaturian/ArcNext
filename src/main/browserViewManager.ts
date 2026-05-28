@@ -1,5 +1,6 @@
 import { BrowserWindow, WebContentsView, ipcMain } from 'electron'
-import { createBrowserView, normalizeBrowserUrl, wireBrowserViewEvents } from './browserViewUtils'
+import { createBrowserView, loadBrowserUrl, wireBrowserViewEvents } from './browserViewUtils'
+import type { BrowserNavigationOptions } from '../shared/types'
 
 export interface ManagedBrowserView {
   view: WebContentsView
@@ -105,7 +106,7 @@ function wireViewEvents(view: WebContentsView, paneId: string): () => void {
     onLoadFailed: (errorCode, errorDescription) => send('browser:loadFailed', paneId, errorCode, errorDescription),
     onFocus: () => send('browser:focused', paneId),
     onFavicon: (faviconUrl) => send('browser:faviconChanged', paneId, faviconUrl),
-    onOpenInNewWorkspace: (url) => send('browser:openInNewWorkspace', url, paneId),
+    onOpenInNewWorkspace: (url, options) => send('browser:openInNewWorkspace', url, paneId, undefined, options),
     onSummarize: (url) => send('browser:summarize', paneId, url),
     onFoundInPage: (activeMatch, totalMatches) => send('browser:foundInPage', paneId, activeMatch, totalMatches),
     onAudioStateChanged: (playing, muted) => {
@@ -193,7 +194,7 @@ export function setupBrowserViewManager(mainWindow: BrowserWindow): void {
     if (managed) applyFullscreenBounds(managed)
   })
 
-  ipcMain.on('browser:create', (_e, paneId: string, url: string) => {
+  ipcMain.on('browser:create', (_e, paneId: string, url: string, options?: BrowserNavigationOptions) => {
     if (!win || win.isDestroyed() || views.has(paneId)) return
 
     const view = createBrowserView()
@@ -201,16 +202,16 @@ export function setupBrowserViewManager(mainWindow: BrowserWindow): void {
     views.set(paneId, { view, paneId, bounds: { x: 0, y: 0, width: 0, height: 0 }, cleanup, mediaPlaying: false })
     emitLifecycle({ type: 'created', paneId })
 
-    view.webContents.loadURL(normalizeBrowserUrl(url))
+    void loadBrowserUrl(view.webContents, url, options)
   })
 
   ipcMain.on('browser:destroy', (_e, paneId: string) => {
     destroyView(paneId)
   })
 
-  ipcMain.on('browser:openInNewWorkspaceRequest', (_e, url: string, sourcePaneId?: string, activate?: boolean) => {
+  ipcMain.on('browser:openInNewWorkspaceRequest', (_e, url: string, sourcePaneId?: string, activate?: boolean, options?: BrowserNavigationOptions) => {
     if (!win || win.isDestroyed()) return
-    win.webContents.send('browser:openInNewWorkspace', url, sourcePaneId, activate)
+    win.webContents.send('browser:openInNewWorkspace', url, sourcePaneId, activate, options)
   })
 
   ipcMain.on('browser:setBounds', (_e, paneId: string, bounds: { x: number; y: number; width: number; height: number }) => {
@@ -240,10 +241,10 @@ export function setupBrowserViewManager(mainWindow: BrowserWindow): void {
     try { win.contentView.removeChildView(managed.view) } catch { /* not attached */ }
   })
 
-  ipcMain.on('browser:navigate', (_e, paneId: string, url: string) => {
+  ipcMain.on('browser:navigate', (_e, paneId: string, url: string, options?: BrowserNavigationOptions) => {
     const managed = views.get(paneId)
     if (!managed) return
-    managed.view.webContents.loadURL(normalizeBrowserUrl(url))
+    void loadBrowserUrl(managed.view.webContents, url, options)
   })
 
   ipcMain.on('browser:goBack', (_e, paneId: string) => {

@@ -12,6 +12,7 @@ import {
 import { findController } from './model/findController'
 import { NavDirection, allPaneIds } from './model/gridLayout'
 import type { BrowserPaneInfo } from './store/paneStore'
+import type { BrowserNavigationOptions } from '../shared/types'
 
 const ARROW_TO_DIR: Record<string, NavDirection> = {
   ArrowLeft: 'left',
@@ -211,10 +212,16 @@ export default function App() {
       const pane = usePaneStore.getState().panes.get(paneId)
       return pane?.type === 'browser' ? (pane as BrowserPaneInfo).url : undefined
     }
-    const openInNewBrowserWorkspace = (url: string, sourcePaneId?: string, activate?: boolean): void => {
+    const openInNewBrowserWorkspace = (
+      url: string,
+      sourcePaneId?: string,
+      activate?: boolean,
+      initialNavigationOptions?: BrowserNavigationOptions
+    ): void => {
       usePaneStore.getState().addBrowserWorkspace(url, {
         openerWorkspaceId: resolveOpenerWorkspaceId(sourcePaneId),
-        activate
+        activate,
+        initialNavigationOptions
       })
     }
     const browserUnsubs = [

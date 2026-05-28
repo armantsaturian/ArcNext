@@ -7,6 +7,25 @@ export interface TerminalPaneInfo {
   userMessage?: string
 }
 
+export type BrowserReferrerPolicy =
+  | 'default'
+  | 'unsafe-url'
+  | 'no-referrer-when-downgrade'
+  | 'no-referrer'
+  | 'origin'
+  | 'strict-origin-when-cross-origin'
+  | 'same-origin'
+  | 'strict-origin'
+
+export interface BrowserReferrer {
+  url: string
+  policy: BrowserReferrerPolicy
+}
+
+export interface BrowserNavigationOptions {
+  httpReferrer?: BrowserReferrer
+}
+
 export interface BrowserPaneInfo {
   type: 'browser'
   id: string
@@ -17,6 +36,7 @@ export interface BrowserPaneInfo {
   isLoading: boolean
   faviconUrl?: string
   openerWorkspaceId?: string
+  initialNavigationOptions?: BrowserNavigationOptions
 }
 
 export type PaneInfo = TerminalPaneInfo | BrowserPaneInfo
@@ -107,13 +127,13 @@ export interface IPCChannels {
   'webHistory:visit': (url: string, title?: string, faviconUrl?: string) => void
   'webHistory:query': () => Promise<WebEntry[]>
   // Browser view lifecycle
-  'browser:create': (paneId: string, url: string) => void
+  'browser:create': (paneId: string, url: string, options?: BrowserNavigationOptions) => void
   'browser:destroy': (paneId: string) => void
   'browser:setBounds': (paneId: string, bounds: { x: number; y: number; width: number; height: number }) => void
   'browser:show': (paneId: string) => void
   'browser:hide': (paneId: string) => void
-  'browser:openInNewWorkspaceRequest': (url: string, sourcePaneId?: string, activate?: boolean) => void
-  'browser:navigate': (paneId: string, url: string) => void
+  'browser:openInNewWorkspaceRequest': (url: string, sourcePaneId?: string, activate?: boolean, options?: BrowserNavigationOptions) => void
+  'browser:navigate': (paneId: string, url: string, options?: BrowserNavigationOptions) => void
   'browser:goBack': (paneId: string) => void
   'browser:goForward': (paneId: string) => void
   'browser:reload': (paneId: string) => void
@@ -127,7 +147,7 @@ export interface IPCChannels {
   'browser:focused': (paneId: string) => void
   'browser:faviconChanged': (paneId: string, faviconUrl: string) => void
   // Open URL in a new browser workspace (main → renderer)
-  'browser:openInNewWorkspace': (url: string, sourcePaneId?: string, activate?: boolean) => void
+  'browser:openInNewWorkspace': (url: string, sourcePaneId?: string, activate?: boolean, options?: BrowserNavigationOptions) => void
   'browser:findInPage': (paneId: string, text: string, forward?: boolean) => void
   'browser:stopFindInPage': (paneId: string) => void
   'browser:foundInPage': (paneId: string, activeMatch: number, totalMatches: number) => void

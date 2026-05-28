@@ -27,8 +27,10 @@ export default function BrowserPane({ paneId, workspaceId }: Props) {
   })
   const setActive = usePaneStore((s) => s.setActivePaneInWorkspace)
   const goBackBrowserPane = usePaneStore((s) => s.goBackBrowserPane)
+  const clearBrowserPaneInitialNavigationOptions = usePaneStore((s) => s.clearBrowserPaneInitialNavigationOptions)
 
   const url = pane?.url ?? ''
+  const initialNavigationOptions = pane?.initialNavigationOptions
   const canGoBack = pane?.canGoBack ?? false
   const canGoForward = pane?.canGoForward ?? false
   const isLoading = pane?.isLoading ?? false
@@ -103,7 +105,8 @@ export default function BrowserPane({ paneId, workspaceId }: Props) {
 
   // Create WebContentsView on mount, destroy on unmount
   useEffect(() => {
-    window.arcnext.browser.create(paneId, url)
+    window.arcnext.browser.create(paneId, url, initialNavigationOptions)
+    if (initialNavigationOptions) clearBrowserPaneInitialNavigationOptions(paneId)
     return () => {
       window.arcnext.browser.hide(paneId)
     }

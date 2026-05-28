@@ -8,7 +8,7 @@ import { getVisualWorkspaceOrder } from '../model/workspaceGrouping'
 import { stripAndTruncate } from '../model/titleFormatter'
 import { createTerminal, destroyTerminal, serializeTerminal } from '../model/terminalManager'
 import { destroyBrowserView } from '../model/browserManager'
-import type { PaneInfo, TerminalPaneInfo, BrowserPaneInfo, SerializedPane, PinnedWorkspaceEntry, AgentState, BridgeState, DictationState } from '../../shared/types'
+import type { PaneInfo, TerminalPaneInfo, BrowserPaneInfo, BrowserNavigationOptions, SerializedPane, PinnedWorkspaceEntry, AgentState, BridgeState, DictationState } from '../../shared/types'
 
 let nextPaneId = 1
 let nextWorkspaceId = 1
@@ -88,6 +88,7 @@ interface BrowserPaneOptions {
   isLoading?: boolean
   openerWorkspaceId?: string
   activate?: boolean
+  initialNavigationOptions?: BrowserNavigationOptions
 }
 
 interface TerminalPaneOptions {
@@ -160,6 +161,7 @@ interface PaneStore {
   setBrowserPaneNavState: (id: string, canGoBack: boolean, canGoForward: boolean) => void
   setBrowserPaneLoading: (id: string, isLoading: boolean) => void
   setBrowserPaneFavicon: (id: string, faviconUrl: string) => void
+  clearBrowserPaneInitialNavigationOptions: (id: string) => void
   goBackBrowserPane: (paneId: string) => void
 
   // Pinned workspaces
@@ -230,7 +232,8 @@ function makeBrowserPane(url: string, options: BrowserPaneOptions = {}): Browser
     canGoBack: false,
     canGoForward: false,
     isLoading: options.isLoading ?? true,
-    openerWorkspaceId: options.openerWorkspaceId
+    openerWorkspaceId: options.openerWorkspaceId,
+    initialNavigationOptions: options.initialNavigationOptions
   }
 }
 
@@ -812,6 +815,16 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
     newPanes.set(id, { ...pane, faviconUrl })
     set({ panes: newPanes })
     if (isPaneInPinnedWorkspace(id, workspaces)) get().persistPinned()
+  },
+
+  clearBrowserPaneInitialNavigationOptions: (id) => {
+    const { panes } = get()
+    const pane = panes.get(id)
+    if (!pane || pane.type !== 'browser' || !pane.initialNavigationOptions) return
+    const newPanes = new Map(panes)
+    const { initialNavigationOptions: _initialNavigationOptions, ...nextPane } = pane
+    newPanes.set(id, nextPane)
+    set({ panes: newPanes })
   },
 
   goBackBrowserPane: (paneId) => {

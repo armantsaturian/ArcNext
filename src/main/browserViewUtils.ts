@@ -1,4 +1,5 @@
 import { app, WebContentsView, session, Menu, MenuItem, clipboard, systemPreferences, desktopCapturer } from 'electron'
+import type { BrowserNavigationOptions } from '../shared/types'
 
 export const BROWSER_PARTITION = 'persist:browser'
 const configuredBrowserSessions = new WeakSet<Electron.Session>()
@@ -117,12 +118,38 @@ interface BrowserWebContentsCallbacks {
   onLoadFailed?: (errorCode: number, errorDescription: string) => void
   onFocus?: () => void
   onFavicon?: (faviconUrl: string) => void
-  onOpenInNewWorkspace?: (url: string) => void
+  onOpenInNewWorkspace?: (url: string, options?: BrowserNavigationOptions) => void
   onSummarize?: (url: string) => void
   onFoundInPage?: (activeMatch: number, totalMatches: number) => void
   onAudioStateChanged?: (playing: boolean, muted: boolean) => void
   onHtmlFullScreen?: (entered: boolean) => void
   onBeforeInput?: (input: Electron.Input) => boolean
+}
+
+// target=_blank redirectors such as LinkedIn's /safety/go validate Referer.
+// Because ArcNext denies the native popup and recreates it as a workspace,
+// we have to carry Electron's referrer metadata into the new loadURL call.
+function navigationOptionsFromReferrer(referrer?: Electron.Referrer): BrowserNavigationOptions | undefined {
+  if (!referrer?.url) return undefined
+  return {
+    httpReferrer: {
+      url: referrer.url,
+      policy: referrer.policy
+    }
+  }
+}
+
+function browserLoadOptions(options?: BrowserNavigationOptions): Electron.LoadURLOptions | undefined {
+  if (!options?.httpReferrer?.url) return undefined
+  return { httpReferrer: options.httpReferrer }
+}
+
+export function loadBrowserUrl(
+  wc: Electron.WebContents,
+  url: string,
+  options?: BrowserNavigationOptions
+): Promise<void> {
+  return wc.loadURL(normalizeBrowserUrl(url), browserLoadOptions(options))
 }
 
 export function createBrowserView(): WebContentsView {
@@ -159,7 +186,7 @@ function buildContextMenu(
   if (linkURL) {
     menu.append(new MenuItem({
       label: 'Open Link in New Workspace',
-      click: () => callbacks.onOpenInNewWorkspace?.(linkURL)
+      click: () => callbacks.onOpenInNewWorkspace?.(linkURL, navigationOptionsFromReferrer(params.referrerPolicy))
     }))
     menu.append(new MenuItem({
       label: 'Summarize Link',
@@ -402,8 +429,8 @@ export function wireBrowserViewEvents(
 
   wc.on('context-menu', onContextMenu)
 
-  wc.setWindowOpenHandler(({ url }) => {
-    callbacks.onOpenInNewWorkspace?.(url)
+  wc.setWindowOpenHandler(({ url, referrer }) => {
+    callbacks.onOpenInNewWorkspace?.(url, navigationOptionsFromReferrer(referrer))
     return { action: 'deny' }
   })
 

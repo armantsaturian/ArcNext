@@ -297,4 +297,30 @@ describe('wireBrowserViewEvents', () => {
 
     expect(onLoadFailed).not.toHaveBeenCalled()
   })
+
+  it('preserves the source referrer when opening target-blank links in a new workspace', () => {
+    const { view } = createMockView()
+    const onOpenInNewWorkspace = vi.fn()
+    const referrer = {
+      url: 'https://www.linkedin.com/feed/',
+      policy: 'strict-origin-when-cross-origin' as const
+    }
+
+    wireBrowserViewEvents(view, { onOpenInNewWorkspace })
+
+    const handler = vi.mocked(view.webContents.setWindowOpenHandler).mock.calls[0][0]
+    const result = handler({
+      url: 'https://www.linkedin.com/safety/go/?url=https%3A%2F%2Fluma.com%2Fb6jccpfu',
+      frameName: '',
+      features: '',
+      disposition: 'foreground-tab',
+      referrer
+    })
+
+    expect(result).toEqual({ action: 'deny' })
+    expect(onOpenInNewWorkspace).toHaveBeenCalledWith(
+      'https://www.linkedin.com/safety/go/?url=https%3A%2F%2Fluma.com%2Fb6jccpfu',
+      { httpReferrer: referrer }
+    )
+  })
 })
