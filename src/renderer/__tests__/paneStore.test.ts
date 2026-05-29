@@ -341,6 +341,40 @@ describe('paneStore — browser pane actions', () => {
     expect(newWs.id).not.toBe(activeBefore)
     expect(panes.get(newWs.activePaneId)?.type).toBe('browser')
   })
+
+  it('addBrowserWorkspace stores a stable browser group key from the initial URL', () => {
+    usePaneStore.getState().addBrowserWorkspace('https://mail.google.com/mail/u/0/#inbox')
+    const browserWs = usePaneStore.getState().workspaces.at(-1)!
+    const browserPaneId = browserWs.activePaneId
+
+    usePaneStore.getState().setBrowserPaneUrl(browserPaneId, 'https://docs.google.com/document/d/abc/edit')
+
+    expect(browserWs.browserGroupKey).toBe('browser:app:gmail')
+    expect(usePaneStore.getState().workspaces.at(-1)!.browserGroupKey).toBe('browser:app:gmail')
+  })
+
+  it('removeWorkspaces closes multiple workspaces in one state transition', () => {
+    const openerWorkspaceId = usePaneStore.getState().activeWorkspaceId!
+
+    usePaneStore.getState().addBrowserWorkspace('https://github.com')
+    const firstBrowserWs = usePaneStore.getState().activeWorkspaceId!
+    const firstBrowserPaneId = usePaneStore.getState().workspaces.find((w) => w.id === firstBrowserWs)!.activePaneId
+
+    usePaneStore.getState().addBrowserWorkspace('https://docs.google.com/document/d/abc/edit')
+    const secondBrowserWs = usePaneStore.getState().activeWorkspaceId!
+    const secondBrowserPaneId = usePaneStore.getState().workspaces.find((w) => w.id === secondBrowserWs)!.activePaneId
+
+    vi.clearAllMocks()
+    usePaneStore.getState().removeWorkspaces([firstBrowserWs, secondBrowserWs])
+
+    const state = usePaneStore.getState()
+    expect(state.workspaces.map((w) => w.id)).toEqual([openerWorkspaceId])
+    expect(state.activeWorkspaceId).toBe(openerWorkspaceId)
+    expect(state.panes.has(firstBrowserPaneId)).toBe(false)
+    expect(state.panes.has(secondBrowserPaneId)).toBe(false)
+    expect(destroyBrowserView).toHaveBeenCalledWith(firstBrowserPaneId)
+    expect(destroyBrowserView).toHaveBeenCalledWith(secondBrowserPaneId)
+  })
 })
 
 describe('paneStore — opener-aware browser back', () => {

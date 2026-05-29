@@ -5,6 +5,7 @@ import {
   NavDirection
 } from '../model/gridLayout'
 import { getVisualWorkspaceOrder } from '../model/workspaceGrouping'
+import { browserGroupKeyForUrl } from '../model/browserGrouping'
 import { stripAndTruncate } from '../model/titleFormatter'
 import { createTerminal, destroyTerminal, serializeTerminal } from '../model/terminalManager'
 import { destroyBrowserView } from '../model/browserManager'
@@ -80,6 +81,7 @@ export interface Workspace {
   pinned?: boolean
   dormant?: boolean
   autoRenamed?: boolean
+  browserGroupKey?: string
 }
 
 interface BrowserPaneOptions {
@@ -129,6 +131,7 @@ interface PaneStore {
   // Workspace actions
   addWorkspace: (cwd?: string, options?: TerminalWorkspaceOptions) => void
   removeWorkspace: (id: string) => void
+  removeWorkspaces: (ids: Iterable<string>) => void
   switchWorkspace: (id: string) => void
   mergeWorkspaces: (targetId: string, sourceId: string, direction: Direction) => void
   separateWorkspace: (workspaceId: string) => void
@@ -269,6 +272,17 @@ function findWorkspaceByPaneId(workspaces: Workspace[], paneId: string): Workspa
   return workspaces.find((w) => allPaneIds(w.grid).includes(paneId))
 }
 
+function browserGroupKeyForWorkspace(ws: Workspace, panes: Map<string, PaneInfo>): string | undefined {
+  const paneInfos = allPaneIds(ws.grid)
+    .map((pid) => panes.get(pid))
+    .filter(Boolean) as PaneInfo[]
+  const hasTerminal = paneInfos.some((pane) => pane.type === 'terminal')
+  if (hasTerminal) return undefined
+
+  const browserPane = paneInfos.find((pane) => pane.type === 'browser') as BrowserPaneInfo | undefined
+  return browserPane?.url ? browserGroupKeyForUrl(browserPane.url) : undefined
+}
+
 function getReturnWorkspace(
   workspaces: Workspace[],
   currentWorkspaceId: string,
@@ -283,6 +297,98 @@ function getReturnWorkspace(
   const fromHistory = popWorkspaceHistory(otherWorkspaces)
   if (fromHistory) return otherWorkspaces.find((w) => w.id === fromHistory)
   return otherWorkspaces.find((w) => !w.dormant)
+}
+
+function clearPaneUiState(store: PaneStore, paneIds: Set<string>): Partial<PaneStore> {
+  let nextAgentStates: Map<string, AgentState> | undefined
+  let nextBridgeStates: Map<string, BridgeState> | undefined
+  let nextAudioStates: Map<string, { playing: boolean; muted: boolean }> | undefined
+  let nextDictationStates: Map<string, DictationState> | undefined
+
+  for (const pid of paneIds) {
+    const bridgeTimer = bridgePulseTimers.get(pid)
+    if (bridgeTimer !== undefined) {
+      clearTimeout(bridgeTimer)
+      bridgePulseTimers.delete(pid)
+    }
+
+    if (store.agentStates.has(pid)) {
+      nextAgentStates ??= new Map(store.agentStates)
+      nextAgentStates.delete(pid)
+    }
+    if (store.bridgeStates.has(pid)) {
+      nextBridgeStates ??= new Map(store.bridgeStates)
+      nextBridgeStates.delete(pid)
+    }
+    if (store.audioStates.has(pid)) {
+      nextAudioStates ??= new Map(store.audioStates)
+      nextAudioStates.delete(pid)
+    }
+    if (store.dictationStates.has(pid)) {
+      nextDictationStates ??= new Map(store.dictationStates)
+      nextDictationStates.delete(pid)
+    }
+  }
+
+  return {
+    ...(nextAgentStates ? { agentStates: nextAgentStates } : {}),
+    ...(nextBridgeStates ? { bridgeStates: nextBridgeStates } : {}),
+    ...(nextAudioStates ? { audioStates: nextAudioStates } : {}),
+    ...(nextDictationStates ? { dictationStates: nextDictationStates } : {})
+  }
+}
+
+function removeWorkspacesInStore(
+  get: () => PaneStore,
+  set: (partial: Partial<PaneStore>) => void,
+  ids: Iterable<string>
+): void {
+  const store = get()
+  const targetIds = new Set(ids)
+  if (targetIds.size === 0) return
+
+  const removing = store.workspaces.filter((w) => targetIds.has(w.id))
+  if (removing.length === 0) return
+
+  const removingIds = new Set(removing.map((w) => w.id))
+  const paneIds = new Set<string>()
+  for (const ws of removing) {
+    for (const pid of allPaneIds(ws.grid)) {
+      paneIds.add(pid)
+    }
+  }
+
+  const newPanes = new Map(store.panes)
+  for (const pid of paneIds) {
+    const pane = store.panes.get(pid)
+    if (pane) destroyPaneResource(pane)
+    newPanes.delete(pid)
+    dormantScrollback.delete(pid)
+  }
+
+  const remaining = store.workspaces.filter((w) => !removingIds.has(w.id))
+  for (const id of removingIds) purgeFromHistory(id)
+
+  let newActive: string | null = store.activeWorkspaceId
+  if (store.activeWorkspaceId && removingIds.has(store.activeWorkspaceId)) {
+    const fromHistory = popWorkspaceHistory(remaining)
+    if (fromHistory) {
+      newActive = fromHistory
+    } else {
+      const liveWs = remaining.find((w) => !w.dormant)
+      newActive = liveWs?.id ?? null
+    }
+  }
+
+  set({
+    workspaces: remaining,
+    activeWorkspaceId: newActive,
+    panes: newPanes,
+    ...(store.pipPaneId && paneIds.has(store.pipPaneId) ? { pipPaneId: null } : {}),
+    ...clearPaneUiState(store, paneIds)
+  })
+
+  if (removing.some((w) => w.pinned)) get().persistPinned()
 }
 
 /** Shared logic for closing a pane in any workspace */
@@ -319,10 +425,17 @@ function closePaneInWs(
   const newActivePaneId = paneId === ws.activePaneId
     ? adjacentPaneId(ws.grid, paneId, -1)
     : ws.activePaneId
+  const updatedWorkspaceBase: Workspace = { ...ws, grid: newGrid, activePaneId: newActivePaneId }
+  const nextBrowserGroupKey = browserGroupKeyForWorkspace(updatedWorkspaceBase, newPanes)
+  const updatedWorkspace: Workspace = {
+    ...updatedWorkspaceBase,
+    browserGroupKey: nextBrowserGroupKey ? (ws.browserGroupKey ?? nextBrowserGroupKey) : undefined
+  }
 
   set({
-    workspaces: workspaces.map((w) => w.id === workspaceId ? { ...ws, grid: newGrid, activePaneId: newActivePaneId } : w),
-    panes: newPanes
+    workspaces: workspaces.map((w) => w.id === workspaceId ? updatedWorkspace : w),
+    panes: newPanes,
+    ...clearPaneUiState(get(), new Set([paneId]))
   })
   if (ws.pinned) get().persistPinned()
 }
@@ -353,41 +466,11 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
   },
 
   removeWorkspace: (id) => {
-    const { workspaces, activeWorkspaceId, panes, pipPaneId } = get()
-    const ws = workspaces.find((w) => w.id === id)
-    if (!ws) return
+    removeWorkspacesInStore(get, set, [id])
+  },
 
-    const paneIds = allPaneIds(ws.grid)
-
-    // Clean up PiP if the destroyed workspace owns the PiP pane
-    if (pipPaneId && paneIds.includes(pipPaneId)) {
-      set({ pipPaneId: null })
-    }
-
-    const newPanes = new Map(panes)
-    for (const pid of paneIds) {
-      const pane = panes.get(pid)
-      if (pane) destroyPaneResource(pane)
-      newPanes.delete(pid)
-      dormantScrollback.delete(pid)
-    }
-
-    const remaining = workspaces.filter((w) => w.id !== id)
-    purgeFromHistory(id)
-
-    let newActive: string | null = activeWorkspaceId
-    if (id === activeWorkspaceId) {
-      const fromHistory = popWorkspaceHistory(remaining)
-      if (fromHistory) {
-        newActive = fromHistory
-      } else {
-        const liveWs = remaining.find((w) => !w.dormant)
-        newActive = liveWs?.id ?? null
-      }
-    }
-
-    set({ workspaces: remaining, activeWorkspaceId: newActive, panes: newPanes })
-    if (ws.pinned) get().persistPinned()
+  removeWorkspaces: (ids) => {
+    removeWorkspacesInStore(get, set, ids)
   },
 
   switchWorkspace: (id) => {
@@ -538,7 +621,7 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
   },
 
   separateWorkspace: (workspaceId) => {
-    const { workspaces } = get()
+    const { workspaces, panes } = get()
     const ws = workspaces.find((w) => w.id === workspaceId)
     if (!ws) return
     const paneIds = allPaneIds(ws.grid)
@@ -547,12 +630,14 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
     // Each pane becomes its own workspace (first reuses original ID)
     const separated: Workspace[] = paneIds.map((paneId, i) => {
       const id = i === 0 ? ws.id : genWorkspaceId()
+      const pane = panes.get(paneId)
       return {
         ...ws,
         id,
         name: i === 0 ? ws.name : `Workspace ${id.split('-')[1]}`,
         grid: createGrid(paneId),
-        activePaneId: paneId
+        activePaneId: paneId,
+        browserGroupKey: pane?.type === 'browser' ? browserGroupKeyForUrl((pane as BrowserPaneInfo).url) : undefined
       }
     })
 
@@ -746,7 +831,8 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
       id,
       name: `Workspace ${id.split('-')[1]}`,
       grid: createGrid(pane.id),
-      activePaneId: pane.id
+      activePaneId: pane.id,
+      browserGroupKey: browserGroupKeyForUrl(url)
     }
     const newPanes = new Map(panes)
     newPanes.set(pane.id, pane)
@@ -875,13 +961,12 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
   },
 
   unpinWorkspace: (id) => {
-    const { workspaces } = get()
+    const { workspaces, panes } = get()
     const ws = workspaces.find((w) => w.id === id)
     if (!ws || !ws.pinned) return
 
     if (ws.dormant) {
       const paneIds = allPaneIds(ws.grid)
-      const { panes } = get()
       for (const pid of paneIds) {
         const pane = panes.get(pid)
         if (!pane) continue
@@ -891,7 +976,12 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
       }
     }
 
-    const updated = { ...ws, pinned: false, dormant: false }
+    const updated = {
+      ...ws,
+      pinned: false,
+      dormant: false,
+      browserGroupKey: ws.browserGroupKey ?? browserGroupKeyForWorkspace(ws, panes)
+    }
     const without = workspaces.filter((w) => w.id !== id)
     const pinnedCount = without.filter((w) => w.pinned).length
     const next = [...without]

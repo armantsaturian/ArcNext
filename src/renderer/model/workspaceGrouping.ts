@@ -1,5 +1,6 @@
 import { GridLayout, allPaneIds } from './gridLayout'
-import type { PaneInfo, TerminalPaneInfo } from '../../shared/types'
+import type { BrowserPaneInfo, PaneInfo, TerminalPaneInfo } from '../../shared/types'
+import { browserGroupKeyForUrl, browserGroupLabelFromKey, unknownBrowserGroupKey } from './browserGrouping'
 
 /** Minimal workspace shape needed by grouping logic. */
 export interface GroupableWorkspace {
@@ -7,6 +8,7 @@ export interface GroupableWorkspace {
   grid: GridLayout
   pinned?: boolean
   dormant?: boolean
+  browserGroupKey?: string
 }
 
 export interface WorkspaceGroup<T extends GroupableWorkspace = GroupableWorkspace> {
@@ -19,11 +21,20 @@ export function cwdBasename(cwd: string): string | undefined {
   return cwd.split('/').filter(Boolean).pop()
 }
 
-export function computeGroupKey(paneInfos: PaneInfo[]): string {
+function browserOnlyGroupKey(paneInfos: PaneInfo[], workspace?: GroupableWorkspace): string {
+  if (workspace?.browserGroupKey) return workspace.browserGroupKey
+
+  const browserPane = paneInfos.find((p) => p.type === 'browser') as BrowserPaneInfo | undefined
+  if (browserPane?.url) return browserGroupKeyForUrl(browserPane.url)
+
+  return unknownBrowserGroupKey()
+}
+
+export function computeGroupKey(paneInfos: PaneInfo[], workspace?: GroupableWorkspace): string {
   const hasTerminal = paneInfos.some((p) => p.type === 'terminal')
   const hasBrowser = paneInfos.some((p) => p.type === 'browser')
 
-  if (hasBrowser && !hasTerminal) return 'browsers'
+  if (hasBrowser && !hasTerminal) return browserOnlyGroupKey(paneInfos, workspace)
 
   const termPane = paneInfos.find((p) => p.type === 'terminal') as TerminalPaneInfo | undefined
   if (termPane?.cwd) {
@@ -35,7 +46,8 @@ export function computeGroupKey(paneInfos: PaneInfo[]): string {
 }
 
 export function groupLabel(key: string): string {
-  if (key === 'browsers') return 'WEB'
+  const browserLabel = browserGroupLabelFromKey(key)
+  if (browserLabel) return browserLabel
   if (key === 'other') return 'Other'
   if (key.startsWith('cwd:')) return key.slice(4)
   return key
@@ -50,7 +62,7 @@ export function groupUnpinnedWorkspaces<T extends GroupableWorkspace>(
   for (const ws of workspaces) {
     const paneIds = allPaneIds(ws.grid)
     const paneInfos = paneIds.map((id) => panes.get(id)).filter(Boolean) as PaneInfo[]
-    const key = computeGroupKey(paneInfos)
+    const key = computeGroupKey(paneInfos, ws)
 
     if (!groups.has(key)) {
       groups.set(key, [])

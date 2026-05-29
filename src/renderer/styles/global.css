@@ -463,13 +463,49 @@ body,
 }
 
 .ws-group-header {
-    padding: 6px 12px 2px;
+    padding: 6px 6px 2px 12px;
     font-size: 10px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: #555;
     user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+}
+
+.ws-group-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ws-group-close {
+    width: 20px;
+    height: 20px;
+    border: none;
+    border-radius: 4px;
+    background: none;
+    color: #555;
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 20px;
+    opacity: 0;
+    transition: opacity 0.15s, background 0.15s, color 0.15s;
+    flex-shrink: 0;
+}
+
+.ws-group-header:hover .ws-group-close,
+.ws-group-header:focus-within .ws-group-close {
+    opacity: 1;
+}
+
+.ws-group-close:hover {
+    background: #ff6b6b33;
+    color: #ff6b6b;
 }
 
 .ws-favicon {

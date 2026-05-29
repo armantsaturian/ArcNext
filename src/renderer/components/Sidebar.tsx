@@ -95,6 +95,7 @@ export default function Sidebar() {
   const switchWorkspace = usePaneStore((s) => s.switchWorkspace)
   const openPicker = usePaneStore((s) => s.openPicker)
   const removeWorkspace = usePaneStore((s) => s.removeWorkspace)
+  const removeWorkspaces = usePaneStore((s) => s.removeWorkspaces)
   const closePaneInWorkspace = usePaneStore((s) => s.closePaneInWorkspace)
   const mergeWorkspaces = usePaneStore((s) => s.mergeWorkspaces)
   const separateWorkspace = usePaneStore((s) => s.separateWorkspace)
@@ -339,6 +340,11 @@ export default function Sidebar() {
             />
           )}
 
+          const handleCloseGroup = (group: { label: string; workspaces: Workspace[] }) => (e: React.MouseEvent) => {
+            e.stopPropagation()
+            removeWorkspaces(group.workspaces.map((ws) => ws.id))
+          }
+
           return (
             <>
               {pinnedWs.map(renderRow)}
@@ -383,7 +389,16 @@ export default function Sidebar() {
                 groupUnpinnedWorkspaces(unpinnedWs, panes).map((group) => (
                   <div key={group.key} className="ws-group">
                     {!sidebarCollapsed && (
-                      <div className="ws-group-header">{group.label}</div>
+                      <div className="ws-group-header">
+                        <span className="ws-group-label">{group.label}</span>
+                        <button
+                          className="ws-group-close"
+                          title={`Close all ${group.label} workspaces`}
+                          onClick={handleCloseGroup(group)}
+                        >
+                          &times;
+                        </button>
+                      </div>
                     )}
                     {group.workspaces.map(renderRow)}
                   </div>
@@ -689,4 +704,3 @@ function WorkspaceRow({
     </div>
   )
 }
-
