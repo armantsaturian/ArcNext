@@ -52,6 +52,7 @@ interface ArcNextAPI {
     setBounds(paneId: string, bounds: { x: number; y: number; width: number; height: number }): void
     show(paneId: string): void
     hide(paneId: string): void
+    focus(paneId: string): void
     openInNewWorkspace(url: string, sourcePaneId?: string, activate?: boolean, options?: BrowserNavigationOptions): void
     navigate(paneId: string, url: string, options?: BrowserNavigationOptions): void
     goBack(paneId: string): void
@@ -77,7 +78,7 @@ interface ArcNextAPI {
     exitPip(paneId: string): void
     dismissPip(paneId: string): void
     onPipExited(cb: (paneId: string) => void): () => void
-    focusRenderer(): void
+    focusRenderer(): Promise<void>
   }
   bridge: {
     onAgentActed(cb: (paneId: string) => void): () => void

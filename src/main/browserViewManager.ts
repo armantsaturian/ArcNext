@@ -59,6 +59,15 @@ function applyFullscreenBounds(managed: ManagedBrowserView): void {
   managed.view.setBounds({ x: 0, y: 0, width, height })
 }
 
+function focusBrowserView(paneId: string): void {
+  const managed = views.get(paneId)
+  if (!managed || !win || win.isDestroyed()) return
+  if (managed.view.webContents.isDestroyed()) return
+  const children = win.contentView.children
+  if (!children.includes(managed.view)) return
+  managed.view.webContents.focus()
+}
+
 function enterHtmlFullscreen(paneId: string): void {
   if (!win || win.isDestroyed()) return
   const managed = views.get(paneId)
@@ -241,6 +250,10 @@ export function setupBrowserViewManager(mainWindow: BrowserWindow): void {
     try { win.contentView.removeChildView(managed.view) } catch { /* not attached */ }
   })
 
+  ipcMain.on('browser:focus', (_e, paneId: string) => {
+    focusBrowserView(paneId)
+  })
+
   ipcMain.on('browser:navigate', (_e, paneId: string, url: string, options?: BrowserNavigationOptions) => {
     const managed = views.get(paneId)
     if (!managed) return
@@ -332,7 +345,7 @@ export function setupBrowserViewManager(mainWindow: BrowserWindow): void {
     win.webContents.send('browser:audioStateChanged', paneId, playing, newMuted)
   })
 
-  ipcMain.on('browser:focusRenderer', () => {
+  ipcMain.handle('browser:focusRenderer', () => {
     if (win && !win.isDestroyed()) win.webContents.focus()
   })
 }

@@ -132,6 +132,7 @@ export interface IPCChannels {
   'browser:setBounds': (paneId: string, bounds: { x: number; y: number; width: number; height: number }) => void
   'browser:show': (paneId: string) => void
   'browser:hide': (paneId: string) => void
+  'browser:focus': (paneId: string) => void
   'browser:openInNewWorkspaceRequest': (url: string, sourcePaneId?: string, activate?: boolean, options?: BrowserNavigationOptions) => void
   'browser:navigate': (paneId: string, url: string, options?: BrowserNavigationOptions) => void
   'browser:goBack': (paneId: string) => void
@@ -154,6 +155,7 @@ export interface IPCChannels {
   'browser:appShortcut': (key: string, meta: boolean, ctrl: boolean, shift: boolean, alt: boolean) => void
   'browser:audioStateChanged': (paneId: string, playing: boolean, muted: boolean) => void
   'browser:toggleMute': (paneId: string) => void
+  'browser:focusRenderer': () => Promise<void>
   // Summarize a URL in a terminal split below the browser pane
   'browser:summarize': (paneId: string, url: string) => void
 }

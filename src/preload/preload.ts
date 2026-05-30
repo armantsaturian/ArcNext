@@ -72,6 +72,8 @@ const api = {
       ipcRenderer.send('browser:show', paneId),
     hide: (paneId: string) =>
       ipcRenderer.send('browser:hide', paneId),
+    focus: (paneId: string) =>
+      ipcRenderer.send('browser:focus', paneId),
     openInNewWorkspace: (url: string, sourcePaneId?: string, activate?: boolean, options?: BrowserNavigationOptions) =>
       ipcRenderer.send('browser:openInNewWorkspaceRequest', url, sourcePaneId, activate, options),
     navigate: (paneId: string, url: string, options?: BrowserNavigationOptions) =>
@@ -161,7 +163,7 @@ const api = {
       ipcRenderer.on('browser:pipExited', handler)
       return () => { ipcRenderer.removeListener('browser:pipExited', handler) }
     },
-    focusRenderer: () => ipcRenderer.send('browser:focusRenderer')
+    focusRenderer: () => ipcRenderer.invoke('browser:focusRenderer')
   }
 }
 

@@ -27,6 +27,7 @@ export default function TerminalPane({ paneId }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const terminalRef = useRef<HTMLDivElement>(null)
   const ws = usePaneStore((s) => s.workspaces.find((w) => w.id === s.activeWorkspaceId))
+  const overlayActive = usePaneStore((s) => s.activeOverlays.size > 0)
   const setActive = usePaneStore((s) => s.setActivePaneInWorkspace)
   const isActive = ws?.activePaneId === paneId
 
@@ -80,12 +81,20 @@ export default function TerminalPane({ paneId }: Props) {
 
   // Focus when active, blur when not
   useEffect(() => {
-    if (isActive) {
-      focusTerminal(paneId)
+    let cancelled = false
+
+    if (isActive && !overlayActive) {
+      void window.arcnext.browser.focusRenderer()
+        .catch(() => {})
+        .then(() => {
+          if (!cancelled) focusTerminal(paneId)
+        })
     } else {
       blurTerminal(paneId)
     }
-  }, [isActive, paneId])
+
+    return () => { cancelled = true }
+  }, [isActive, overlayActive, paneId])
 
   // Refit on container resize
   useEffect(() => {

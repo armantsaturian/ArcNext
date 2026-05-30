@@ -50,9 +50,12 @@ export default function UrlBar({ paneId, url, isHttps, isActivePane, onNavigate,
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail
       if (detail?.paneId === paneId && isActivePane) {
-        window.arcnext.browser.focusRenderer()
-        inputRef.current?.focus()
-        inputRef.current?.select()
+        void window.arcnext.browser.focusRenderer()
+          .catch(() => {})
+          .then(() => {
+            inputRef.current?.focus()
+            inputRef.current?.select()
+          })
       }
     }
     window.addEventListener('browser-focus-url', handler)

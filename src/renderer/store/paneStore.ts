@@ -1152,7 +1152,7 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
 
   pickerOpen: false,
   openPicker: () => {
-    window.arcnext.browser.focusRenderer()
+    void window.arcnext.browser.focusRenderer().catch(() => {})
     set({ pickerOpen: true })
     get().setOverlay('picker', true)
   },

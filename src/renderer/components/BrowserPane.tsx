@@ -73,7 +73,11 @@ export default function BrowserPane({ paneId, workspaceId }: Props) {
   // Stable find handler via ref — avoids stale closures and re-registration churn
   const findRef = useRef({ open: () => {}, close: () => {}, next: () => {}, prev: () => {}, isOpen: () => false })
   findRef.current = {
-    open: () => { window.arcnext.browser.focusRenderer(); setFindOpen(true) },
+    open: () => {
+      void window.arcnext.browser.focusRenderer()
+        .catch(() => {})
+        .then(() => setFindOpen(true))
+    },
     close: handleFindClose,
     next: handleFindNext,
     prev: handleFindPrev,
@@ -118,11 +122,16 @@ export default function BrowserPane({ paneId, workspaceId }: Props) {
     if (isWorkspaceActive && !error && !overlayActive && !urlDropdownOpen) {
       window.arcnext.browser.show(paneId)
       reportBounds()
+      const activeEl = document.activeElement
+      const suppressingShortcuts = activeEl instanceof HTMLElement && activeEl.dataset.suppressShortcuts !== undefined
+      if (isActivePane && !suppressingShortcuts) {
+        window.arcnext.browser.focus(paneId)
+      }
     } else {
       reportBounds()
       window.arcnext.browser.hide(paneId)
     }
-  }, [isWorkspaceActive, error, overlayActive, urlDropdownOpen, paneId, reportBounds])
+  }, [isWorkspaceActive, isActivePane, error, overlayActive, urlDropdownOpen, paneId, reportBounds])
 
   // Report bounds on resize even while hidden, so background bridge panes have
   // a real viewport without stealing the active workspace.
