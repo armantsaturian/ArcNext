@@ -440,12 +440,10 @@ function closePaneInWs(
   if (ws.pinned) get().persistPinned()
 }
 
-const initial = makeWorkspace()
-
 export const usePaneStore = create<PaneStore>((set, get) => ({
-  workspaces: [initial.workspace],
-  activeWorkspaceId: initial.workspace.id,
-  panes: new Map([[initial.pane.id, initial.pane]]),
+  workspaces: [],
+  activeWorkspaceId: null,
+  panes: new Map(),
 
   sidebarWidth: 220,
   sidebarCollapsed: false,

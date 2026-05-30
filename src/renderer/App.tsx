@@ -116,13 +116,11 @@ function handleGlobalShortcuts(e: KeyboardEvent, meta: boolean, alt: boolean, ke
   if (meta && e.shiftKey && !alt && key === 'd') {
     e.preventDefault(); state.splitActive('vertical'); return true
   }
-  // Cmd+W — close pane (sleep if pinned), hide window if no active workspace
+  // Cmd+W — close pane (sleep if pinned); empty windows stay open
   if (meta && !e.shiftKey && !alt && key === 'w') {
     e.preventDefault()
     if (ws) {
       ws.pinned ? state.sleepWorkspace(ws.id) : state.closePane(ws.activePaneId)
-    } else {
-      window.arcnext.app.hide()
     }
     return true
   }

@@ -26,7 +26,7 @@ const ptyWrite = vi.fn()
 const pinnedSave = vi.fn()
 const pinnedSaveSync = vi.fn()
 
-function resetStore() {
+function installMockWindow() {
   const mockWindow = {
     arcnext: {
       browser: {
@@ -47,17 +47,92 @@ function resetStore() {
   } as unknown as Window
 
   Object.assign(globalThis, { window: mockWindow })
-  // Reset zustand store to initial state
+}
+
+function resetEmptyStore() {
+  installMockWindow()
   usePaneStore.setState({
     workspaces: [],
-    activeWorkspaceId: '',
+    activeWorkspaceId: null,
     panes: new Map(),
-    focusState: 'terminal'
+    focusState: 'terminal',
+    pickerOpen: false,
+    activeOverlays: new Set(),
+    agentStates: new Map(),
+    bridgeStates: new Map(),
+    audioStates: new Map(),
+    dictationStates: new Map(),
+    pipPaneId: null
   })
   vi.clearAllMocks()
+}
+
+function resetStore() {
+  resetEmptyStore()
   // Create a fresh workspace via addWorkspace
   usePaneStore.getState().addWorkspace()
 }
+
+describe('paneStore — empty state', () => {
+  beforeEach(resetEmptyStore)
+
+  it('has no workspace or terminal until the user creates one', () => {
+    const { workspaces, activeWorkspaceId, panes } = usePaneStore.getState()
+
+    expect(workspaces).toEqual([])
+    expect(activeWorkspaceId).toBeNull()
+    expect(panes.size).toBe(0)
+    expect(createTerminal).not.toHaveBeenCalled()
+  })
+
+  it('opens an external URL as the first active browser workspace', () => {
+    usePaneStore.getState().addBrowserWorkspace('https://example.com')
+
+    const { workspaces, activeWorkspaceId, panes } = usePaneStore.getState()
+    expect(workspaces).toHaveLength(1)
+    expect(activeWorkspaceId).toBe(workspaces[0].id)
+    expect(panes.get(workspaces[0].activePaneId)).toMatchObject({
+      type: 'browser',
+      url: 'https://example.com'
+    })
+    expect(createTerminal).not.toHaveBeenCalled()
+  })
+
+  it('keeps pinned workspaces dormant without activating a tab', () => {
+    usePaneStore.getState().loadPinnedWorkspaces([{
+      name: 'Pinned project',
+      grid: { columns: [{ width: 1, rows: [{ paneId: 'old-pane', height: 1 }] }] },
+      activePaneId: 'old-pane',
+      panes: [{ type: 'terminal', id: 'old-pane', title: 'shell', cwd: '/tmp/project' }]
+    }])
+
+    const { workspaces, activeWorkspaceId, panes } = usePaneStore.getState()
+    expect(workspaces).toHaveLength(1)
+    expect(workspaces[0]).toMatchObject({
+      name: 'Pinned project',
+      pinned: true,
+      dormant: true
+    })
+    expect(activeWorkspaceId).toBeNull()
+    expect(panes.size).toBe(1)
+    expect(createTerminal).not.toHaveBeenCalled()
+  })
+
+  it('returns to empty state after closing the final pane', () => {
+    usePaneStore.getState().addWorkspace('/tmp/project')
+    const ws = usePaneStore.getState().workspaces[0]
+    const paneId = ws.activePaneId
+
+    vi.clearAllMocks()
+    usePaneStore.getState().closePane(paneId)
+
+    const { workspaces, activeWorkspaceId, panes } = usePaneStore.getState()
+    expect(workspaces).toEqual([])
+    expect(activeWorkspaceId).toBeNull()
+    expect(panes.size).toBe(0)
+    expect(destroyTerminal).toHaveBeenCalledWith(paneId)
+  })
+})
 
 describe('PaneInfo discriminated union', () => {
   it('TerminalPaneInfo has type terminal', () => {

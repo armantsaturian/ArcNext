@@ -20,6 +20,7 @@ See the [original motivation](https://x.com/armantsaturian/status/20323926697631
 
 ### Workspaces
 Vertical sidebar with Arc-style tabs. Drag to merge, color-code, pin, sleep.
+On launch, ArcNext opens to an empty space with the sidebar visible. Use `Cmd+T` or `+ New Workspace` to create the first tab, while pinned workspaces stay listed dormant until selected.
 Right-click any workspace to rename it manually or generate a contextual AI name from the current session.
 Use Group on the sidebar divider to organize unpinned workspaces by terminal project or browser app, with separate groups for apps like Gmail, Google Docs, and GitHub. Each group header can close all workspaces in that group.
 
