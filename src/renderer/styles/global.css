@@ -2100,10 +2100,16 @@ body,
     -webkit-app-region: no-drag;
 }
 
+.xnext-panel-sidebar-collapsed {
+    max-height: none;
+}
+
 .xnext-header {
+    position: relative;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
+    height: 32px;
     padding: 6px 10px 6px var(--sidebar-icon-left);
     flex-shrink: 0;
 }
@@ -2117,9 +2123,33 @@ body,
     color: #e0e0e0;
 }
 
+.xnext-panel-sidebar-collapsed .xnext-title {
+    color: #888;
+}
+
+.xnext-panel-sidebar-collapsed .xnext-header {
+    justify-content: flex-start;
+    padding-right: 0;
+}
+
 .xnext-header-actions {
+    position: absolute;
+    right: 10px;
+    top: 6px;
     display: flex;
     gap: 4px;
+    flex-shrink: 0;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition: opacity 0.08s linear 0.22s, visibility 0s linear 0.22s;
+}
+
+.xnext-panel-sidebar-collapsed .xnext-header-actions {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition-delay: 0s;
 }
 
 .xnext-compose-btn,
@@ -2346,34 +2376,4 @@ body,
 @keyframes xnext-spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
-}
-
-/* XNext collapsed state */
-.xnext-collapsed {
-    flex-shrink: 0;
-    display: flex;
-    justify-content: flex-start;
-    padding: 6px 0 6px var(--sidebar-icon-left);
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    -webkit-app-region: no-drag;
-}
-
-.xnext-collapsed-icon {
-    width: 16px;
-    height: 20px;
-    border-radius: 0;
-    border: none;
-    background: none;
-    color: #888;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: color 0.15s;
-}
-
-.xnext-collapsed-icon:hover {
-    color: #aaa;
 }

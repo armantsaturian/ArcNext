@@ -50,16 +50,8 @@ export default function XNextFeed() {
 
   if (!enabled) return null
 
-  if (sidebarCollapsed) {
-    return (
-      <div className="xnext-collapsed">
-        <div className="xnext-collapsed-icon" title="XNext Feed">𝕏</div>
-      </div>
-    )
-  }
-
   return (
-    <div className="xnext-panel">
+    <div className={`xnext-panel${sidebarCollapsed ? ' xnext-panel-sidebar-collapsed' : ''}`}>
       <div className="xnext-header">
         <span className="xnext-title">𝕏</span>
         <div className="xnext-header-actions">
@@ -67,6 +59,7 @@ export default function XNextFeed() {
             className="xnext-compose-btn"
             onClick={() => composing ? closeCompose() : setComposing(true)}
             title="Compose"
+            tabIndex={sidebarCollapsed ? -1 : 0}
           >
             {composing ? '×' : '+'}
           </button>
@@ -74,7 +67,8 @@ export default function XNextFeed() {
             className="xnext-refresh-btn"
             onClick={refreshXNextFeed}
             title="Refresh feed"
-            disabled={loading}
+            disabled={loading || sidebarCollapsed}
+            tabIndex={sidebarCollapsed ? -1 : 0}
           >
             <span className={loading ? 'xnext-spinning' : undefined}>↻</span>
           </button>
@@ -82,12 +76,13 @@ export default function XNextFeed() {
             className="xnext-collapse-btn"
             onClick={() => setCollapsed(!collapsed)}
             title={collapsed ? 'Expand' : 'Collapse'}
+            tabIndex={sidebarCollapsed ? -1 : 0}
           >
             {collapsed ? '▲' : '▼'}
           </button>
         </div>
       </div>
-      {!collapsed && (
+      {!sidebarCollapsed && !collapsed && (
         <>
           {composing && (
             <div className="xnext-compose">
