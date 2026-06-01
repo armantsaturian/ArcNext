@@ -120,17 +120,23 @@ body,
 }
 
 .ws-collapsed-icon {
-    width: 16px;
-    height: 20px;
-    border-radius: 0;
+    width: 28px;
+    height: 28px;
+    margin-left: calc((var(--sidebar-icon-size) - 28px) / 2);
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: var(--ws-color, #888);
+    transition: background 0.15s, color 0.15s, box-shadow 400ms ease-out;
 }
 
 .ws-row.active .ws-collapsed-icon {
     color: var(--ws-color, #aaa);
+}
+
+.sidebar-collapsed .ws-row.active .ws-collapsed-icon {
+    background: rgba(255, 255, 255, 0.08);
 }
 
 /* ── Sidebar resize handle ── */
@@ -1454,7 +1460,7 @@ body,
 
 /* Collapsed sidebar: the row is just an icon; glow the icon itself */
 .sidebar-collapsed .ws-row .ws-collapsed-icon {
-    transition: box-shadow 400ms ease-out;
+    transition: background 0.15s, color 0.15s, box-shadow 400ms ease-out;
 }
 
 .sidebar-collapsed .ws-row.ws-bridge-holds .ws-collapsed-icon {
