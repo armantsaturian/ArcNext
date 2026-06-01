@@ -74,8 +74,18 @@ function shortName(filename: string): string {
   return `${stem.slice(0, Math.max(8, 17 - ext.length))}…${ext}`
 }
 
+function downloadAnimationKey(download: DownloadEntry): string {
+  return `${download.path}:${Math.floor(download.startedAt / 5000)}`
+}
+
+function newestRecentDownload(downloads: DownloadEntry[]): DownloadEntry | undefined {
+  const now = Date.now()
+  return downloads.find((download) => now - download.startedAt < 8000)
+}
+
 export default function DownloadsTray() {
   const downloads = useDownloadsSnapshot()
+  const arrivingDownload = newestRecentDownload(downloads)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; download: DownloadEntry } | null>(null)
 
   const openDownload = (download: DownloadEntry) => {
@@ -108,6 +118,22 @@ export default function DownloadsTray() {
       >
         <DownloadsIcon />
       </button>
+
+      {arrivingDownload && (
+        <span
+          key={downloadAnimationKey(arrivingDownload)}
+          className="download-arrival"
+          aria-hidden="true"
+        >
+          <span className="download-arrival-thumb">
+            {arrivingDownload.thumbnailDataUrl ? (
+              <img src={arrivingDownload.thumbnailDataUrl} alt="" />
+            ) : (
+              <FileIcon />
+            )}
+          </span>
+        </span>
+      )}
 
       {downloads.length > 0 && (
         <div className="downloads-popover" onClick={(e) => e.stopPropagation()}>
