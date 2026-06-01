@@ -76,18 +76,21 @@ body,
 
 /* ── Sidebar collapsed state ── */
 .sidebar.sidebar-collapsed .sidebar-list {
-    padding: var(--sb-pad);
-    gap: var(--sb-gap);
+    padding: 4px 0;
+    gap: 0;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
 }
 
 .sidebar.sidebar-collapsed .ws-row {
-    padding: var(--sb-gap);
+    width: 100%;
+    height: 34px;
+    padding: 0 0 0 var(--sidebar-icon-left);
     display: flex;
-    justify-content: center;
-    margin-bottom: 0;
+    justify-content: flex-start;
+    margin-bottom: 2px;
+    background: transparent;
 }
 
 .sidebar.sidebar-collapsed .ws-close {
@@ -95,7 +98,7 @@ body,
 }
 
 .sidebar.sidebar-collapsed .sidebar-header {
-    height: 36px;
+    height: 52px;
 }
 
 .sidebar.sidebar-collapsed .sidebar-toggle {
@@ -106,26 +109,17 @@ body,
 }
 
 .ws-collapsed-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
+    width: 16px;
+    height: 20px;
+    border-radius: 0;
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-size: 13px;
-    font-weight: 600;
-    color: #121212;
-    background: var(--ws-color, #74c0fc);
-    transition: transform 0.12s;
-}
-
-.ws-row:hover .ws-collapsed-icon {
-    transform: scale(1.08);
+    justify-content: flex-start;
+    color: var(--ws-color, #888);
 }
 
 .ws-row.active .ws-collapsed-icon {
-    outline: 2px solid rgba(255, 255, 255, 0.3);
-    outline-offset: 2px;
+    color: var(--ws-color, #aaa);
 }
 
 /* ── Sidebar resize handle ── */
@@ -183,15 +177,15 @@ body,
 }
 
 .sidebar.sidebar-collapsed .sidebar-add {
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    margin-bottom: 0;
+    width: 100%;
+    height: 34px;
+    padding: 0 0 0 var(--sidebar-icon-left);
+    margin-bottom: 2px;
     border-left: none;
     border-radius: 8px;
-    font-size: 16px;
-    justify-content: center;
-    border: 1px dashed #3a3a3a;
+    font-size: 13px;
+    justify-content: flex-start;
+    border: none;
 }
 
 /* ── Pinned/unpinned divider ── */
@@ -2313,27 +2307,27 @@ body,
     flex-shrink: 0;
     display: flex;
     justify-content: flex-start;
-    padding: 6px 0 6px calc(var(--sidebar-icon-left) - 6px);
+    padding: 6px 0 6px var(--sidebar-icon-left);
     border-top: 1px solid rgba(255, 255, 255, 0.06);
     -webkit-app-region: no-drag;
 }
 
 .xnext-collapsed-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.04);
-    color: #e0e0e0;
-    font-size: 14px;
-    font-weight: 700;
+    width: 16px;
+    height: 20px;
+    border-radius: 0;
+    border: none;
+    background: none;
+    color: #888;
+    font-size: 13px;
+    font-weight: 600;
     cursor: pointer;
     display: flex;
     align-items: center;
-    justify-content: center;
-    transition: background 0.15s;
+    justify-content: flex-start;
+    transition: color 0.15s;
 }
 
 .xnext-collapsed-icon:hover {
-    background: rgba(255, 255, 255, 0.1);
+    color: #aaa;
 }

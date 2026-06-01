@@ -565,7 +565,6 @@ function WorkspaceRow({
   const defaultTitle = firstPane ? paneDisplayTitle(firstPane, grouped) || 'shell' : 'shell'
   const displayTitle = hasCustomName ? workspace.name : defaultTitle
   const isBrowserWorkspace = firstPane?.type === 'browser'
-  const initial = (displayTitle === 'shell' ? 'S' : displayTitle.split('/').pop() || 'S').charAt(0).toUpperCase()
 
   const audioBtn = audioState && (
     <button className="ws-audio-btn" onClick={handleToggleMute} title={audioState.muted ? 'Unmute' : 'Mute'}>
@@ -624,7 +623,7 @@ function WorkspaceRow({
     >
       {collapsed ? (
         <div className="ws-collapsed-icon">
-          {agentState ? <AgentIndicator status={agentState.status} /> : isBrowserWorkspace && firstPane ? <FaviconIcon pane={firstPane} size={16} /> : initial}
+          {icon}
           {audioState && (
             <button className="ws-audio-badge" onClick={handleToggleMute} title={audioState.muted ? 'Unmute' : 'Mute'}>
               <SpeakerIcon muted={audioState.muted} />
