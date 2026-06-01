@@ -109,7 +109,10 @@ export default function DownloadsTray() {
   }
 
   return (
-    <div className="downloads-tray">
+    <div
+      className={`downloads-tray${contextMenu ? ' downloads-menu-open' : ''}`}
+      onMouseLeave={() => setContextMenu(null)}
+    >
       <button
         className={`downloads-button${downloads.length > 0 ? ' has-downloads' : ''}`}
         title="Downloads"
@@ -180,7 +183,6 @@ export default function DownloadsTray() {
         <div
           className="ctx-menu downloads-context-menu"
           style={{ left: contextMenu.x, top: contextMenu.y }}
-          onMouseLeave={() => setContextMenu(null)}
           onClick={(e) => e.stopPropagation()}
         >
           <button
