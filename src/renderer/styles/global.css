@@ -1850,7 +1850,7 @@ body,
     display: none;
     position: absolute;
     left: calc(var(--sidebar-icon-left) - 4px);
-    bottom: 28px;
+    bottom: 44px;
     width: max(180px, calc(100% - 26px));
     z-index: 500;
     padding: 0;
@@ -1925,8 +1925,8 @@ body,
 
 .download-name {
     font-size: 13px;
-    font-weight: 600;
-    color: #e7e7e7;
+    font-weight: 400;
+    color: #e0e0e0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1934,7 +1934,7 @@ body,
 
 .download-meta {
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 400;
     color: #888;
     overflow: hidden;
     text-overflow: ellipsis;
