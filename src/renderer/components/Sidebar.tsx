@@ -3,6 +3,7 @@ import { usePaneStore, Workspace, PaneInfo, TerminalPaneInfo, BrowserPaneInfo } 
 import { allPaneIds } from '../model/gridLayout'
 import { groupUnpinnedWorkspaces } from '../model/workspaceGrouping'
 import { paneDisplayTitle, formatTitle } from '../model/titleFormatter'
+import { toggleSidebarWithChrome } from '../model/sidebarChrome'
 import type { AgentState, BridgeState } from '../../shared/types'
 import AgentIndicator from './AgentIndicator'
 import XNextFeed from './XNextFeed'
@@ -105,7 +106,6 @@ export default function Sidebar() {
   const aiRenameWorkspace = usePaneStore((s) => s.aiRenameWorkspace)
   const sidebarWidth = usePaneStore((s) => s.sidebarWidth)
   const sidebarCollapsed = usePaneStore((s) => s.sidebarCollapsed)
-  const toggleSidebar = usePaneStore((s) => s.toggleSidebar)
   const setSidebarWidth = usePaneStore((s) => s.setSidebarWidth)
 
   const setOverlay = usePaneStore((s) => s.setOverlay)
@@ -148,10 +148,6 @@ export default function Sidebar() {
   useDismissible(contextMenu, () => setContextMenu(null))
   useDismissible(colorPicker, () => setColorPicker(null))
 
-  useEffect(() => {
-    window.arcnext.sidebar.setTrafficLightsVisible(!sidebarCollapsed)
-  }, [sidebarCollapsed])
-
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
     const startX = e.clientX
@@ -183,7 +179,7 @@ export default function Sidebar() {
       <div className="sidebar-header">
         <button
           className="sidebar-toggle"
-          onClick={toggleSidebar}
+          onClick={toggleSidebarWithChrome}
           title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">

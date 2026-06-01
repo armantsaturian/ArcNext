@@ -11,6 +11,7 @@ import {
 } from './model/agentDetector'
 import { findController } from './model/findController'
 import { NavDirection, allPaneIds } from './model/gridLayout'
+import { toggleSidebarWithChrome } from './model/sidebarChrome'
 import type { BrowserPaneInfo } from './store/paneStore'
 import type { BrowserNavigationOptions } from '../shared/types'
 
@@ -106,7 +107,7 @@ function handleGlobalShortcuts(e: KeyboardEvent, meta: boolean, alt: boolean, ke
   }
   // Cmd+B — toggle sidebar
   if (meta && !e.shiftKey && !alt && key === 'b') {
-    e.preventDefault(); state.toggleSidebar(); return true
+    e.preventDefault(); toggleSidebarWithChrome(); return true
   }
   // Cmd+D — split right
   if (meta && !e.shiftKey && !alt && key === 'd') {
