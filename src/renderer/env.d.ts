@@ -3,7 +3,8 @@ import type {
   CommandEntry,
   BrowserNavigationOptions,
   PinnedWorkspaceEntry,
-  WebEntry
+  WebEntry,
+  DownloadEntry
 } from '../shared/types'
 
 interface ArcNextAPI {
@@ -31,6 +32,15 @@ interface ArcNextAPI {
   webHistory: {
     visit(url: string, title?: string, faviconUrl?: string): Promise<void>
     query(): Promise<Array<WebEntry>>
+  }
+  downloads: {
+    list(): Promise<DownloadEntry[]>
+    openFolder(): Promise<{ ok: boolean; error?: string }>
+    openFile(id: string): Promise<{ ok: boolean; error?: string }>
+    showInFinder(id: string): Promise<{ ok: boolean; error?: string }>
+    copyPath(id: string): Promise<{ ok: boolean; error?: string }>
+    remove(id: string): Promise<{ ok: boolean; error?: string }>
+    onChanged(cb: (entries: DownloadEntry[]) => void): () => void
   }
   pinnedWorkspaces: {
     load(): Promise<PinnedWorkspaceEntry[]>

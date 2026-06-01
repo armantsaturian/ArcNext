@@ -31,6 +31,7 @@ body,
 .sidebar {
     --sb-pad: 8px;
     --sb-gap: 6px;
+    --sidebar-icon-left: 20px;
     position: relative;
     display: flex;
     flex-direction: column;
@@ -1757,6 +1758,180 @@ body,
     color: #666;
 }
 
+/* ── Recent Downloads ── */
+.downloads-tray {
+    position: relative;
+    z-index: 40;
+    flex-shrink: 0;
+    height: 38px;
+    padding: 0 0 10px calc(var(--sidebar-icon-left) - 4px);
+    display: flex;
+    align-items: center;
+    -webkit-app-region: no-drag;
+}
+
+.downloads-button {
+    width: 26px;
+    height: 26px;
+    border: none;
+    border-radius: 7px;
+    background: none;
+    color: #888;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: background 0.15s, color 0.15s;
+}
+
+.downloads-button:hover,
+.downloads-button.has-downloads {
+    color: #888;
+}
+
+.downloads-button:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.downloads-button svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.sidebar.sidebar-collapsed .downloads-tray {
+    height: 38px;
+    padding: 0 0 10px calc(var(--sidebar-icon-left) - 4px);
+}
+
+.sidebar.sidebar-collapsed .downloads-button {
+    border: none;
+}
+
+.downloads-popover {
+    display: none;
+    position: absolute;
+    left: calc(var(--sidebar-icon-left) - 4px);
+    bottom: 28px;
+    width: max(180px, calc(100% - 26px));
+    z-index: 500;
+    padding: 0;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+.downloads-button:hover ~ .downloads-popover,
+.downloads-popover:hover {
+    display: block;
+}
+
+.downloads-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.download-item {
+    width: 100%;
+    min-height: 42px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 6px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.12s;
+}
+
+.download-item:hover {
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.download-item[aria-disabled=\"true\"] {
+    cursor: default;
+}
+
+.download-thumb {
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #aaa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.download-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.download-details {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.download-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #e7e7e7;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.download-meta {
+    font-size: 12px;
+    font-weight: 600;
+    color: #888;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.download-progress {
+    height: 3px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.download-progress span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: #74c0fc;
+}
+
+.download-interrupted .download-meta {
+    color: #ffb86c;
+}
+
+.downloads-context-menu .ctx-menu-item:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.downloads-context-menu .ctx-menu-item:disabled:hover {
+    background: none;
+    color: #e0e0e0;
+}
+
 /* ── Find Bar ── */
 .find-bar {
     position: absolute;
@@ -1892,7 +2067,7 @@ body,
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 6px 10px;
+    padding: 6px 10px 6px var(--sidebar-icon-left);
     flex-shrink: 0;
 }
 
@@ -2137,8 +2312,8 @@ body,
 .xnext-collapsed {
     flex-shrink: 0;
     display: flex;
-    justify-content: center;
-    padding: 6px 0;
+    justify-content: flex-start;
+    padding: 6px 0 6px calc(var(--sidebar-icon-left) - 6px);
     border-top: 1px solid rgba(255, 255, 255, 0.06);
     -webkit-app-region: no-drag;
 }

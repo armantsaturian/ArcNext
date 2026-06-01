@@ -6,6 +6,7 @@ import { paneDisplayTitle, formatTitle } from '../model/titleFormatter'
 import type { AgentState, BridgeState } from '../../shared/types'
 import AgentIndicator from './AgentIndicator'
 import XNextFeed from './XNextFeed'
+import DownloadsTray from './DownloadsTray'
 
 function SpeakerIcon({ muted }: { muted: boolean }) {
   if (muted) {
@@ -503,6 +504,7 @@ export default function Sidebar() {
           }}
         />
       )}
+      <DownloadsTray />
       <XNextFeed />
       {!sidebarCollapsed && (
         <div className="sidebar-resize-handle" onMouseDown={handleResizeStart} />

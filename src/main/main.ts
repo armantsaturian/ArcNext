@@ -7,6 +7,7 @@ import { setupDirHistory, flushDirHistorySync } from './dirHistory'
 import { setupDirDiscovery } from './dirDiscovery'
 import { setupCommandHistory } from './commandHistory'
 import { setupWebHistory, flushWebHistorySync } from './webHistory'
+import { setupDownloads, flushDownloadsSync } from './downloads'
 import { setupPinnedWorkspaces, flushPinnedWorkspacesSync } from './pinnedWorkspaces'
 import { hasFullDiskAccess, showFDADialog } from './fullDiskAccess'
 import { setupBrowserViewManager, destroyAllBrowserViews } from './browserViewManager'
@@ -75,6 +76,7 @@ function createWindow(): void {
   setupWebHistory()
   setupPinnedWorkspaces()
   setupBrowserViewManager(mainWindow)
+  setupDownloads(mainWindow)
   void setupWebBridge(mainWindow)
   setupDictation(mainWindow)
   setupAiRename()
@@ -213,6 +215,7 @@ app.on('before-quit', () => {
   destroyAllBrowserViews()
   flushDirHistorySync()
   flushWebHistorySync()
+  flushDownloadsSync()
   flushPinnedWorkspacesSync()
   flushTrashblockSync()
   flushXNextSync()

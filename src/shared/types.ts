@@ -57,6 +57,22 @@ export interface WebEntry {
   score: number
 }
 
+export type DownloadState = 'progressing' | 'completed' | 'interrupted'
+
+export interface DownloadEntry {
+  id: string
+  filename: string
+  path: string
+  url: string
+  mimeType: string
+  state: DownloadState
+  receivedBytes: number
+  totalBytes: number
+  startedAt: number
+  completedAt?: number
+  thumbnailDataUrl?: string
+}
+
 export interface CommandEntry {
   command: string
   visitCount: number
@@ -126,6 +142,13 @@ export interface IPCChannels {
   'commandHistory:query': () => Promise<CommandEntry[]>
   'webHistory:visit': (url: string, title?: string, faviconUrl?: string) => void
   'webHistory:query': () => Promise<WebEntry[]>
+  'downloads:list': () => Promise<DownloadEntry[]>
+  'downloads:openFolder': () => Promise<{ ok: boolean; error?: string }>
+  'downloads:openFile': (id: string) => Promise<{ ok: boolean; error?: string }>
+  'downloads:showInFinder': (id: string) => Promise<{ ok: boolean; error?: string }>
+  'downloads:copyPath': (id: string) => Promise<{ ok: boolean; error?: string }>
+  'downloads:remove': (id: string) => Promise<{ ok: boolean; error?: string }>
+  'downloads:changed': (entries: DownloadEntry[]) => void
   // Browser view lifecycle
   'browser:create': (paneId: string, url: string, options?: BrowserNavigationOptions) => void
   'browser:destroy': (paneId: string) => void

@@ -201,7 +201,7 @@ function buildContextMenu(
 
   if (mediaType === 'image' && srcURL) {
     menu.append(new MenuItem({
-      label: 'Save Image As\u2026',
+      label: 'Save Image to Downloads',
       click: () => wc.downloadURL(srcURL)
     }))
     menu.append(new MenuItem({

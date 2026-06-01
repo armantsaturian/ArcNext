@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent, webUtils } from 'electron'
-import type { BrowserNavigationOptions } from '../shared/types'
+import type { BrowserNavigationOptions, DownloadEntry } from '../shared/types'
 
 type Callback = (...args: unknown[]) => void
 
@@ -30,6 +30,19 @@ const api = {
     visit: (url: string, title?: string, faviconUrl?: string) =>
       ipcRenderer.invoke('webHistory:visit', url, title, faviconUrl),
     query: () => ipcRenderer.invoke('webHistory:query')
+  },
+  downloads: {
+    list: () => ipcRenderer.invoke('downloads:list'),
+    openFolder: () => ipcRenderer.invoke('downloads:openFolder'),
+    openFile: (id: string) => ipcRenderer.invoke('downloads:openFile', id),
+    showInFinder: (id: string) => ipcRenderer.invoke('downloads:showInFinder', id),
+    copyPath: (id: string) => ipcRenderer.invoke('downloads:copyPath', id),
+    remove: (id: string) => ipcRenderer.invoke('downloads:remove', id),
+    onChanged: (cb: (entries: DownloadEntry[]) => void) => {
+      const handler = (_event: IpcRendererEvent, entries: DownloadEntry[]) => cb(entries)
+      ipcRenderer.on('downloads:changed', handler)
+      return () => { ipcRenderer.removeListener('downloads:changed', handler) }
+    }
   },
   pty: {
     create: (paneId: string, cwd?: string) =>
