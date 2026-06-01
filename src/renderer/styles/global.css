@@ -176,10 +176,29 @@ body,
     cursor: pointer;
     display: flex;
     align-items: center;
+    gap: 8px;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
     transition: background 0.15s;
+}
+
+.sidebar-add-icon {
+    width: var(--sidebar-icon-size);
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 16px;
+    line-height: 1;
+}
+
+.sidebar-add-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .sidebar-add:hover {
@@ -196,6 +215,7 @@ body,
     border-radius: 8px;
     font-size: 13px;
     justify-content: flex-start;
+    gap: 0;
     border: none;
 }
 

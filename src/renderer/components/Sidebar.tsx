@@ -427,7 +427,8 @@ export default function Sidebar() {
             setDragSourceId(null); setDragOverState(null)
           }}
         >
-          {sidebarCollapsed ? '+' : '+ New Workspace'}
+          <span className="sidebar-add-icon">+</span>
+          {!sidebarCollapsed && <span className="sidebar-add-label">New Workspace</span>}
         </button>
       </div>
       {contextMenu && (() => {
