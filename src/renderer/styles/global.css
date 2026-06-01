@@ -31,7 +31,13 @@ body,
 .sidebar {
     --sb-pad: 8px;
     --sb-gap: 6px;
-    --sidebar-icon-left: 20px;
+    --sidebar-collapsed-width: 48px;
+    --sidebar-icon-size: 16px;
+    --sidebar-download-button-size: 26px;
+    --sidebar-list-x-pad: 10px;
+    --sidebar-icon-left: calc((var(--sidebar-collapsed-width) - var(--sidebar-icon-size)) / 2);
+    --sidebar-icon-left-in-list: calc(var(--sidebar-icon-left) - var(--sidebar-list-x-pad));
+    --sidebar-download-left: calc((var(--sidebar-collapsed-width) - var(--sidebar-download-button-size)) / 2);
     position: relative;
     display: flex;
     flex-direction: column;
@@ -86,10 +92,15 @@ body,
 .sidebar.sidebar-collapsed .ws-row {
     width: 100%;
     height: 34px;
-    padding: 0;
+    padding: 0 0 0 var(--sidebar-icon-left);
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;
     margin-bottom: 2px;
+    background: transparent;
+}
+
+.sidebar.sidebar-collapsed .ws-row.active,
+.sidebar.sidebar-collapsed .ws-row:hover {
     background: transparent;
 }
 
@@ -138,7 +149,7 @@ body,
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 4px 10px;
+    padding: 4px var(--sidebar-list-x-pad);
     -webkit-app-region: no-drag;
 }
 
@@ -154,7 +165,7 @@ body,
 .sidebar-add {
     width: 100%;
     height: 34px;
-    padding: 0 10px;
+    padding: 0 10px 0 var(--sidebar-icon-left-in-list);
     margin-bottom: 2px;
     border-radius: 8px;
     border: none;
@@ -179,12 +190,12 @@ body,
 .sidebar.sidebar-collapsed .sidebar-add {
     width: 100%;
     height: 34px;
-    padding: 0;
+    padding: 0 0 0 var(--sidebar-icon-left);
     margin-bottom: 2px;
     border-left: none;
     border-radius: 8px;
     font-size: 13px;
-    justify-content: center;
+    justify-content: flex-start;
     border: none;
 }
 
@@ -239,7 +250,7 @@ body,
 .ws-row {
     position: relative;
     height: 34px;
-    padding: 0 10px;
+    padding: 0 10px 0 var(--sidebar-icon-left-in-list);
     margin-bottom: 2px;
     border-radius: 8px;
     background: color-mix(in srgb, var(--ws-color, transparent) 15%, transparent);
@@ -381,8 +392,13 @@ body,
 }
 
 .ws-icon {
+    width: var(--sidebar-icon-size);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     font-size: 10px;
     color: var(--ws-color, #74c0fc);
+    flex-shrink: 0;
 }
 
 /* ── Agent Indicator ── */
@@ -1758,15 +1774,15 @@ body,
     z-index: 40;
     flex-shrink: 0;
     height: 38px;
-    padding: 0 0 10px calc(var(--sidebar-icon-left) - 4px);
+    padding: 0 0 10px var(--sidebar-download-left);
     display: flex;
     align-items: center;
     -webkit-app-region: no-drag;
 }
 
 .downloads-button {
-    width: 26px;
-    height: 26px;
+    width: var(--sidebar-download-button-size);
+    height: var(--sidebar-download-button-size);
     border: none;
     border-radius: 7px;
     background: none;
@@ -1796,8 +1812,8 @@ body,
 
 .sidebar.sidebar-collapsed .downloads-tray {
     height: 38px;
-    padding: 0 0 10px;
-    justify-content: center;
+    padding: 0 0 10px var(--sidebar-download-left);
+    justify-content: flex-start;
 }
 
 .sidebar.sidebar-collapsed .downloads-button {
@@ -2067,6 +2083,9 @@ body,
 }
 
 .xnext-title {
+    width: var(--sidebar-icon-size);
+    display: inline-flex;
+    justify-content: center;
     font-size: 13px;
     font-weight: 700;
     color: #e0e0e0;
@@ -2307,8 +2326,8 @@ body,
 .xnext-collapsed {
     flex-shrink: 0;
     display: flex;
-    justify-content: center;
-    padding: 6px 0;
+    justify-content: flex-start;
+    padding: 6px 0 6px var(--sidebar-icon-left);
     border-top: 1px solid rgba(255, 255, 255, 0.06);
     -webkit-app-region: no-drag;
 }
