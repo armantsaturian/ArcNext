@@ -29,8 +29,6 @@ body,
 
 /* ── Sidebar ── */
 .sidebar {
-    --sb-pad: 8px;
-    --sb-gap: 6px;
     --sidebar-collapsed-width: 48px;
     --sidebar-icon-size: 16px;
     --sidebar-download-button-size: 26px;
@@ -1973,7 +1971,7 @@ body,
     padding: 4px 0;
 }
 
-.download-item[aria-disabled=\"true\"] {
+.download-item[aria-disabled="true"] {
     cursor: default;
 }
 

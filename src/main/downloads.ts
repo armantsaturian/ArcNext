@@ -15,6 +15,7 @@ const TEMP_DOWNLOAD_SUFFIXES = ['.crdownload', '.download', '.part', '.tmp']
 let win: BrowserWindow | null = null
 let sessionWired = false
 let handlersRegistered = false
+let downloadsEmitSeq = 0
 
 const activeDownloads = new Map<string, DownloadEntry>()
 const reservedSavePaths = new Set<string>()
@@ -256,8 +257,11 @@ async function currentDownloads(): Promise<DownloadEntry[]> {
 function emitDownloadsChanged(): void {
   if (!win || win.isDestroyed()) return
   const target = win
+  const seq = ++downloadsEmitSeq
   void currentDownloads().then((entries) => {
-    if (!target.isDestroyed()) target.webContents.send('downloads:changed', entries)
+    if (seq === downloadsEmitSeq && !target.isDestroyed()) {
+      target.webContents.send('downloads:changed', entries)
+    }
   })
 }
 
@@ -307,8 +311,17 @@ function wireDownloadSession(): void {
 
     item.once('done', (_event, state) => {
       reservedSavePaths.delete(savePath)
-      activeDownloads.delete(entry.id)
-      if (state !== 'completed') hiddenPaths.delete(savePath)
+      const current = activeDownloads.get(entry.id)
+      if (state === 'completed') {
+        activeDownloads.delete(entry.id)
+      } else if (current) {
+        activeDownloads.set(entry.id, {
+          ...current,
+          state: 'interrupted',
+          receivedBytes: item.getReceivedBytes(),
+          totalBytes: item.getTotalBytes()
+        })
+      }
       emitDownloadsChanged()
     })
   })
