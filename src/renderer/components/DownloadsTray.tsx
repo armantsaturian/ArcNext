@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { DownloadEntry } from '../../shared/types'
 import { refreshDownloads, useDownloadsSnapshot } from '../store/downloadsStore'
+import { usePaneStore } from '../store/paneStore'
 
 function DownloadsIcon({ className }: { className?: string }) {
   return (
@@ -86,7 +87,18 @@ function newestRecentDownload(downloads: DownloadEntry[]): DownloadEntry | undef
 export default function DownloadsTray() {
   const downloads = useDownloadsSnapshot()
   const arrivingDownload = newestRecentDownload(downloads)
+  const setOverlay = usePaneStore((s) => s.setOverlay)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; download: DownloadEntry } | null>(null)
+
+  const openDownloadsOverlay = () => {
+    setOverlay('downloads', true)
+    refreshDownloads()
+  }
+
+  const closeDownloadsOverlay = () => {
+    setContextMenu(null)
+    setOverlay('downloads', false)
+  }
 
   const openDownload = (download: DownloadEntry) => {
     if (download.state !== 'completed') return
@@ -111,12 +123,12 @@ export default function DownloadsTray() {
   return (
     <div
       className={`downloads-tray${contextMenu ? ' downloads-menu-open' : ''}`}
-      onMouseLeave={() => setContextMenu(null)}
+      onMouseEnter={openDownloadsOverlay}
+      onMouseLeave={closeDownloadsOverlay}
     >
       <button
         className={`downloads-button${downloads.length > 0 ? ' has-downloads' : ''}`}
         title="Downloads"
-        onMouseEnter={refreshDownloads}
         onClick={() => window.arcnext.downloads.openFolder().then(refreshDownloads).catch(() => {})}
       >
         <DownloadsIcon />
