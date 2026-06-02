@@ -125,8 +125,10 @@ interface PaneStore {
   // Sidebar UI
   sidebarWidth: number
   sidebarCollapsed: boolean
+  xnextCollapsed: boolean
   toggleSidebar: () => void
   setSidebarWidth: (width: number) => void
+  setXNextCollapsed: (collapsed: boolean) => void
 
   // Workspace actions
   addWorkspace: (cwd?: string, options?: TerminalWorkspaceOptions) => void
@@ -447,8 +449,10 @@ export const usePaneStore = create<PaneStore>((set, get) => ({
 
   sidebarWidth: 220,
   sidebarCollapsed: false,
+  xnextCollapsed: false,
   toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
   setSidebarWidth: (width) => set({ sidebarWidth: Math.max(150, Math.min(400, width)) }),
+  setXNextCollapsed: (collapsed) => set({ xnextCollapsed: collapsed }),
 
   addWorkspace: (cwd?: string, options?: TerminalWorkspaceOptions) => {
     const { workspaces, activeWorkspaceId, panes } = get()

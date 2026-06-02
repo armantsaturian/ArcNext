@@ -5,8 +5,9 @@ import type { XNextTweet } from '../../extensions/xnext/types'
 
 export default function XNextFeed() {
   const sidebarCollapsed = usePaneStore((s) => s.sidebarCollapsed)
+  const xnextCollapsed = usePaneStore((s) => s.xnextCollapsed)
+  const setXNextCollapsed = usePaneStore((s) => s.setXNextCollapsed)
   const { enabled, tweets, loading, xcliMissing } = useXNextSnapshot()
-  const [collapsed, setCollapsed] = useState(false)
   const [composeText, setComposeText] = useState('')
   const [composing, setComposing] = useState(false)
   const [mediaPaths, setMediaPaths] = useState<string[]>([])
@@ -74,15 +75,15 @@ export default function XNextFeed() {
           </button>
           <button
             className="xnext-collapse-btn"
-            onClick={() => setCollapsed(!collapsed)}
-            title={collapsed ? 'Expand' : 'Collapse'}
+            onClick={() => setXNextCollapsed(!xnextCollapsed)}
+            title={xnextCollapsed ? 'Expand' : 'Collapse'}
             tabIndex={sidebarCollapsed ? -1 : 0}
           >
-            {collapsed ? '▲' : '▼'}
+            {xnextCollapsed ? '▲' : '▼'}
           </button>
         </div>
       </div>
-      {!sidebarCollapsed && !collapsed && (
+      {!sidebarCollapsed && !xnextCollapsed && (
         <>
           {composing && (
             <div className="xnext-compose">

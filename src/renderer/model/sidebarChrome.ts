@@ -24,6 +24,8 @@ function syncTrafficLightsForSidebar(nextCollapsed: boolean): void {
 
 export function toggleSidebarWithChrome(): void {
   const state = usePaneStore.getState()
-  syncTrafficLightsForSidebar(!state.sidebarCollapsed)
+  const nextCollapsed = !state.sidebarCollapsed
+  syncTrafficLightsForSidebar(nextCollapsed)
+  if (nextCollapsed) state.setXNextCollapsed(true)
   state.toggleSidebar()
 }
