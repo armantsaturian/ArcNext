@@ -1,4 +1,4 @@
-import { app, BrowserWindow, clipboard, ipcMain, nativeImage, shell } from 'electron'
+import { app, BrowserWindow, clipboard, ipcMain, Menu, nativeImage, shell } from 'electron'
 import { existsSync, readdirSync, statSync } from 'fs'
 import type { Dirent } from 'fs'
 import { basename, extname, join, relative, resolve, sep } from 'path'
@@ -336,6 +336,70 @@ async function findDownload(id: string): Promise<DownloadEntry | undefined> {
   return entryForPath(path)
 }
 
+async function openDownloadFile(id: string): Promise<{ ok: boolean; error?: string }> {
+  const entry = await findDownload(id)
+  if (!entry || entry.state !== 'completed') return { ok: false, error: 'Download is not available' }
+  const error = await shell.openPath(entry.path)
+  emitDownloadsChanged()
+  return { ok: !error, error: error || undefined }
+}
+
+async function showDownloadInFinder(id: string): Promise<{ ok: boolean; error?: string }> {
+  const entry = await findDownload(id)
+  if (!entry || entry.state !== 'completed') return { ok: false, error: 'Download is not available' }
+  shell.showItemInFolder(entry.path)
+  emitDownloadsChanged()
+  return { ok: true }
+}
+
+async function copyDownloadPath(id: string): Promise<{ ok: boolean; error?: string }> {
+  const entry = await findDownload(id)
+  if (!entry) return { ok: false, error: 'Download is not available' }
+  clipboard.writeText(entry.path)
+  return { ok: true }
+}
+
+async function removeDownloadFromList(id: string): Promise<{ ok: boolean; error?: string }> {
+  const entry = await findDownload(id)
+  if (entry) hiddenPaths.add(entry.path)
+  activeDownloads.delete(id)
+  emitDownloadsChanged()
+  return { ok: true }
+}
+
+async function showDownloadContextMenu(id: string, x?: number, y?: number): Promise<{ ok: boolean; error?: string }> {
+  if (!win || win.isDestroyed()) return { ok: false, error: 'Window is not available' }
+
+  const entry = await findDownload(id)
+  if (!entry) return { ok: false, error: 'Download is not available' }
+
+  const menu = Menu.buildFromTemplate([
+    {
+      label: 'Show in Finder',
+      enabled: entry.state === 'completed',
+      click: () => { void showDownloadInFinder(id) }
+    },
+    {
+      label: 'Copy Path',
+      click: () => { void copyDownloadPath(id) }
+    },
+    { type: 'separator' },
+    {
+      label: 'Remove from List',
+      click: () => { void removeDownloadFromList(id) }
+    }
+  ])
+
+  menu.popup({
+    window: win,
+    ...(Number.isFinite(x) && Number.isFinite(y)
+      ? { x: Math.round(x as number), y: Math.round(y as number) }
+      : {})
+  })
+
+  return { ok: true }
+}
+
 function registerIpcHandlers(): void {
   if (handlersRegistered) return
   handlersRegistered = true
@@ -347,36 +411,17 @@ function registerIpcHandlers(): void {
     return { ok: !error, error: error || undefined }
   })
 
-  ipcMain.handle('downloads:openFile', async (_event, id: string) => {
-    const entry = await findDownload(id)
-    if (!entry || entry.state !== 'completed') return { ok: false, error: 'Download is not available' }
-    const error = await shell.openPath(entry.path)
-    emitDownloadsChanged()
-    return { ok: !error, error: error || undefined }
-  })
+  ipcMain.handle('downloads:openFile', (_event, id: string) => openDownloadFile(id))
 
-  ipcMain.handle('downloads:showInFinder', async (_event, id: string) => {
-    const entry = await findDownload(id)
-    if (!entry || entry.state !== 'completed') return { ok: false, error: 'Download is not available' }
-    shell.showItemInFolder(entry.path)
-    emitDownloadsChanged()
-    return { ok: true }
-  })
+  ipcMain.handle('downloads:showInFinder', (_event, id: string) => showDownloadInFinder(id))
 
-  ipcMain.handle('downloads:copyPath', async (_event, id: string) => {
-    const entry = await findDownload(id)
-    if (!entry) return { ok: false, error: 'Download is not available' }
-    clipboard.writeText(entry.path)
-    return { ok: true }
-  })
+  ipcMain.handle('downloads:copyPath', (_event, id: string) => copyDownloadPath(id))
 
-  ipcMain.handle('downloads:remove', async (_event, id: string) => {
-    const entry = await findDownload(id)
-    if (entry) hiddenPaths.add(entry.path)
-    activeDownloads.delete(id)
-    emitDownloadsChanged()
-    return { ok: true }
-  })
+  ipcMain.handle('downloads:remove', (_event, id: string) => removeDownloadFromList(id))
+
+  ipcMain.handle('downloads:showContextMenu', (_event, id: string, x?: number, y?: number) =>
+    showDownloadContextMenu(id, x, y)
+  )
 }
 
 export function setupDownloads(mainWindow: BrowserWindow): void {

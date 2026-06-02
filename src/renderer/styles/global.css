@@ -1804,10 +1804,6 @@ body,
     -webkit-app-region: no-drag;
 }
 
-.downloads-tray.downloads-menu-open {
-    z-index: 800;
-}
-
 .downloads-button {
     width: var(--sidebar-download-button-size);
     height: var(--sidebar-download-button-size);
@@ -1922,7 +1918,6 @@ body,
 }
 
 .downloads-button:hover ~ .downloads-popover,
-.downloads-tray.downloads-menu-open .downloads-popover,
 .downloads-popover:hover {
     display: block;
 }
@@ -2046,24 +2041,6 @@ body,
 
 .download-interrupted .download-meta {
     color: #ffb86c;
-}
-
-.downloads-context-menu {
-    z-index: 900;
-    min-width: 180px;
-    background: #1f1f1f;
-    border-color: rgba(255, 255, 255, 0.18);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.62);
-}
-
-.downloads-context-menu .ctx-menu-item:disabled {
-    opacity: 0.45;
-    cursor: default;
-}
-
-.downloads-context-menu .ctx-menu-item:disabled:hover {
-    background: none;
-    color: #e0e0e0;
 }
 
 /* ── Find Bar ── */

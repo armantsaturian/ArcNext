@@ -1,7 +1,5 @@
-import { useState } from 'react'
 import type { DownloadEntry } from '../../shared/types'
 import { refreshDownloads, useDownloadsSnapshot } from '../store/downloadsStore'
-import { usePaneStore } from '../store/paneStore'
 
 function DownloadsIcon({ className }: { className?: string }) {
   return (
@@ -87,17 +85,9 @@ function newestRecentDownload(downloads: DownloadEntry[]): DownloadEntry | undef
 export default function DownloadsTray() {
   const downloads = useDownloadsSnapshot()
   const arrivingDownload = newestRecentDownload(downloads)
-  const setOverlay = usePaneStore((s) => s.setOverlay)
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; download: DownloadEntry } | null>(null)
 
-  const openDownloadsOverlay = () => {
-    setOverlay('downloads', true)
+  const openDownloadsPreview = () => {
     refreshDownloads()
-  }
-
-  const closeDownloadsOverlay = () => {
-    setContextMenu(null)
-    setOverlay('downloads', false)
   }
 
   const openDownload = (download: DownloadEntry) => {
@@ -105,26 +95,10 @@ export default function DownloadsTray() {
     window.arcnext.downloads.openFile(download.id).then(refreshDownloads).catch(() => {})
   }
 
-  const showInFinder = (download: DownloadEntry) => {
-    window.arcnext.downloads.showInFinder(download.id).then(refreshDownloads).catch(() => {})
-    setContextMenu(null)
-  }
-
-  const copyPath = (download: DownloadEntry) => {
-    window.arcnext.downloads.copyPath(download.id).catch(() => {})
-    setContextMenu(null)
-  }
-
-  const removeDownload = (download: DownloadEntry) => {
-    window.arcnext.downloads.remove(download.id).then(refreshDownloads).catch(() => {})
-    setContextMenu(null)
-  }
-
   return (
     <div
-      className={`downloads-tray${contextMenu ? ' downloads-menu-open' : ''}`}
-      onMouseEnter={openDownloadsOverlay}
-      onMouseLeave={closeDownloadsOverlay}
+      className="downloads-tray"
+      onMouseEnter={openDownloadsPreview}
     >
       <button
         className={`downloads-button${downloads.length > 0 ? ' has-downloads' : ''}`}
@@ -165,7 +139,10 @@ export default function DownloadsTray() {
                   onContextMenu={(e) => {
                     e.preventDefault()
                     e.stopPropagation()
-                    setContextMenu({ x: e.clientX, y: e.clientY, download })
+                    window.arcnext.downloads
+                      .showContextMenu(download.id, e.clientX, e.clientY)
+                      .then(refreshDownloads)
+                      .catch(() => {})
                   }}
                 >
                   <span className="download-thumb">
@@ -188,34 +165,6 @@ export default function DownloadsTray() {
               )
             })}
           </div>
-        </div>
-      )}
-
-      {contextMenu && (
-        <div
-          className="ctx-menu downloads-context-menu"
-          style={{ left: contextMenu.x, top: contextMenu.y }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button
-            className="ctx-menu-item"
-            disabled={contextMenu.download.state !== 'completed'}
-            onClick={() => showInFinder(contextMenu.download)}
-          >
-            Show in Finder
-          </button>
-          <button
-            className="ctx-menu-item"
-            onClick={() => copyPath(contextMenu.download)}
-          >
-            Copy Path
-          </button>
-          <button
-            className="ctx-menu-item"
-            onClick={() => removeDownload(contextMenu.download)}
-          >
-            Remove from List
-          </button>
         </div>
       )}
     </div>

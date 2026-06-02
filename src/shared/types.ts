@@ -148,6 +148,7 @@ export interface IPCChannels {
   'downloads:showInFinder': (id: string) => Promise<{ ok: boolean; error?: string }>
   'downloads:copyPath': (id: string) => Promise<{ ok: boolean; error?: string }>
   'downloads:remove': (id: string) => Promise<{ ok: boolean; error?: string }>
+  'downloads:showContextMenu': (id: string, x?: number, y?: number) => Promise<{ ok: boolean; error?: string }>
   'downloads:changed': (entries: DownloadEntry[]) => void
   // Browser view lifecycle
   'browser:create': (paneId: string, url: string, options?: BrowserNavigationOptions) => void

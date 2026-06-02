@@ -38,6 +38,8 @@ const api = {
     showInFinder: (id: string) => ipcRenderer.invoke('downloads:showInFinder', id),
     copyPath: (id: string) => ipcRenderer.invoke('downloads:copyPath', id),
     remove: (id: string) => ipcRenderer.invoke('downloads:remove', id),
+    showContextMenu: (id: string, x?: number, y?: number) =>
+      ipcRenderer.invoke('downloads:showContextMenu', id, x, y),
     onChanged: (cb: (entries: DownloadEntry[]) => void) => {
       const handler = (_event: IpcRendererEvent, entries: DownloadEntry[]) => cb(entries)
       ipcRenderer.on('downloads:changed', handler)

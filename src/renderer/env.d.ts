@@ -40,6 +40,7 @@ interface ArcNextAPI {
     showInFinder(id: string): Promise<{ ok: boolean; error?: string }>
     copyPath(id: string): Promise<{ ok: boolean; error?: string }>
     remove(id: string): Promise<{ ok: boolean; error?: string }>
+    showContextMenu(id: string, x?: number, y?: number): Promise<{ ok: boolean; error?: string }>
     onChanged(cb: (entries: DownloadEntry[]) => void): () => void
   }
   pinnedWorkspaces: {
