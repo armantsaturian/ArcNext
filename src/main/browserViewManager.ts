@@ -236,10 +236,10 @@ export function setupBrowserViewManager(mainWindow: BrowserWindow): void {
   ipcMain.on('browser:show', (_e, paneId: string) => {
     const managed = views.get(paneId)
     if (!managed || !win || win.isDestroyed()) return
-    const children = win.contentView.children
-    if (!children.includes(managed.view)) {
-      win.contentView.addChildView(managed.view)
-    }
+    // Re-add even when already attached: Electron reorders an existing child
+    // view to the top, which keeps the active browser pane above stale/native
+    // views when switching workspaces or coming back from DOM overlays.
+    win.contentView.addChildView(managed.view)
     if (fullscreenPaneId === paneId) applyFullscreenBounds(managed)
     else applyPlaceholderBounds(managed)
   })
