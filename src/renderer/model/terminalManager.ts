@@ -115,6 +115,10 @@ export function createTerminal(paneId: string, cwd?: string, options: TerminalCr
     },
     cursorBlink: true,
     allowProposedApi: true,
+    linkHandler: {
+      activate: (_event, uri) => openExternalLink(uri, paneId),
+      allowNonHttpProtocols: false
+    },
     scrollback: 10_000
   })
 
