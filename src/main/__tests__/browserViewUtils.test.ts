@@ -298,6 +298,46 @@ describe('wireBrowserViewEvents', () => {
     expect(onLoadFailed).not.toHaveBeenCalled()
   })
 
+  it('ignores in-page navigations from subframes', () => {
+    const { view, emit } = createMockView()
+    const onUrl = vi.fn()
+    const onNavState = vi.fn()
+
+    wireBrowserViewEvents(view, { onUrl, onNavState })
+
+    emit(
+      'did-navigate-in-page',
+      {},
+      'https://cs.ns1p.net/u.html?a=1516sqc#check',
+      false,
+      6,
+      17
+    )
+
+    expect(onUrl).not.toHaveBeenCalled()
+    expect(onNavState).not.toHaveBeenCalled()
+  })
+
+  it('reports main-frame in-page navigations', () => {
+    const { view, emit } = createMockView()
+    const onUrl = vi.fn()
+    const onNavState = vi.fn()
+
+    wireBrowserViewEvents(view, { onUrl, onNavState })
+
+    emit(
+      'did-navigate-in-page',
+      {},
+      'https://www.linkedin.com/feed/#updates',
+      true,
+      1,
+      1
+    )
+
+    expect(onUrl).toHaveBeenCalledWith('https://www.linkedin.com/feed/#updates')
+    expect(onNavState).toHaveBeenCalledWith(false, false)
+  })
+
   it('preserves the source referrer when opening target-blank links in a new workspace', () => {
     const { view } = createMockView()
     const onOpenInNewWorkspace = vi.fn()

@@ -329,7 +329,8 @@ export function wireBrowserViewEvents(
     wc.setVisualZoomLevelLimits(1, 5)
   }
 
-  const onDidNavigateInPage = (_event: Electron.Event, url: string): void => {
+  const onDidNavigateInPage = (_event: Electron.Event, url: string, isMainFrame: boolean): void => {
+    if (!isMainFrame) return
     callbacks.onUrl?.(url)
     sendNavState()
   }
